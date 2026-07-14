@@ -1,0 +1,117 @@
+[
+  {
+    "id": "hero-ocean",
+    "use": "homepage hero",
+    "prompt": "Photorealistic international container vessel at a modern port before sunrise, wide cinematic composition, operational realism, clear negative space on the left for HTML copy, carbon blue atmosphere with restrained orange port lights, no logos, no text, no watermark"
+  },
+  {
+    "id": "hero-air",
+    "use": "homepage hero",
+    "prompt": "Photorealistic air cargo aircraft and loading operation at a modern freight apron, wide cinematic composition, clear negative space on the left, cool industrial lighting, no airline branding, no text, no watermark"
+  },
+  {
+    "id": "hero-rail",
+    "use": "homepage hero",
+    "prompt": "Photorealistic Eurasian freight train carrying containers through a broad continental landscape, wide cinematic composition, clear negative space on the left, realistic infrastructure, no logos, no text, no watermark"
+  },
+  {
+    "id": "hero-road",
+    "use": "homepage hero",
+    "prompt": "Photorealistic international road freight convoy at a modern logistics corridor, wide cinematic composition, clear negative space on the left, realistic weather and road texture, no company branding, no text, no watermark"
+  },
+  {
+    "id": "service-ocean",
+    "use": "service header",
+    "prompt": "Photorealistic container terminal crane operation viewed from an elevated angle, editorial freight photography, wide framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "service-air",
+    "use": "service header",
+    "prompt": "Photorealistic airport cargo pallets being prepared beside a freight aircraft, editorial operations photography, wide framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "service-rail",
+    "use": "service header",
+    "prompt": "Photorealistic intermodal rail terminal with freight containers and gantry equipment, wide editorial framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "service-road",
+    "use": "service header",
+    "prompt": "Photorealistic long-haul freight truck at an international logistics hub, wide editorial framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "service-multimodal",
+    "use": "service header",
+    "prompt": "Photorealistic multimodal freight hub showing rail, truck and stacked containers in one credible scene, wide framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "service-customs",
+    "use": "service header",
+    "prompt": "Photorealistic customs documentation workspace with cargo manifests, seal and inspection context, no readable private data, no logos, no text overlay, no watermark"
+  },
+  {
+    "id": "service-warehouse",
+    "use": "service header",
+    "prompt": "Photorealistic modern freight warehouse with organized pallet lanes and safe operations, wide editorial framing, no logos, no text, no watermark"
+  },
+  {
+    "id": "lane-china-russia",
+    "use": "trade lane",
+    "prompt": "Photorealistic rail freight crossing a cold continental landscape associated with China to Russia trade, no flags, no logos, no text, no watermark"
+  },
+  {
+    "id": "lane-china-europe",
+    "use": "trade lane",
+    "prompt": "Photorealistic intercontinental freight train moving through a broad Eurasian corridor toward Europe, no flags, no logos, no text, no watermark"
+  },
+  {
+    "id": "lane-central-asia",
+    "use": "trade lane",
+    "prompt": "Photorealistic road and rail logistics corridor through Central Asian terrain with modern freight infrastructure, no logos, no text, no watermark"
+  },
+  {
+    "id": "lane-global",
+    "use": "trade lane",
+    "prompt": "Photorealistic global container port network scene with vessels and terminal infrastructure, realistic scale, no logos, no text, no watermark"
+  },
+  {
+    "id": "cargo-project",
+    "use": "special cargo",
+    "prompt": "Photorealistic project cargo operation lifting industrial equipment with professional rigging, safe realistic procedure, no logos, no text, no watermark"
+  },
+  {
+    "id": "cargo-oversized",
+    "use": "special cargo",
+    "prompt": "Photorealistic oversized machinery secured on specialized transport equipment, credible logistics operation, no logos, no text, no watermark"
+  },
+  {
+    "id": "cargo-dangerous",
+    "use": "special cargo",
+    "prompt": "Photorealistic regulated dangerous-goods freight handling with compliant containers and protective procedures, no brand labels, no text overlay, no watermark"
+  },
+  {
+    "id": "cargo-cold-chain",
+    "use": "special cargo",
+    "prompt": "Photorealistic temperature-controlled warehouse and refrigerated freight handling, clean modern environment, no logos, no text, no watermark"
+  },
+  {
+    "id": "trust-operations",
+    "use": "trust section",
+    "prompt": "Photorealistic diverse logistics operations team coordinating shipments in a modern control room, natural professional scene, no visible company logos, no text, no watermark"
+  },
+  {
+    "id": "trust-warehouse",
+    "use": "trust section",
+    "prompt": "Photorealistic warehouse quality inspection and inventory coordination, natural editorial lighting, no logos, no text, no watermark"
+  },
+  {
+    "id": "trust-customs",
+    "use": "trust section",
+    "prompt": "Photorealistic freight documentation review between logistics professionals, documents contain no readable private data, no logos, no watermark"
+  },
+  {
+    "id": "trust-coordination",
+    "use": "trust section",
+    "prompt": "Photorealistic international logistics coordination meeting around a shipment route display, no visible third-party brands, no readable confidential text, no watermark"
+  }
+]
