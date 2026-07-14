@@ -44,7 +44,11 @@ function insertService(
         locale: translation.locale,
         status: translation.status ?? "published",
         publishedAt:
-          translation.publishedAt ?? new Date("2026-07-13T12:00:00.000Z"),
+          translation.publishedAt ??
+          (translation.status === undefined ||
+          translation.status === "published"
+            ? new Date("2026-07-13T12:00:00.000Z")
+            : undefined),
         slug: translation.slug,
         title: translation.title,
         summary: `${translation.title} summary`,

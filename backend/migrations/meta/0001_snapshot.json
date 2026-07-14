@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a446a90b-a9d0-4fca-b156-0150e3fe06ff",
+  "id": "2191b341-7989-4d10-8498-16cfa7ef243e",
   "prevId": "c6869190-820c-4373-8c4b-d173a13bbfba",
   "tables": {
     "account": {
@@ -488,7 +488,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "article_translations_locale_check": {
+          "name": "article_translations_locale_check",
+          "value": "\"article_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "article_translations_status_check": {
+          "name": "article_translations_status_check",
+          "value": "\"article_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "article_translations_publication_tuple_check": {
+          "name": "article_translations_publication_tuple_check",
+          "value": "(\n          (\"article_translations\".\"status\" = 'draft' and \"article_translations\".\"scheduled_at\" is null and \"article_translations\".\"published_at\" is null)\n          or (\"article_translations\".\"status\" = 'scheduled' and \"article_translations\".\"scheduled_at\" is not null and \"article_translations\".\"published_at\" is null)\n          or (\"article_translations\".\"status\" = 'published' and \"article_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "articles": {
       "name": "articles",
@@ -593,7 +606,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "articles_process_stage_check": {
+          "name": "articles_process_stage_check",
+          "value": "\"articles\".\"process_stage_id\" is null or \"articles\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "cargo_type_translations": {
       "name": "cargo_type_translations",
@@ -727,7 +745,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "cargo_type_translations_locale_check": {
+          "name": "cargo_type_translations_locale_check",
+          "value": "\"cargo_type_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "cargo_type_translations_status_check": {
+          "name": "cargo_type_translations_status_check",
+          "value": "\"cargo_type_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "cargo_type_translations_publication_tuple_check": {
+          "name": "cargo_type_translations_publication_tuple_check",
+          "value": "(\n          (\"cargo_type_translations\".\"status\" = 'draft' and \"cargo_type_translations\".\"scheduled_at\" is null and \"cargo_type_translations\".\"published_at\" is null)\n          or (\"cargo_type_translations\".\"status\" = 'scheduled' and \"cargo_type_translations\".\"scheduled_at\" is not null and \"cargo_type_translations\".\"published_at\" is null)\n          or (\"cargo_type_translations\".\"status\" = 'published' and \"cargo_type_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "cargo_types": {
       "name": "cargo_types",
@@ -832,7 +863,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "cargo_types_process_stage_check": {
+          "name": "cargo_types_process_stage_check",
+          "value": "\"cargo_types\".\"process_stage_id\" is null or \"cargo_types\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "case_studies": {
       "name": "case_studies",
@@ -937,7 +973,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "case_studies_process_stage_check": {
+          "name": "case_studies_process_stage_check",
+          "value": "\"case_studies\".\"process_stage_id\" is null or \"case_studies\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "case_study_translations": {
       "name": "case_study_translations",
@@ -1071,7 +1112,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "case_study_translations_locale_check": {
+          "name": "case_study_translations_locale_check",
+          "value": "\"case_study_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "case_study_translations_status_check": {
+          "name": "case_study_translations_status_check",
+          "value": "\"case_study_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "case_study_translations_publication_tuple_check": {
+          "name": "case_study_translations_publication_tuple_check",
+          "value": "(\n          (\"case_study_translations\".\"status\" = 'draft' and \"case_study_translations\".\"scheduled_at\" is null and \"case_study_translations\".\"published_at\" is null)\n          or (\"case_study_translations\".\"status\" = 'scheduled' and \"case_study_translations\".\"scheduled_at\" is not null and \"case_study_translations\".\"published_at\" is null)\n          or (\"case_study_translations\".\"status\" = 'published' and \"case_study_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "certificate_translations": {
       "name": "certificate_translations",
@@ -1205,7 +1259,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "certificate_translations_locale_check": {
+          "name": "certificate_translations_locale_check",
+          "value": "\"certificate_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "certificate_translations_status_check": {
+          "name": "certificate_translations_status_check",
+          "value": "\"certificate_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "certificate_translations_publication_tuple_check": {
+          "name": "certificate_translations_publication_tuple_check",
+          "value": "(\n          (\"certificate_translations\".\"status\" = 'draft' and \"certificate_translations\".\"scheduled_at\" is null and \"certificate_translations\".\"published_at\" is null)\n          or (\"certificate_translations\".\"status\" = 'scheduled' and \"certificate_translations\".\"scheduled_at\" is not null and \"certificate_translations\".\"published_at\" is null)\n          or (\"certificate_translations\".\"status\" = 'published' and \"certificate_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "certificates": {
       "name": "certificates",
@@ -1310,7 +1377,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "certificates_process_stage_check": {
+          "name": "certificates_process_stage_check",
+          "value": "\"certificates\".\"process_stage_id\" is null or \"certificates\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "hero_slide_translations": {
       "name": "hero_slide_translations",
@@ -1444,7 +1516,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "hero_slide_translations_locale_check": {
+          "name": "hero_slide_translations_locale_check",
+          "value": "\"hero_slide_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "hero_slide_translations_status_check": {
+          "name": "hero_slide_translations_status_check",
+          "value": "\"hero_slide_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "hero_slide_translations_publication_tuple_check": {
+          "name": "hero_slide_translations_publication_tuple_check",
+          "value": "(\n          (\"hero_slide_translations\".\"status\" = 'draft' and \"hero_slide_translations\".\"scheduled_at\" is null and \"hero_slide_translations\".\"published_at\" is null)\n          or (\"hero_slide_translations\".\"status\" = 'scheduled' and \"hero_slide_translations\".\"scheduled_at\" is not null and \"hero_slide_translations\".\"published_at\" is null)\n          or (\"hero_slide_translations\".\"status\" = 'published' and \"hero_slide_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "hero_slides": {
       "name": "hero_slides",
@@ -1549,7 +1634,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "hero_slides_process_stage_check": {
+          "name": "hero_slides_process_stage_check",
+          "value": "\"hero_slides\".\"process_stage_id\" is null or \"hero_slides\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "media_asset_translations": {
       "name": "media_asset_translations",
@@ -1610,7 +1700,12 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "media_asset_translations_locale_check": {
+          "name": "media_asset_translations_locale_check",
+          "value": "\"media_asset_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        }
+      }
     },
     "media_assets": {
       "name": "media_assets",
@@ -1701,7 +1796,24 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "media_assets_width_positive": {
+          "name": "media_assets_width_positive",
+          "value": "\"media_assets\".\"width\" > 0"
+        },
+        "media_assets_height_positive": {
+          "name": "media_assets_height_positive",
+          "value": "\"media_assets\".\"height\" > 0"
+        },
+        "media_assets_focal_x_bounds": {
+          "name": "media_assets_focal_x_bounds",
+          "value": "\"media_assets\".\"focal_x\" >= 0 and \"media_assets\".\"focal_x\" <= 1"
+        },
+        "media_assets_focal_y_bounds": {
+          "name": "media_assets_focal_y_bounds",
+          "value": "\"media_assets\".\"focal_y\" >= 0 and \"media_assets\".\"focal_y\" <= 1"
+        }
+      }
     },
     "media_derivatives": {
       "name": "media_derivatives",
@@ -1792,7 +1904,24 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "media_derivatives_format_check": {
+          "name": "media_derivatives_format_check",
+          "value": "\"media_derivatives\".\"format\" in ('avif', 'webp')"
+        },
+        "media_derivatives_width_positive": {
+          "name": "media_derivatives_width_positive",
+          "value": "\"media_derivatives\".\"width\" > 0"
+        },
+        "media_derivatives_height_positive": {
+          "name": "media_derivatives_height_positive",
+          "value": "\"media_derivatives\".\"height\" > 0"
+        },
+        "media_derivatives_byte_size_positive": {
+          "name": "media_derivatives_byte_size_positive",
+          "value": "\"media_derivatives\".\"byte_size\" > 0"
+        }
+      }
     },
     "media_usage": {
       "name": "media_usage",
@@ -1988,7 +2117,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "navigation_item_translations_locale_check": {
+          "name": "navigation_item_translations_locale_check",
+          "value": "\"navigation_item_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "navigation_item_translations_status_check": {
+          "name": "navigation_item_translations_status_check",
+          "value": "\"navigation_item_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "navigation_item_translations_publication_tuple_check": {
+          "name": "navigation_item_translations_publication_tuple_check",
+          "value": "(\n          (\"navigation_item_translations\".\"status\" = 'draft' and \"navigation_item_translations\".\"scheduled_at\" is null and \"navigation_item_translations\".\"published_at\" is null)\n          or (\"navigation_item_translations\".\"status\" = 'scheduled' and \"navigation_item_translations\".\"scheduled_at\" is not null and \"navigation_item_translations\".\"published_at\" is null)\n          or (\"navigation_item_translations\".\"status\" = 'published' and \"navigation_item_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "navigation_items": {
       "name": "navigation_items",
@@ -2093,7 +2235,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "navigation_items_process_stage_check": {
+          "name": "navigation_items_process_stage_check",
+          "value": "\"navigation_items\".\"process_stage_id\" is null or \"navigation_items\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "page_translations": {
       "name": "page_translations",
@@ -2227,7 +2374,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "page_translations_locale_check": {
+          "name": "page_translations_locale_check",
+          "value": "\"page_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "page_translations_status_check": {
+          "name": "page_translations_status_check",
+          "value": "\"page_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "page_translations_publication_tuple_check": {
+          "name": "page_translations_publication_tuple_check",
+          "value": "(\n          (\"page_translations\".\"status\" = 'draft' and \"page_translations\".\"scheduled_at\" is null and \"page_translations\".\"published_at\" is null)\n          or (\"page_translations\".\"status\" = 'scheduled' and \"page_translations\".\"scheduled_at\" is not null and \"page_translations\".\"published_at\" is null)\n          or (\"page_translations\".\"status\" = 'published' and \"page_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "pages": {
       "name": "pages",
@@ -2332,7 +2492,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "pages_process_stage_check": {
+          "name": "pages_process_stage_check",
+          "value": "\"pages\".\"process_stage_id\" is null or \"pages\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "partner_translations": {
       "name": "partner_translations",
@@ -2466,7 +2631,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "partner_translations_locale_check": {
+          "name": "partner_translations_locale_check",
+          "value": "\"partner_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "partner_translations_status_check": {
+          "name": "partner_translations_status_check",
+          "value": "\"partner_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "partner_translations_publication_tuple_check": {
+          "name": "partner_translations_publication_tuple_check",
+          "value": "(\n          (\"partner_translations\".\"status\" = 'draft' and \"partner_translations\".\"scheduled_at\" is null and \"partner_translations\".\"published_at\" is null)\n          or (\"partner_translations\".\"status\" = 'scheduled' and \"partner_translations\".\"scheduled_at\" is not null and \"partner_translations\".\"published_at\" is null)\n          or (\"partner_translations\".\"status\" = 'published' and \"partner_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "partners": {
       "name": "partners",
@@ -2571,7 +2749,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "partners_process_stage_check": {
+          "name": "partners_process_stage_check",
+          "value": "\"partners\".\"process_stage_id\" is null or \"partners\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "proof_metric_translations": {
       "name": "proof_metric_translations",
@@ -2705,7 +2888,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "proof_metric_translations_locale_check": {
+          "name": "proof_metric_translations_locale_check",
+          "value": "\"proof_metric_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "proof_metric_translations_status_check": {
+          "name": "proof_metric_translations_status_check",
+          "value": "\"proof_metric_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "proof_metric_translations_publication_tuple_check": {
+          "name": "proof_metric_translations_publication_tuple_check",
+          "value": "(\n          (\"proof_metric_translations\".\"status\" = 'draft' and \"proof_metric_translations\".\"scheduled_at\" is null and \"proof_metric_translations\".\"published_at\" is null)\n          or (\"proof_metric_translations\".\"status\" = 'scheduled' and \"proof_metric_translations\".\"scheduled_at\" is not null and \"proof_metric_translations\".\"published_at\" is null)\n          or (\"proof_metric_translations\".\"status\" = 'published' and \"proof_metric_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "proof_metrics": {
       "name": "proof_metrics",
@@ -2810,7 +3006,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "proof_metrics_process_stage_check": {
+          "name": "proof_metrics_process_stage_check",
+          "value": "\"proof_metrics\".\"process_stage_id\" is null or \"proof_metrics\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "service_translations": {
       "name": "service_translations",
@@ -2944,7 +3145,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "service_translations_locale_check": {
+          "name": "service_translations_locale_check",
+          "value": "\"service_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "service_translations_status_check": {
+          "name": "service_translations_status_check",
+          "value": "\"service_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "service_translations_publication_tuple_check": {
+          "name": "service_translations_publication_tuple_check",
+          "value": "(\n          (\"service_translations\".\"status\" = 'draft' and \"service_translations\".\"scheduled_at\" is null and \"service_translations\".\"published_at\" is null)\n          or (\"service_translations\".\"status\" = 'scheduled' and \"service_translations\".\"scheduled_at\" is not null and \"service_translations\".\"published_at\" is null)\n          or (\"service_translations\".\"status\" = 'published' and \"service_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "services": {
       "name": "services",
@@ -3049,7 +3263,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "services_process_stage_check": {
+          "name": "services_process_stage_check",
+          "value": "\"services\".\"process_stage_id\" is null or \"services\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "trade_lane_translations": {
       "name": "trade_lane_translations",
@@ -3183,7 +3402,20 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "trade_lane_translations_locale_check": {
+          "name": "trade_lane_translations_locale_check",
+          "value": "\"trade_lane_translations\".\"locale\" in ('en', 'zh', 'ru')"
+        },
+        "trade_lane_translations_status_check": {
+          "name": "trade_lane_translations_status_check",
+          "value": "\"trade_lane_translations\".\"status\" in ('draft', 'scheduled', 'published')"
+        },
+        "trade_lane_translations_publication_tuple_check": {
+          "name": "trade_lane_translations_publication_tuple_check",
+          "value": "(\n          (\"trade_lane_translations\".\"status\" = 'draft' and \"trade_lane_translations\".\"scheduled_at\" is null and \"trade_lane_translations\".\"published_at\" is null)\n          or (\"trade_lane_translations\".\"status\" = 'scheduled' and \"trade_lane_translations\".\"scheduled_at\" is not null and \"trade_lane_translations\".\"published_at\" is null)\n          or (\"trade_lane_translations\".\"status\" = 'published' and \"trade_lane_translations\".\"published_at\" is not null)\n        )"
+        }
+      }
     },
     "trade_lanes": {
       "name": "trade_lanes",
@@ -3288,7 +3520,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "trade_lanes_process_stage_check": {
+          "name": "trade_lanes_process_stage_check",
+          "value": "\"trade_lanes\".\"process_stage_id\" is null or \"trade_lanes\".\"process_stage_id\" in ('route', 'pickup', 'customs', 'transit', 'delivery')"
+        }
+      }
     },
     "permissions": {
       "name": "permissions",

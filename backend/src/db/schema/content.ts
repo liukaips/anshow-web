@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   integer,
   primaryKey,
   real,
@@ -30,18 +31,33 @@ const requiredUpdatedAt = () =>
     .$onUpdate(() => new Date())
     .notNull();
 
-export const mediaAssets = sqliteTable("media_assets", {
-  id: text("id").primaryKey(),
-  storageKey: text("storage_key").notNull().unique(),
-  mimeType: text("mime_type").notNull(),
-  width: integer("width").notNull(),
-  height: integer("height").notNull(),
-  dominantColor: text("dominant_color").notNull(),
-  focalX: real("focal_x").notNull().default(0.5),
-  focalY: real("focal_y").notNull().default(0.5),
-  createdAt: requiredCreatedAt(),
-  replacedAt: timestamp("replaced_at"),
-});
+export const mediaAssets = sqliteTable(
+  "media_assets",
+  {
+    id: text("id").primaryKey(),
+    storageKey: text("storage_key").notNull().unique(),
+    mimeType: text("mime_type").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    dominantColor: text("dominant_color").notNull(),
+    focalX: real("focal_x").notNull().default(0.5),
+    focalY: real("focal_y").notNull().default(0.5),
+    createdAt: requiredCreatedAt(),
+    replacedAt: timestamp("replaced_at"),
+  },
+  (table) => [
+    check("media_assets_width_positive", sql`${table.width} > 0`),
+    check("media_assets_height_positive", sql`${table.height} > 0`),
+    check(
+      "media_assets_focal_x_bounds",
+      sql`${table.focalX} >= 0 and ${table.focalX} <= 1`,
+    ),
+    check(
+      "media_assets_focal_y_bounds",
+      sql`${table.focalY} >= 0 and ${table.focalY} <= 1`,
+    ),
+  ],
+);
 
 export const mediaAssetTranslations = sqliteTable(
   "media_asset_translations",
@@ -53,7 +69,13 @@ export const mediaAssetTranslations = sqliteTable(
     altText: text("alt_text").notNull(),
     updatedAt: requiredUpdatedAt(),
   },
-  (table) => [primaryKey({ columns: [table.mediaId, table.locale] })],
+  (table) => [
+    check(
+      "media_asset_translations_locale_check",
+      sql`${table.locale} in ('en', 'zh', 'ru')`,
+    ),
+    primaryKey({ columns: [table.mediaId, table.locale] }),
+  ],
 );
 
 export const mediaDerivatives = sqliteTable(
@@ -70,6 +92,16 @@ export const mediaDerivatives = sqliteTable(
     url: text("url").notNull().unique(),
   },
   (table) => [
+    check(
+      "media_derivatives_format_check",
+      sql`${table.format} in ('avif', 'webp')`,
+    ),
+    check("media_derivatives_width_positive", sql`${table.width} > 0`),
+    check("media_derivatives_height_positive", sql`${table.height} > 0`),
+    check(
+      "media_derivatives_byte_size_positive",
+      sql`${table.byteSize} > 0`,
+    ),
     uniqueIndex("media_derivatives_variant_unique").on(
       table.mediaId,
       table.format,
@@ -101,20 +133,29 @@ function localizedCollection(
   translationName: string,
   foreignKeyName: string,
 ) {
-  const base = sqliteTable(baseName, {
-    id: text("id").primaryKey(),
-    code: text("code").notNull().unique(),
-    sortOrder: integer("sort_order").notNull().default(0),
-    mediaId: text("media_id").references(() => mediaAssets.id, {
-      onDelete: "restrict",
-    }),
-    processStageId: text("process_stage_id", { enum: processStages }),
-    archivedAt: timestamp("archived_at"),
-    verifiedAt: timestamp("verified_at"),
-    verificationSource: text("verification_source"),
-    createdAt: requiredCreatedAt(),
-    updatedAt: requiredUpdatedAt(),
-  });
+  const base = sqliteTable(
+    baseName,
+    {
+      id: text("id").primaryKey(),
+      code: text("code").notNull().unique(),
+      sortOrder: integer("sort_order").notNull().default(0),
+      mediaId: text("media_id").references(() => mediaAssets.id, {
+        onDelete: "restrict",
+      }),
+      processStageId: text("process_stage_id", { enum: processStages }),
+      archivedAt: timestamp("archived_at"),
+      verifiedAt: timestamp("verified_at"),
+      verificationSource: text("verification_source"),
+      createdAt: requiredCreatedAt(),
+      updatedAt: requiredUpdatedAt(),
+    },
+    (table) => [
+      check(
+        `${baseName}_process_stage_check`,
+        sql`${table.processStageId} is null or ${table.processStageId} in ('route', 'pickup', 'customs', 'transit', 'delivery')`,
+      ),
+    ],
+  );
 
   const translations = sqliteTable(
     translationName,
@@ -138,6 +179,22 @@ function localizedCollection(
       updatedAt: requiredUpdatedAt(),
     },
     (table) => [
+      check(
+        `${translationName}_locale_check`,
+        sql`${table.locale} in ('en', 'zh', 'ru')`,
+      ),
+      check(
+        `${translationName}_status_check`,
+        sql`${table.status} in ('draft', 'scheduled', 'published')`,
+      ),
+      check(
+        `${translationName}_publication_tuple_check`,
+        sql`(
+          (${table.status} = 'draft' and ${table.scheduledAt} is null and ${table.publishedAt} is null)
+          or (${table.status} = 'scheduled' and ${table.scheduledAt} is not null and ${table.publishedAt} is null)
+          or (${table.status} = 'published' and ${table.publishedAt} is not null)
+        )`,
+      ),
       primaryKey({ columns: [table.ownerId, table.locale] }),
       uniqueIndex(`${translationName}_locale_slug_unique`).on(
         table.locale,

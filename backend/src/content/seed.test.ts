@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../db/test-db.js";
@@ -150,6 +150,226 @@ describe("public content seed", () => {
       expect(testDatabase.db.select().from(partners).all()).toEqual([]);
       expect(testDatabase.db.select().from(certificates).all()).toEqual([]);
       expect(testDatabase.db.select().from(proofMetrics).all()).toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("preserves editorial state while restoring missing bootstrap rows", () => {
+    const testDatabase = createTestDatabase();
+    const laterSeededAt = new Date("2026-08-14T12:00:00.000Z");
+    const scheduledAt = new Date("2026-09-01T12:00:00.000Z");
+    const editorialUpdatedAt = new Date("2026-07-20T12:00:00.000Z");
+    const verifiedAt = new Date("2026-07-19T12:00:00.000Z");
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+
+      testDatabase.db
+        .update(services)
+        .set({
+          sortOrder: 99,
+          processStageId: "customs",
+          archivedAt: editorialUpdatedAt,
+          verifiedAt,
+          verificationSource: "editorial-review",
+          updatedAt: editorialUpdatedAt,
+        })
+        .where(eq(services.id, "ocean-freight"))
+        .run();
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({
+          status: "scheduled",
+          scheduledAt,
+          publishedAt: null,
+          title: "Edited scheduled service",
+          summary: "Edited service summary",
+          body: "Edited service body",
+          seoTitle: "Edited service SEO title",
+          seoDescription: "Edited service SEO description",
+          altText: "Edited service alt text",
+          updatedAt: editorialUpdatedAt,
+        })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "ocean-freight"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+      testDatabase.db
+        .update(caseStudyTranslations)
+        .set({
+          status: "published",
+          publishedAt: editorialUpdatedAt,
+          title: "Approved representative case",
+          body: "Approved editorial case body",
+          updatedAt: editorialUpdatedAt,
+        })
+        .where(
+          and(
+            eq(caseStudyTranslations.ownerId, "multimodal-planning"),
+            eq(caseStudyTranslations.locale, "en"),
+          ),
+        )
+        .run();
+      testDatabase.db
+        .update(caseStudyTranslations)
+        .set({
+          title: "Edited draft representative case",
+          body: "Edited draft case body",
+          updatedAt: editorialUpdatedAt,
+        })
+        .where(
+          and(
+            eq(caseStudyTranslations.ownerId, "customs-readiness"),
+            eq(caseStudyTranslations.locale, "en"),
+          ),
+        )
+        .run();
+
+      testDatabase.db
+        .delete(serviceTranslations)
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "air-freight"),
+            eq(serviceTranslations.locale, "ru"),
+          ),
+        )
+        .run();
+      testDatabase.db.delete(pages).where(eq(pages.id, "contact")).run();
+
+      seedPublicContent(testDatabase.db, { now: laterSeededAt });
+
+      expect(
+        testDatabase.db
+          .select({
+            sortOrder: services.sortOrder,
+            processStageId: services.processStageId,
+            archivedAt: services.archivedAt,
+            verifiedAt: services.verifiedAt,
+            verificationSource: services.verificationSource,
+            updatedAt: services.updatedAt,
+          })
+          .from(services)
+          .where(eq(services.id, "ocean-freight"))
+          .get(),
+      ).toEqual({
+        sortOrder: 99,
+        processStageId: "customs",
+        archivedAt: editorialUpdatedAt,
+        verifiedAt,
+        verificationSource: "editorial-review",
+        updatedAt: editorialUpdatedAt,
+      });
+      expect(
+        testDatabase.db
+          .select({
+            status: serviceTranslations.status,
+            scheduledAt: serviceTranslations.scheduledAt,
+            publishedAt: serviceTranslations.publishedAt,
+            title: serviceTranslations.title,
+            summary: serviceTranslations.summary,
+            body: serviceTranslations.body,
+            seoTitle: serviceTranslations.seoTitle,
+            seoDescription: serviceTranslations.seoDescription,
+            altText: serviceTranslations.altText,
+            updatedAt: serviceTranslations.updatedAt,
+          })
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "ocean-freight"),
+              eq(serviceTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        status: "scheduled",
+        scheduledAt,
+        publishedAt: null,
+        title: "Edited scheduled service",
+        summary: "Edited service summary",
+        body: "Edited service body",
+        seoTitle: "Edited service SEO title",
+        seoDescription: "Edited service SEO description",
+        altText: "Edited service alt text",
+        updatedAt: editorialUpdatedAt,
+      });
+      expect(
+        testDatabase.db
+          .select({
+            status: caseStudyTranslations.status,
+            publishedAt: caseStudyTranslations.publishedAt,
+            title: caseStudyTranslations.title,
+            body: caseStudyTranslations.body,
+            updatedAt: caseStudyTranslations.updatedAt,
+          })
+          .from(caseStudyTranslations)
+          .where(
+            and(
+              eq(caseStudyTranslations.ownerId, "multimodal-planning"),
+              eq(caseStudyTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        status: "published",
+        publishedAt: editorialUpdatedAt,
+        title: "Approved representative case",
+        body: "Approved editorial case body",
+        updatedAt: editorialUpdatedAt,
+      });
+      expect(
+        testDatabase.db
+          .select({
+            status: caseStudyTranslations.status,
+            scheduledAt: caseStudyTranslations.scheduledAt,
+            publishedAt: caseStudyTranslations.publishedAt,
+            title: caseStudyTranslations.title,
+            body: caseStudyTranslations.body,
+            updatedAt: caseStudyTranslations.updatedAt,
+          })
+          .from(caseStudyTranslations)
+          .where(
+            and(
+              eq(caseStudyTranslations.ownerId, "customs-readiness"),
+              eq(caseStudyTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        status: "draft",
+        scheduledAt: null,
+        publishedAt: null,
+        title: "Edited draft representative case",
+        body: "Edited draft case body",
+        updatedAt: editorialUpdatedAt,
+      });
+
+      expect(
+        testDatabase.db
+          .select({ publishedAt: serviceTranslations.publishedAt })
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "air-freight"),
+              eq(serviceTranslations.locale, "ru"),
+            ),
+          )
+          .get(),
+      ).toEqual({ publishedAt: laterSeededAt });
+      expect(
+        testDatabase.db.select({ value: count() }).from(pages).get()?.value,
+      ).toBe(7);
+      expect(
+        testDatabase.db
+          .select({ value: count() })
+          .from(pageTranslations)
+          .where(eq(pageTranslations.ownerId, "contact"))
+          .get()?.value,
+      ).toBe(3);
     } finally {
       testDatabase.close();
     }

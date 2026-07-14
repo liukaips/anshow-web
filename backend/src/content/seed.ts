@@ -310,15 +310,7 @@ function insertLocalizedItem(
       createdAt: now,
       updatedAt: now,
     })
-    .onConflictDoUpdate({
-      target: baseTable.id,
-      set: {
-        code: seedItem.code,
-        sortOrder,
-        processStageId: seedItem.processStageId,
-        updatedAt: now,
-      },
-    })
+    .onConflictDoNothing({ target: baseTable.id })
     .run();
 
   for (const locale of LOCALES) {
@@ -333,15 +325,8 @@ function insertLocalizedItem(
         ...copy,
         updatedAt: now,
       })
-      .onConflictDoUpdate({
+      .onConflictDoNothing({
         target: [translationTable.ownerId, translationTable.locale],
-        set: {
-          status: seedItem.publish ? "published" : "draft",
-          scheduledAt: null,
-          publishedAt: seedItem.publish ? now : null,
-          ...copy,
-          updatedAt: now,
-        },
       })
       .run();
   }
