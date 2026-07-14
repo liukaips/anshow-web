@@ -3,15 +3,15 @@
 The webfont files in this directory are redistributed from Fontsource and are
 licensed under the SIL Open Font License, Version 1.1.
 
-| Family | Fontsource package | Version | Included subsets |
-| --- | --- | --- | --- |
-| Exo 2 | `@fontsource/exo-2` | 5.2.8 | Latin 600, Cyrillic 600 |
-| Noto Sans | `@fontsource/noto-sans` | 5.2.10 | Latin 400, Cyrillic 400 |
-| Noto Sans SC | `@fontsource/noto-sans-sc` | 5.2.9 | Simplified Chinese 400 |
-| Roboto Mono | `@fontsource/roboto-mono` | 5.2.9 | Latin 400, Cyrillic 400 |
+| Family | Exact package source | Included subsets |
+| --- | --- | --- |
+| Exo 2 | [`@fontsource/exo-2@5.2.8`](https://www.npmjs.com/package/@fontsource/exo-2/v/5.2.8) | Latin 600, Cyrillic 600 |
+| Noto Sans | [`@fontsource/noto-sans@5.2.10`](https://www.npmjs.com/package/@fontsource/noto-sans/v/5.2.10) | Latin 400, Cyrillic 400 |
+| Noto Sans SC | [`@fontsource/noto-sans-sc@5.2.9`](https://www.npmjs.com/package/@fontsource/noto-sans-sc/v/5.2.9) | Simplified Chinese 400 |
+| Roboto Mono | [`@fontsource/roboto-mono@5.2.9`](https://www.npmjs.com/package/@fontsource/roboto-mono/v/5.2.9) | Latin 400, Cyrillic 400 |
 
-Source: <https://fontsource.org/>. The exact upstream notices and complete OFL
-text are preserved beside this file:
+The exact upstream notices and complete OFL text are preserved beside this
+file:
 
 - `LICENSE-EXO-2.txt`
 - `LICENSE-NOTO-SANS.txt`
