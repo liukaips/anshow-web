@@ -1,7 +1,7 @@
 # AnShow International Logistics Website Design
 
 Date: 2026-07-14
-Status: Awaiting written-spec review
+Status: Approved for implementation
 
 ## 1. Product Summary
 
@@ -145,6 +145,28 @@ The UI/UX Pro Max design dials are fixed at variance 7/10, motion 9/10, and dens
 - Disable the Three.js scene and expensive visual layers on low-capability devices, reduced-motion sessions, and mobile.
 - Preserve readable content before JavaScript loads.
 
+### 6.3 Shipment Process Storytelling
+
+The homepage includes a scroll-driven process chapter covering:
+
+1. Enquiry and routing.
+2. Pickup and handling.
+3. Customs readiness.
+4. Main transport.
+5. Final delivery.
+
+Desktop uses a full-width visual stage that advances through native vertical scroll. A single GSAP timeline synchronizes the route line, active checkpoint, copy, image scene, and short operational data labels. The stage must not trap, replace, or force normal scrolling.
+
+Each main step contains a three-part micro-animation:
+
+- Enquiry and routing: origin and destination connect, mode options resolve, and the selected route becomes active.
+- Pickup and handling: cargo units assemble, warehouse intake confirms, and the handling checklist completes.
+- Customs readiness: documents collect, validation scans the file, and the clearance-ready state appears.
+- Main transport: the visual scene changes between ocean, air, rail, and road while route progress advances.
+- Final delivery: destination milestones complete, the route closes, and the delivery state resolves.
+
+Service detail pages reuse a shorter version of the relevant step animation. Mobile renders the same information as normal vertical content blocks with one-time lightweight reveals. Reduced-motion sessions show the completed state immediately.
+
 ## 7. Public Information Architecture
 
 All public routes use explicit locale prefixes:
@@ -173,12 +195,13 @@ The root path redirects to `/en`. Each localized page provides canonical metadat
 1. Full-bleed four-slide hero carousel for ocean, air, rail, and road freight.
 2. Short enquiry section.
 3. Transport service overview.
-4. Priority trade lanes.
-5. Specialist cargo capabilities.
-6. Company proof, metrics, certifications, and partners.
-7. Featured case studies.
-8. Latest insights.
-9. Final contact call to action and configurable instant-contact channels.
+4. Scroll-driven shipment process with five animated stages.
+5. Priority trade lanes.
+6. Specialist cargo capabilities.
+7. Company proof, metrics, certifications, and partners.
+8. Featured case studies.
+9. Latest insights.
+10. Final contact call to action and configurable instant-contact channels.
 
 #### Services
 
@@ -639,6 +662,7 @@ Performance measures:
 - English, Chinese, and Russian navigation.
 - Language switching while preserving page context.
 - Homepage carousel controls and reduced motion.
+- Five-stage process progression, per-step micro-animations, service-page variants, and mobile fallback.
 - Enquiry validation, submission, success, and failure recovery.
 - Admin login, content editing, translation completion, publishing, and permissions.
 - Mobile navigation, forms, carousels, and readable layouts at 375px.
