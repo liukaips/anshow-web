@@ -42,6 +42,31 @@ export function roleIdForName(name: string): string {
 
 export function seedRbac(database: AppDatabase): void {
   database.transaction((transaction) => {
+    for (const name of Object.keys(ROLE_PRESETS)) {
+      const roleId = roleIdForName(name);
+      const roleWithReservedId = transaction
+        .select()
+        .from(roles)
+        .where(eq(roles.id, roleId))
+        .get();
+      if (roleWithReservedId && roleWithReservedId.name !== name) {
+        throw new Error(
+          `Reserved role id "${roleId}" belongs to preset "${name}", but is used by "${roleWithReservedId.name}"`,
+        );
+      }
+
+      const roleWithReservedName = transaction
+        .select()
+        .from(roles)
+        .where(eq(roles.name, name))
+        .get();
+      if (roleWithReservedName && roleWithReservedName.id !== roleId) {
+        throw new Error(
+          `Reserved role name "${name}" requires id "${roleId}", but is used by "${roleWithReservedName.id}"`,
+        );
+      }
+    }
+
     for (const key of PERMISSION_KEYS) {
       transaction
         .insert(permissions)

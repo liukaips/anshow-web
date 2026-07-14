@@ -57,4 +57,29 @@ describe("administrator provisioning", () => {
       testDatabase.close();
     }
   });
+
+  it.each([
+    ["invalid email", { email: "not-an-email" }],
+    ["short password", { password: "x" }],
+    ["long password", { password: "x".repeat(129) }],
+    ["blank name", { name: "   " }],
+  ])("rejects an %s without persisting auth data", async (_case, override) => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      seedRbac(testDatabase.db);
+
+      await expect(
+        provisionAdministrator(testDatabase.db, {
+          ...administrator,
+          ...override,
+        }),
+      ).rejects.toThrow();
+      expect(testDatabase.db.select().from(user).all()).toEqual([]);
+      expect(testDatabase.db.select().from(account).all()).toEqual([]);
+      expect(testDatabase.db.select().from(userRoles).all()).toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
 });

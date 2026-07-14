@@ -1,16 +1,9 @@
+import { parseCreateAdminArguments } from "../src/auth/create-admin-arguments.js";
 import { provisionAdministrator } from "../src/auth/provision-administrator.js";
 import { seedRbac } from "../src/auth/seed-rbac.js";
 import { db } from "../src/db/client.js";
 
-const arguments_ = process.argv.slice(2);
-if (arguments_[0] === "--") arguments_.shift();
-const [email, name = "Administrator", ...unexpectedArguments] = arguments_;
-
-if (!email || unexpectedArguments.length > 0) {
-  throw new Error(
-    "Usage: ANSHOW_ADMIN_PASSWORD=<password> pnpm --filter @anshow/backend admin:create -- <email> [name]",
-  );
-}
+const { email, name } = parseCreateAdminArguments(process.argv.slice(2));
 
 async function readPassword(): Promise<string> {
   if (process.env.ANSHOW_ADMIN_PASSWORD) {

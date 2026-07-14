@@ -83,4 +83,32 @@ describe("RBAC presets", () => {
       testDatabase.close();
     }
   });
+
+  it("rejects a custom role that occupies a reserved preset id", () => {
+    const testDatabase = createTestDatabase();
+    const customRole = { id: roleIdForName("Publisher"), name: "Custom Role" };
+    const customGrant = {
+      roleId: customRole.id,
+      permissionId: "audit.read",
+    };
+
+    try {
+      testDatabase.db
+        .insert(permissions)
+        .values({ id: "audit.read", key: "audit.read" })
+        .run();
+      testDatabase.db.insert(roles).values(customRole).run();
+      testDatabase.db.insert(rolePermissions).values(customGrant).run();
+
+      expect(() => seedRbac(testDatabase.db)).toThrow(
+        'Reserved role id "publisher" belongs to preset "Publisher", but is used by "Custom Role"',
+      );
+      expect(testDatabase.db.select().from(roles).all()).toEqual([customRole]);
+      expect(testDatabase.db.select().from(rolePermissions).all()).toEqual([
+        customGrant,
+      ]);
+    } finally {
+      testDatabase.close();
+    }
+  });
 });

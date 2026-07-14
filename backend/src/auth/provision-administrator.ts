@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { AppDatabase } from "../db/client.js";
 import { account, user, userRoles } from "../db/schema/index.js";
 import { hashCredentialPassword } from "./credential-password.js";
@@ -15,13 +17,34 @@ export type ProvisionedAdministrator = Readonly<{
   name: string;
 }>;
 
+const AdministratorInputSchema = z.object({
+  email: z.email(),
+  name: z.string().trim().min(1),
+  password: z.string().min(8).max(128),
+});
+
+function validateAdministratorInput(
+  input: AdministratorInput,
+): AdministratorInput {
+  const result = AdministratorInputSchema.safeParse({
+    ...input,
+    email: input.email.trim().toLowerCase(),
+  });
+  if (!result.success) {
+    const field = result.error.issues[0]?.path[0] ?? "input";
+    throw new Error(`Invalid administrator ${String(field)}`);
+  }
+
+  return result.data;
+}
+
 export async function provisionAdministrator(
   database: AppDatabase,
   input: AdministratorInput,
 ): Promise<ProvisionedAdministrator> {
+  const validatedInput = validateAdministratorInput(input);
   const id = crypto.randomUUID();
-  const normalizedEmail = input.email.trim().toLowerCase();
-  const passwordHash = await hashCredentialPassword(input.password);
+  const passwordHash = await hashCredentialPassword(validatedInput.password);
   const now = new Date();
 
   return database.transaction((transaction) => {
@@ -29,8 +52,8 @@ export async function provisionAdministrator(
       .insert(user)
       .values({
         id,
-        name: input.name,
-        email: normalizedEmail,
+        name: validatedInput.name,
+        email: validatedInput.email,
         emailVerified: false,
         createdAt: now,
         updatedAt: now,
@@ -56,6 +79,10 @@ export async function provisionAdministrator(
       })
       .run();
 
-    return { id, email: normalizedEmail, name: input.name };
+    return {
+      id,
+      email: validatedInput.email,
+      name: validatedInput.name,
+    };
   });
 }
