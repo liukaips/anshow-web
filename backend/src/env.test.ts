@@ -32,6 +32,20 @@ describe("parseEnv", () => {
     ).toThrow(/SITE_URL/);
   });
 
+  it.each([
+    ["credentials", "https://operator:secret@example.com"],
+    ["a non-root path", "https://example.com/admin"],
+    ["a query", "https://example.com?preview=true"],
+    ["an empty query marker", "https://example.com?"],
+    ["a fragment", "https://example.com#content"],
+    ["an empty fragment marker", "https://example.com#"],
+    ["a nonstandard explicit port", "https://example.com:8443"],
+  ])("rejects a production site URL with %s", (_case, siteUrl) => {
+    expect(() =>
+      parseEnv({ ...validEnvironment, SITE_URL: siteUrl }),
+    ).toThrow(/SITE_URL/);
+  });
+
   it("requires the configured host to match the site URL", () => {
     expect(() =>
       parseEnv({ ...validEnvironment, SITE_HOST: "www.example.com" }),

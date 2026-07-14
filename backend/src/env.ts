@@ -22,6 +22,22 @@ const RuntimeEnvSchema = z
       });
     }
 
+    if (
+      environment.NODE_ENV === "production" &&
+      (siteUrl.username !== "" ||
+        siteUrl.password !== "" ||
+        siteUrl.pathname !== "/" ||
+        environment.SITE_URL.includes("?") ||
+        environment.SITE_URL.includes("#") ||
+        siteUrl.port !== "")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "SITE_URL must be a clean production origin",
+        path: ["SITE_URL"],
+      });
+    }
+
     if (environment.SITE_HOST !== siteUrl.hostname) {
       context.addIssue({
         code: "custom",
