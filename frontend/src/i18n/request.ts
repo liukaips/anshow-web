@@ -1,3 +1,4 @@
+import type { Messages } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
 
 import type { SupportedLocale } from "../lib/app-config";
@@ -5,7 +6,7 @@ import { isLocale, routing } from "./routing";
 
 const messageLoaders: Record<
   SupportedLocale,
-  () => Promise<{ default: Record<string, unknown> }>
+  () => Promise<{ default: Messages }>
 > = {
   en: () => import("./messages/en.json"),
   zh: () => import("./messages/zh.json"),

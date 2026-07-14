@@ -84,6 +84,29 @@ function messagePaths(value: unknown, prefix = ""): string[] {
   return [prefix];
 }
 
+function expectCompleteContent(value: unknown, path = "messages"): void {
+  if (Array.isArray(value)) {
+    if (path.endsWith(".phases")) {
+      expect(value, `${path} must contain exactly three phases`).toHaveLength(3);
+    }
+
+    value.forEach((item, index) =>
+      expectCompleteContent(item, `${path}.${index}`),
+    );
+    return;
+  }
+
+  if (value !== null && typeof value === "object") {
+    Object.entries(value).forEach(([key, child]) =>
+      expectCompleteContent(child, `${path}.${key}`),
+    );
+    return;
+  }
+
+  expect(typeof value, `${path} must be a string`).toBe("string");
+  expect((value as string).trim(), `${path} must not be empty`).not.toBe("");
+}
+
 describe("locale routing", () => {
   it.each(["en", "zh", "ru"])("accepts the supported locale %s", (locale) => {
     expect(isLocale(locale)).toBe(true);
@@ -101,5 +124,13 @@ describe("locale dictionaries", () => {
     expect(englishPaths).toEqual(requiredMessagePaths);
     expect(messagePaths(chinese).sort()).toEqual(englishPaths);
     expect(messagePaths(russian).sort()).toEqual(englishPaths);
+  });
+
+  it.each([
+    ["English", english],
+    ["Chinese", chinese],
+    ["Russian", russian],
+  ])("provides non-empty content and three phases in %s", (_name, messages) => {
+    expectCompleteContent(messages);
   });
 });

@@ -12,12 +12,9 @@ export default async function HomePage() {
         <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight sm:text-6xl">
           {translate("title")}
         </h1>
-        <a
-          className="mt-9 inline-flex min-h-12 items-center border border-foreground px-6 text-sm font-semibold transition-colors hover:bg-foreground hover:text-background focus-visible:outline-2 focus-visible:outline-offset-4"
-          href="#contact"
-        >
+        <p className="mt-9 text-base font-semibold">
           {translate("cta")}
-        </a>
+        </p>
       </div>
     </main>
   );
