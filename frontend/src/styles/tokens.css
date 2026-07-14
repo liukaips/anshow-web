@@ -6,6 +6,26 @@
   --color-text: #071018;
   --color-text-inverse: #eef6fb;
   --color-muted-inverse: #b9c7d1;
+  --color-border-inverse: color-mix(
+    in srgb,
+    var(--color-text-inverse) 15%,
+    transparent
+  );
+  --color-border-inverse-strong: color-mix(
+    in srgb,
+    var(--color-text-inverse) 25%,
+    transparent
+  );
+  --color-divider-inverse: color-mix(
+    in srgb,
+    var(--color-text-inverse) 10%,
+    transparent
+  );
+  --color-hover-inverse: color-mix(
+    in srgb,
+    var(--color-text-inverse) 5%,
+    transparent
+  );
   --color-cyan: #38bdf8;
   --color-teal: #14b8a6;
   --color-action: #f97316;

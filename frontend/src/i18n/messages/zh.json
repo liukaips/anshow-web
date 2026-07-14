@@ -21,6 +21,35 @@
     "language": "语言",
     "menu": "菜单"
   },
+  "Shell": {
+    "home": "AnShow 首页",
+    "primary": "主导航",
+    "services": "服务",
+    "tradeLanes": "贸易航线",
+    "specialCargo": "特种货物",
+    "insights": "行业洞察",
+    "about": "关于 AnShow",
+    "contact": "联系我们",
+    "quote": "获取报价",
+    "changeLanguage": "切换语言",
+    "languageMenu": "语言选择",
+    "mobileNavigation": "移动端导航",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "skipToContent": "跳到主要内容",
+    "footerDescription": "以清晰协同连接跨境货运的每个环节。",
+    "footerNavigation": "浏览",
+    "footerLegal": "法律信息",
+    "quotePrompt": "与 AnShow 规划下一程运输。",
+    "privacy": "隐私政策",
+    "terms": "使用条款",
+    "cookies": "Cookie 政策"
+  },
+  "SEO": {
+    "title": "AnShow 全球货运指挥中心",
+    "titleTemplate": "%s | AnShow",
+    "description": "AnShow 以清晰协同提供国际货运代理与跨境物流服务。"
+  },
   "Home": {
     "eyebrow": "国际货运代理",
     "title": "掌控运输，确定抵达。",

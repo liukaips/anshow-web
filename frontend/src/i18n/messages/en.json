@@ -21,6 +21,35 @@
     "language": "Language",
     "menu": "Menu"
   },
+  "Shell": {
+    "home": "AnShow home",
+    "primary": "Primary navigation",
+    "services": "Services",
+    "tradeLanes": "Trade lanes",
+    "specialCargo": "Special cargo",
+    "insights": "Insights",
+    "about": "About AnShow",
+    "contact": "Contact",
+    "quote": "Request a quote",
+    "changeLanguage": "Change language",
+    "languageMenu": "Language selection",
+    "mobileNavigation": "Mobile navigation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "skipToContent": "Skip to main content",
+    "footerDescription": "Freight forwarding coordinated with clarity across borders.",
+    "footerNavigation": "Explore",
+    "footerLegal": "Legal",
+    "quotePrompt": "Plan the next move with AnShow.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies"
+  },
+  "SEO": {
+    "title": "AnShow Global Freight Command",
+    "titleTemplate": "%s | AnShow",
+    "description": "International freight forwarding and cross-border logistics coordinated with clarity by AnShow."
+  },
   "Home": {
     "eyebrow": "International freight forwarding",
     "title": "Move freight. Command certainty.",

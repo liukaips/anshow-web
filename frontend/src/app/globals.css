@@ -21,6 +21,58 @@ body {
   letter-spacing: 0;
 }
 
+html {
+  scroll-padding-top: 4rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 3px;
+}
+
+.shell-popover {
+  animation: shell-enter var(--motion-fast) ease-out both;
+}
+
+.shell-drawer {
+  animation: shell-drawer-enter var(--motion-fast) ease-out both;
+}
+
+@keyframes shell-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shell-drawer-enter {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 h1,
 h2,
 h3,
