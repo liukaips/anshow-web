@@ -1,8 +1,11 @@
-import * as argon2 from "argon2";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import type { AppDatabase } from "../db/client.js";
+import {
+  hashCredentialPassword,
+  verifyCredentialPassword,
+} from "./credential-password.js";
 
 export type AuthRuntimeOptions = Readonly<{
   production: boolean;
@@ -26,15 +29,10 @@ export function createAuth(
     },
     emailAndPassword: {
       enabled: true,
+      disableSignUp: true,
       password: {
-        hash: (password) =>
-          argon2.hash(password, {
-            type: argon2.argon2id,
-            memoryCost: 19_456,
-            timeCost: 2,
-            parallelism: 1,
-          }),
-        verify: ({ hash, password }) => argon2.verify(hash, password),
+        hash: hashCredentialPassword,
+        verify: verifyCredentialPassword,
       },
     },
     session: {

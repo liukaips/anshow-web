@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import type { AppDatabase } from "../db/client.js";
 import {
   permissions,
@@ -54,6 +56,10 @@ export function seedRbac(database: AppDatabase): void {
         .insert(roles)
         .values({ id: roleId, name })
         .onConflictDoNothing()
+        .run();
+      transaction
+        .delete(rolePermissions)
+        .where(eq(rolePermissions.roleId, roleId))
         .run();
 
       for (const permissionId of grantedPermissions) {

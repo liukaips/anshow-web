@@ -43,6 +43,17 @@ const UnauthenticatedResponseSchema = z
   })
   .openapi("UnauthenticatedResponse");
 
+const ForbiddenResponseSchema = z
+  .object({
+    data: z.null(),
+    error: z.object({
+      code: z.literal("FORBIDDEN"),
+      message: z.string(),
+    }),
+    requestId: z.string(),
+  })
+  .openapi("ForbiddenResponse");
+
 const route = createRoute({
   method: "get",
   path: "/api/admin/session",
@@ -60,6 +71,12 @@ const route = createRoute({
         "application/json": { schema: UnauthenticatedResponseSchema },
       },
       description: "No authenticated staff session.",
+    },
+    403: {
+      content: {
+        "application/json": { schema: ForbiddenResponseSchema },
+      },
+      description: "The authenticated user is not authorized for staff access.",
     },
   },
 });
@@ -87,6 +104,20 @@ export function registerAdminSessionRoute(
     }
 
     const permissions = await dependencies.getPermissions(session.user.id);
+    if (permissions.length === 0) {
+      return context.json(
+        {
+          data: null,
+          error: {
+            code: "FORBIDDEN" as const,
+            message: "Staff access required",
+          },
+          requestId,
+        },
+        403,
+      );
+    }
+
     return context.json(
       {
         data: {

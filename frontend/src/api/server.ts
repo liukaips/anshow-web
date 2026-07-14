@@ -13,7 +13,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
     cache: "no-store",
   });
 
-  if (response.status === 401) return null;
+  if (response.status === 401 || response.status === 403) return null;
   if (!response.ok) {
     throw new Error(`Session API failed with status ${response.status}`);
   }

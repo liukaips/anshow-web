@@ -166,6 +166,40 @@
           "error",
           "requestId"
         ]
+      },
+      "ForbiddenResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "nullable": true
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "FORBIDDEN"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
       }
     },
     "parameters": {}
@@ -224,6 +258,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UnauthenticatedResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated user is not authorized for staff access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
                 }
               }
             }

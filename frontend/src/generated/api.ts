@@ -84,6 +84,15 @@ export interface components {
             };
             requestId: string;
         };
+        ForbiddenResponse: {
+            data: unknown;
+            error: {
+                /** @enum {string} */
+                code: "FORBIDDEN";
+                message: string;
+            };
+            requestId: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -147,6 +156,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description The authenticated user is not authorized for staff access. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenResponse"];
                 };
             };
         };

@@ -37,4 +37,24 @@ describe("GET /api/admin/session", () => {
       requestId,
     });
   });
+
+  it("rejects an authenticated user without staff permissions", async () => {
+    const response = await createApp({
+      getSession: async () => ({
+        user: { id: "user-2", email: "visitor@anshow.example" },
+      }),
+      getPermissions: () => [],
+    }).request("/api/admin/session");
+    const requestId = response.headers.get("x-request-id");
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      data: null,
+      error: {
+        code: "FORBIDDEN",
+        message: "Staff access required",
+      },
+      requestId,
+    });
+  });
 });

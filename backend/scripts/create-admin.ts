@@ -1,43 +1,38 @@
-import { eq } from "drizzle-orm";
-
-import { auth } from "../src/auth/runtime.js";
-import { roleIdForName, seedRbac } from "../src/auth/seed-rbac.js";
+import { provisionAdministrator } from "../src/auth/provision-administrator.js";
+import { seedRbac } from "../src/auth/seed-rbac.js";
 import { db } from "../src/db/client.js";
-import { userRoles } from "../src/db/schema/rbac.js";
 
 const arguments_ = process.argv.slice(2);
 if (arguments_[0] === "--") arguments_.shift();
-const [email, password, name = "Administrator"] = arguments_;
+const [email, name = "Administrator", ...unexpectedArguments] = arguments_;
 
-if (!email || !password) {
+if (!email || unexpectedArguments.length > 0) {
   throw new Error(
-    "Usage: pnpm --filter @anshow/backend admin:create -- <email> <password> [name]",
+    "Usage: ANSHOW_ADMIN_PASSWORD=<password> pnpm --filter @anshow/backend admin:create -- <email> [name]",
   );
 }
 
-seedRbac(db);
+async function readPassword(): Promise<string> {
+  if (process.env.ANSHOW_ADMIN_PASSWORD) {
+    return process.env.ANSHOW_ADMIN_PASSWORD;
+  }
 
-const result = await auth.api.signUpEmail({
-  body: { email, password, name },
-});
+  if (process.stdin.isTTY) {
+    throw new Error(
+      "Set ANSHOW_ADMIN_PASSWORD or pipe the password to standard input.",
+    );
+  }
 
-const superAdministratorRoleId = roleIdForName("Super Administrator");
-db.insert(userRoles)
-  .values({
-    userId: result.user.id,
-    roleId: superAdministratorRoleId,
-  })
-  .onConflictDoNothing()
-  .run();
-
-const assignment = db
-  .select()
-  .from(userRoles)
-  .where(eq(userRoles.userId, result.user.id))
-  .get();
-
-if (!assignment) {
-  throw new Error("Administrator role assignment failed");
+  let input = "";
+  process.stdin.setEncoding("utf8");
+  for await (const chunk of process.stdin) input += chunk;
+  const password = input.replace(/[\r\n]+$/, "");
+  if (!password) throw new Error("Administrator password is required.");
+  return password;
 }
 
-console.info(`Created administrator ${result.user.email}`);
+const password = await readPassword();
+seedRbac(db);
+const result = await provisionAdministrator(db, { email, name, password });
+
+console.info(`Created administrator ${result.email}`);
