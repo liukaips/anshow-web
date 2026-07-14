@@ -4,9 +4,9 @@
 
 **Goal:** Complete the short enquiry workflow, reliable email outbox, lead administration, abuse controls, Tencent COS media mode, encrypted backups, restore verification, and production quality gate.
 
-**Architecture:** Enquiry persistence and notification jobs share one SQLite transaction. A worker claims outbox jobs and scheduled work. Operational adapters isolate SMTP, COS, and backup behavior from domain logic.
+**Architecture:** Hono owns enquiry validation, abuse controls, transactional SQLite persistence, administration routes, and OpenAPI schemas. The Next.js frontend submits to same-origin `/api/public/inquiries` in the browser and uses the generated contract for administration data; it never imports backend repositories or database types. A separate backend-image worker claims outbox and scheduled jobs, while COS and backup adapters isolate external operations from domain logic.
 
-**Tech Stack:** Next.js Server Actions, TypeScript, Drizzle, SQLite WAL, Zod, Nodemailer SMTP, Tencent COS SDK, Sharp, Docker Compose, Playwright, axe
+**Tech Stack:** Next.js, React, Hono, `@hono/zod-openapi`, TypeScript, Drizzle, SQLite WAL, Zod, Nodemailer SMTP, Tencent COS SDK, Sharp, Docker Compose, Playwright, axe
 
 ---
 
@@ -14,29 +14,29 @@
 
 Run after the foundation and admin plans. The public plan can proceed in parallel after foundation, but its enquiry section is completed here.
 
-- `src/db/schema/inquiries.ts`: leads, notes, history, deliveries, and rate limits.
-- `src/inquiries/*`: validation, repository, public action, and email template.
-- `src/worker/*`: outbox claim/retry and scheduled work.
-- `src/app/admin/(protected)/inquiries/*`: lead workspace.
-- `src/security/*`: rate limits, origin checks, and headers.
-- `src/media/cos-storage.ts`: Tencent COS adapter.
-- `scripts/backup/*`: consistent backup and restore verification.
+- `backend/src/db/schema/inquiries.ts`: leads, notes, history, deliveries, and rate limits.
+- `backend/src/inquiries/*`: validation, repository, public Hono route, and email template.
+- `backend/src/worker/*`: outbox claim/retry and scheduled work.
+- `frontend/src/app/admin/(protected)/inquiries/*`: lead workspace.
+- `backend/src/security/*`: rate limits, origin checks, and headers.
+- `backend/src/media/cos-storage.ts`: Tencent COS adapter.
+- `backend/src/backup/*`: consistent backup, scheduler, and restore verification.
 - `docs/deployment/*`: Tencent Cloud operations runbook.
 
 ### Task 1: Add Enquiry Tables, Validation, and State Machine
 
 **Files:**
-- Create: `src/db/schema/inquiries.ts`
-- Modify: `src/db/schema/index.ts`
-- Create: `src/inquiries/schema.ts`
-- Create: `src/inquiries/schema.test.ts`
-- Create: `src/inquiries/state-machine.ts`
-- Create: `src/inquiries/state-machine.test.ts`
+- Create: `backend/src/db/schema/inquiries.ts`
+- Modify: `backend/src/db/schema/index.ts`
+- Create: `backend/src/inquiries/schema.ts`
+- Create: `backend/src/inquiries/schema.test.ts`
+- Create: `backend/src/inquiries/state-machine.ts`
+- Create: `backend/src/inquiries/state-machine.test.ts`
 
 - [ ] **Step 1: Write failing validation and transition tests**
 
 ```ts
-// src/inquiries/schema.test.ts
+// backend/src/inquiries/schema.test.ts
 import { expect, it } from "vitest";
 import { enquirySchema } from "./schema";
 
@@ -44,13 +44,13 @@ it("requires either email or phone", () => {
   expect(enquirySchema.safeParse({
     name: "Elena", company: "Volga", email: "", phone: "",
     transportNeed: "Rail freight", message: "China to Russia", consent: true,
-    locale: "en",
+    privacyVersion: "2026-07", locale: "en", startedAt: Date.now() - 3_000,
   }).success).toBe(false);
 });
 ```
 
 ```ts
-// src/inquiries/state-machine.test.ts
+// backend/src/inquiries/state-machine.test.ts
 import { expect, it } from "vitest";
 import { canTransition } from "./state-machine";
 
@@ -62,15 +62,15 @@ it("does not reopen spam directly as qualified", () => {
 
 - [ ] **Step 2: Run tests and confirm failure**
 
-Run: `pnpm test -- src/inquiries/schema.test.ts src/inquiries/state-machine.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/inquiries/schema.test.ts src/inquiries/state-machine.test.ts`
 
 Expected: FAIL because enquiry modules do not exist.
 
 - [ ] **Step 3: Define the enquiry schema**
 
 ```ts
-// src/inquiries/schema.ts
-import { z } from "zod";
+// backend/src/inquiries/schema.ts
+import { z } from "@hono/zod-openapi";
 
 export const enquirySchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -80,6 +80,7 @@ export const enquirySchema = z.object({
   transportNeed: z.string().trim().min(2).max(200),
   message: z.string().trim().min(10).max(3000),
   consent: z.literal(true),
+  privacyVersion: z.string().trim().min(1).max(40),
   locale: z.enum(["en", "zh", "ru"]),
   website: z.string().max(0).default(""),
   startedAt: z.number().int().positive(),
@@ -92,7 +93,7 @@ export type ValidInquiry = z.infer<typeof enquirySchema>;
 - [ ] **Step 4: Implement the state machine**
 
 ```ts
-// src/inquiries/state-machine.ts
+// backend/src/inquiries/state-machine.ts
 export type InquiryStatus = "new" | "contacted" | "qualified" | "closed" | "spam";
 const transitions: Record<InquiryStatus, readonly InquiryStatus[]> = {
   new: ["contacted", "qualified", "closed", "spam"],
@@ -107,13 +108,14 @@ export function canTransition(from: InquiryStatus, to: InquiryStatus) { return t
 - [ ] **Step 5: Add relational tables**
 
 ```ts
-// src/db/schema/inquiries.ts
+// backend/src/db/schema/inquiries.ts
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const inquiries = sqliteTable("inquiries", {
   id: text("id").primaryKey(), name: text("name").notNull(), company: text("company").notNull(),
   email: text("email").notNull(), phone: text("phone").notNull(), transportNeed: text("transport_need").notNull(),
   message: text("message").notNull(), locale: text("locale").notNull(), sourceUrl: text("source_url").notNull(),
   referrer: text("referrer"), utmSource: text("utm_source"), utmMedium: text("utm_medium"), utmCampaign: text("utm_campaign"),
+  privacyVersion: text("privacy_version").notNull(), consentedAt: integer("consented_at", { mode: "timestamp" }).notNull(),
   assigneeId: text("assignee_id"), status: text("status").notNull(), createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 }, (table) => [index("inquiries_status_idx").on(table.status), index("inquiries_assignee_idx").on(table.assigneeId), index("inquiries_created_idx").on(table.createdAt)]);
 export const inquiryNotes = sqliteTable("inquiry_notes", { id: text("id").primaryKey(), inquiryId: text("inquiry_id").notNull(), authorId: text("author_id").notNull(), body: text("body").notNull(), createdAt: integer("created_at", { mode: "timestamp" }).notNull() });
@@ -127,15 +129,15 @@ export const rateLimits = sqliteTable("rate_limits", { key: text("key").primaryK
 Run:
 
 ```bash
-pnpm test -- src/inquiries/schema.test.ts src/inquiries/state-machine.test.ts
-pnpm db:generate
-pnpm typecheck
+pnpm --filter @anshow/backend test -- src/inquiries/schema.test.ts src/inquiries/state-machine.test.ts
+pnpm --filter @anshow/backend db:generate
+pnpm --filter @anshow/backend typecheck
 ```
 
 Expected: tests, migration generation, and typecheck pass.
 
 ```bash
-git add src/inquiries src/db/schema migrations
+git add backend/src/inquiries backend/src/db/schema backend/migrations
 git commit -m "Give every enquiry a valid and traceable lifecycle" \
   -m "Constraint: A short public form still needs deterministic validation and status history" \
   -m "Confidence: high" -m "Scope-risk: moderate" \
@@ -145,19 +147,21 @@ git commit -m "Give every enquiry a valid and traceable lifecycle" \
 ### Task 2: Persist Enquiries and Outbox Jobs Atomically
 
 **Files:**
-- Create: `src/inquiries/repository.ts`
-- Create: `src/inquiries/repository.test.ts`
-- Create: `src/inquiries/test-fixture.ts`
-- Create: `src/inquiries/actions.ts`
-- Create: `src/components/forms/enquiry-form.tsx`
-- Create: `src/components/forms/enquiry-form.test.tsx`
-- Modify: `src/app/[locale]/page.tsx`
-- Modify: `src/app/[locale]/contact/page.tsx`
+- Create: `backend/src/inquiries/repository.ts`
+- Create: `backend/src/inquiries/repository.test.ts`
+- Create: `backend/src/inquiries/test-fixture.ts`
+- Create: `backend/src/inquiries/route.ts`
+- Create: `backend/src/inquiries/route.test.ts`
+- Modify: `backend/src/app.ts`
+- Create: `frontend/src/components/forms/enquiry-form.tsx`
+- Create: `frontend/src/components/forms/enquiry-form.test.tsx`
+- Modify: `frontend/src/app/[locale]/page.tsx`
+- Modify: `frontend/src/app/[locale]/contact/page.tsx`
 
 - [ ] **Step 1: Write the failing transaction test**
 
 ```ts
-// src/inquiries/repository.test.ts
+// backend/src/inquiries/repository.test.ts
 import { expect, it } from "vitest";
 import { createInquiryFixture } from "./test-fixture";
 
@@ -171,7 +175,7 @@ it("creates one lead and one email job in one transaction", async () => {
 ```
 
 ```ts
-// src/inquiries/test-fixture.ts
+// backend/src/inquiries/test-fixture.ts
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { AppDatabase } from "@/db/client";
@@ -187,10 +191,10 @@ interface FixtureAdminPort {
 }
 export function createInquiryFixture() {
   const sqlite = new Database(":memory:");
-  sqlite.exec(`CREATE TABLE inquiries (id TEXT PRIMARY KEY,name TEXT NOT NULL,company TEXT NOT NULL,email TEXT NOT NULL,phone TEXT NOT NULL,transport_need TEXT NOT NULL,message TEXT NOT NULL,locale TEXT NOT NULL,source_url TEXT NOT NULL,referrer TEXT,utm_source TEXT,utm_medium TEXT,utm_campaign TEXT,assignee_id TEXT,status TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE inquiry_history (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,actor_id TEXT,assignee_id TEXT,from_status TEXT,to_status TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE inquiry_notes (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,author_id TEXT NOT NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE notification_deliveries (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,status TEXT NOT NULL,attempts INTEGER NOT NULL,next_attempt_at INTEGER NOT NULL,worker_id TEXT,claimed_at INTEGER,sent_at INTEGER,last_error TEXT,idempotency_key TEXT NOT NULL UNIQUE);`);
+  sqlite.exec(`CREATE TABLE inquiries (id TEXT PRIMARY KEY,name TEXT NOT NULL,company TEXT NOT NULL,email TEXT NOT NULL,phone TEXT NOT NULL,transport_need TEXT NOT NULL,message TEXT NOT NULL,locale TEXT NOT NULL,source_url TEXT NOT NULL,referrer TEXT,utm_source TEXT,utm_medium TEXT,utm_campaign TEXT,privacy_version TEXT NOT NULL,consented_at INTEGER NOT NULL,assignee_id TEXT,status TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE inquiry_history (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,actor_id TEXT,assignee_id TEXT,from_status TEXT,to_status TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE inquiry_notes (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,author_id TEXT NOT NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE notification_deliveries (id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,status TEXT NOT NULL,attempts INTEGER NOT NULL,next_attempt_at INTEGER NOT NULL,worker_id TEXT,claimed_at INTEGER,sent_at INTEGER,last_error TEXT,idempotency_key TEXT NOT NULL UNIQUE);`);
   const db = drizzle(sqlite, { schema }) as AppDatabase;
   const repository = createInquiryRepository(db);
-  const validInput: NewInquiryInput = { name: "Elena", company: "Volga", email: "elena@example.test", phone: "", transportNeed: "Rail", message: "China to Russia freight request", consent: true, locale: "en", sourceUrl: "/en" };
+  const validInput: NewInquiryInput = { name: "Elena", company: "Volga", email: "elena@example.test", phone: "", transportNeed: "Rail", message: "China to Russia freight request", consent: true, privacyVersion: "2026-07", locale: "en", sourceUrl: "/en" };
   const adminPort: FixtureAdminPort = {
     async transaction<T>(work: (tx: FixtureAdminPort) => Promise<T>) { return work(adminPort); },
     async get(id: string) { return sqlite.prepare("SELECT id,status FROM inquiries WHERE id=?").get(id) as { id: string; status: InquiryStatus } | undefined ?? null; },
@@ -206,14 +210,14 @@ export function createInquiryFixture() {
 
 - [ ] **Step 2: Run test and confirm failure**
 
-Run: `pnpm test -- src/inquiries/repository.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/inquiries/repository.test.ts`
 
 Expected: FAIL because repository does not exist.
 
 - [ ] **Step 3: Implement the transaction**
 
 ```ts
-// src/inquiries/repository.ts
+// backend/src/inquiries/repository.ts
 import type { AppDatabase } from "@/db/client";
 import { inquiries, inquiryHistory, notificationDeliveries } from "@/db/schema/inquiries";
 import type { ValidInquiry } from "./schema";
@@ -221,14 +225,15 @@ export type NewInquiryInput = Omit<ValidInquiry, "website" | "startedAt"> & { so
 export function createInquiryRepository(db: AppDatabase) {
   return {
     createWithNotification(input: NewInquiryInput) {
-      return db.transaction(async (tx) => {
+      return db.transaction((tx) => {
         const id = crypto.randomUUID();
-        const [inquiry] = await tx.insert(inquiries).values({ id, name: input.name, company: input.company, email: input.email, phone: input.phone, transportNeed: input.transportNeed, message: input.message, locale: input.locale, sourceUrl: input.sourceUrl, referrer: input.referrer, utmSource: input.utmSource, utmMedium: input.utmMedium, utmCampaign: input.utmCampaign, status: "new", createdAt: new Date() }).returning();
-        await tx.insert(notificationDeliveries).values({
+        const now = new Date();
+        const inquiry = tx.insert(inquiries).values({ id, name: input.name, company: input.company, email: input.email, phone: input.phone, transportNeed: input.transportNeed, message: input.message, locale: input.locale, sourceUrl: input.sourceUrl, referrer: input.referrer, utmSource: input.utmSource, utmMedium: input.utmMedium, utmCampaign: input.utmCampaign, privacyVersion: input.privacyVersion, consentedAt: now, status: "new", createdAt: now }).returning().get();
+        tx.insert(notificationDeliveries).values({
           id: crypto.randomUUID(), inquiryId: id, status: "pending", attempts: 0,
           nextAttemptAt: new Date(), idempotencyKey: `inquiry:${id}:sales`,
-        });
-        await tx.insert(inquiryHistory).values({ id: crypto.randomUUID(), inquiryId: id, toStatus: "new", createdAt: new Date() });
+        }).run();
+        tx.insert(inquiryHistory).values({ id: crypto.randomUUID(), inquiryId: id, toStatus: "new", createdAt: new Date() }).run();
         return inquiry;
       });
     },
@@ -236,12 +241,11 @@ export function createInquiryRepository(db: AppDatabase) {
 }
 ```
 
-- [ ] **Step 4: Implement localized server action and form**
+- [ ] **Step 4: Expose a typed public Hono endpoint**
 
 ```ts
-// src/inquiries/actions.ts
-"use server";
-import { headers } from "next/headers";
+// backend/src/inquiries/route.ts
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { createHmac } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { enquirySchema } from "./schema";
@@ -250,76 +254,126 @@ import { db } from "@/db/client";
 import { rateLimits } from "@/db/schema/inquiries";
 import { env } from "@/env";
 
-export type EnquiryActionState = { ok: boolean; message: string; fieldErrors?: Record<string, string[]> };
-const allowedOrigin = (origin: string | null) => Boolean(origin && new URL(origin).origin === new URL(env.SITE_URL).origin);
+const PublicInquiryInput = enquirySchema.openapi("PublicInquiryInput");
+const InquiryCreated = z.object({ id: z.string().uuid(), status: z.literal("new") }).openapi("InquiryCreated");
+const ErrorEnvelope = z.object({ data: z.null(), error: z.object({ code: z.string(), message: z.string(), fieldErrors: z.record(z.string(), z.array(z.string())).optional() }), requestId: z.string() }).openapi("InquiryErrorEnvelope");
+const SuccessEnvelope = z.object({ data: InquiryCreated, error: z.null(), requestId: z.string() }).openapi("InquirySuccessEnvelope");
+
 async function consumeEnquiryRateLimit(rawKey: string, now = Date.now()) {
   const windowMs = 600_000; const bucket = Math.floor(now / windowMs); const digest = createHmac("sha256", env.RATE_LIMIT_SECRET).update(rawKey).digest("hex"); const key = `enquiry:${bucket}:${digest}`;
   await db.insert(rateLimits).values({ key, count: 1, expiresAt: new Date((bucket + 1) * windowMs) }).onConflictDoUpdate({ target: rateLimits.key, set: { count: sql`${rateLimits.count} + 1` } });
   const [row] = await db.select({ count: rateLimits.count }).from(rateLimits).where(eq(rateLimits.key, key)).limit(1); return Boolean(row && row.count <= 5);
 }
-export async function submitEnquiry(_state: EnquiryActionState, formData: FormData): Promise<EnquiryActionState> {
-  const requestHeaders = await headers();
-  if (!allowedOrigin(requestHeaders.get("origin"))) return { ok: false, message: "Invalid request origin" };
-  const raw = Object.fromEntries(formData);
-  const parsed = enquirySchema.safeParse({ ...raw, consent: raw.consent === "on", startedAt: Number(raw.startedAt) });
-  if (!parsed.success) return { ok: false, message: "Please correct the highlighted fields", fieldErrors: parsed.error.flatten().fieldErrors };
-  if (Date.now() - parsed.data.startedAt < 1_500 || parsed.data.website) return { ok: true, message: "Your enquiry has been received" };
-  const allowed = await consumeEnquiryRateLimit(requestHeaders.get("x-forwarded-for") ?? "unknown");
-  if (!allowed) return { ok: false, message: "Too many enquiries. Please try again later." };
-  await createInquiryRepository(db).createWithNotification({ ...parsed.data, sourceUrl: String(raw.sourceUrl ?? `/${parsed.data.locale}`) });
-  return { ok: true, message: "Your enquiry has been received" };
-}
+
+const route = createRoute({
+  method: "post", path: "/", request: { body: { content: { "application/json": { schema: PublicInquiryInput } } } },
+  responses: {
+    201: { description: "Persisted enquiry", content: { "application/json": { schema: SuccessEnvelope } } },
+    400: { description: "Invalid submission", content: { "application/json": { schema: ErrorEnvelope } } },
+    403: { description: "Invalid origin", content: { "application/json": { schema: ErrorEnvelope } } },
+    429: { description: "Rate limited", content: { "application/json": { schema: ErrorEnvelope } } },
+  },
+});
+
+export const inquiryRoute = new OpenAPIHono().openapi(route, async (context) => {
+  const requestId = context.get("requestId");
+  const origin = context.req.header("origin");
+  if (!origin || new URL(origin).origin !== new URL(env.SITE_URL).origin) return context.json({ data: null, error: { code: "INVALID_ORIGIN", message: "Invalid request origin" }, requestId }, 403);
+  const parsed = enquirySchema.safeParse(context.req.valid("json"));
+  if (!parsed.success) return context.json({ data: null, error: { code: "VALIDATION_ERROR", message: "Please correct the highlighted fields", fieldErrors: parsed.error.flatten().fieldErrors }, requestId }, 400);
+  if (Date.now() - parsed.data.startedAt < 1_500 || parsed.data.website) return context.json({ data: { id: crypto.randomUUID(), status: "new" as const }, error: null, requestId }, 201);
+  if (!await consumeEnquiryRateLimit(context.req.header("x-forwarded-for") ?? "unknown")) return context.json({ data: null, error: { code: "RATE_LIMITED", message: "Too many enquiries. Please try again later." }, requestId }, 429);
+  const inquiry = createInquiryRepository(db).createWithNotification({ ...parsed.data, sourceUrl: context.req.header("referer") ?? `/${parsed.data.locale}` });
+  return context.json({ data: { id: inquiry.id, status: "new" as const }, error: null, requestId }, 201);
+});
 ```
 
-```tsx
-// src/components/forms/enquiry-form.tsx
-"use client";
-import { useActionState, useEffect, useRef } from "react";
-import { useFormStatus } from "react-dom";
-import { submitEnquiry, type EnquiryActionState } from "@/inquiries/actions";
+Mount `inquiryRoute` at `/api/public/inquiries` in `backend/src/app.ts`, regenerate `openapi/anshow.json`, and regenerate `frontend/src/generated/api.ts`. The route returns a normal-looking success for honeypot or impossibly fast submissions without writing a row, so automated abuse does not learn which signal fired.
 
-function SubmitButton() { const { pending } = useFormStatus(); return <button disabled={pending}>{pending ? "Submitting" : "Submit enquiry"}</button>; }
-export function EnquiryForm({ locale, action = submitEnquiry }: { locale: "en" | "zh" | "ru"; action?: typeof submitEnquiry }) {
-  const [state, formAction] = useActionState(action, { ok: false, message: "" } satisfies EnquiryActionState);
+```ts
+// backend/src/inquiries/route.test.ts
+import { expect, it } from "vitest";
+import { createTestApp } from "@/test/app";
+
+it("persists an accepted enquiry through the public API", async () => {
+  const fixture = createTestApp();
+  const response = await fixture.app.request("/api/public/inquiries", { method: "POST", headers: { "content-type": "application/json", origin: "https://anshow.test", "x-forwarded-for": "203.0.113.8" }, body: JSON.stringify({ name: "Elena", company: "Volga", email: "elena@example.test", phone: "", transportNeed: "Rail", message: "China to Russia freight request", consent: true, privacyVersion: "2026-07", locale: "en", website: "", startedAt: Date.now() - 3_000 }) });
+  expect(response.status).toBe(201);
+  expect(await fixture.count("inquiries")).toBe(1);
+  expect(await fixture.count("notification_deliveries")).toBe(1);
+});
+```
+
+- [ ] **Step 5: Implement the generated-contract browser form**
+
+```tsx
+// frontend/src/components/forms/enquiry-form.tsx
+"use client";
+import { useRef, useState } from "react";
+import type { components } from "@/generated/api";
+type Payload = components["schemas"]["PublicInquiryInput"];
+type Labels = { name: string; company: string; email: string; phone: string; transportNeed: string; message: string; consent: string; submit: string; submitting: string; success: string; error: string };
+
+export function EnquiryForm({ locale, privacyVersion, labels, request = fetch }: { locale: "en" | "zh" | "ru"; privacyVersion: string; labels: Labels; request?: typeof fetch }) {
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string; fieldErrors?: Record<string, string[]> } | null>(null);
   const form = useRef<HTMLFormElement>(null);
-  useEffect(() => { form.current?.querySelector<HTMLElement>("[aria-invalid=true]")?.focus(); }, [state.fieldErrors]);
-  return <form ref={form} action={formAction}><input type="hidden" name="locale" value={locale} /><input type="hidden" name="startedAt" value={Date.now()} /><input className="sr-only" tabIndex={-1} autoComplete="off" name="website" />
-    <label>Name<input name="name" required /></label><label>Company<input name="company" required /></label>
-    <label>Email<input name="email" type="email" /></label><label>Phone<input name="phone" type="tel" /></label>
-    <label>Transport requirement<input name="transportNeed" required /></label><label>Message<textarea name="message" required /></label>
-    <label><input name="consent" type="checkbox" required />I agree to the privacy notice</label>
-    {state.message && <p role={state.ok ? "status" : "alert"} aria-live="polite">{state.message}</p>}<SubmitButton />
+  const startedAt = useRef(Date.now());
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setPending(true); setResult(null);
+    const data = new FormData(event.currentTarget);
+    const payload: Payload = { name: String(data.get("name")), company: String(data.get("company")), email: String(data.get("email")), phone: String(data.get("phone")), transportNeed: String(data.get("transportNeed")), message: String(data.get("message")), consent: data.get("consent") === "on", privacyVersion, locale, website: String(data.get("website")), startedAt: startedAt.current };
+    const response = await request("/api/public/inquiries", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const body = await response.json();
+    const next = response.ok ? { ok: true, message: labels.success } : { ok: false, message: body.error?.message ?? labels.error, fieldErrors: body.error?.fieldErrors };
+    setResult(next); setPending(false);
+    if (!next.ok) requestAnimationFrame(() => form.current?.querySelector<HTMLElement>("[aria-invalid=true]")?.focus());
+  }
+  const invalid = (name: keyof Payload) => Boolean(result?.fieldErrors?.[name]);
+  return <form ref={form} onSubmit={submit} noValidate><input className="sr-only" tabIndex={-1} autoComplete="off" name="website" />
+    <label>{labels.name}<input name="name" required aria-invalid={invalid("name")} /></label><label>{labels.company}<input name="company" required aria-invalid={invalid("company")} /></label>
+    <label>{labels.email}<input name="email" type="email" aria-invalid={invalid("email")} /></label><label>{labels.phone}<input name="phone" type="tel" aria-invalid={invalid("phone")} /></label>
+    <label>{labels.transportNeed}<input name="transportNeed" required aria-invalid={invalid("transportNeed")} /></label><label>{labels.message}<textarea name="message" required aria-invalid={invalid("message")} /></label>
+    <label><input name="consent" type="checkbox" required />{labels.consent}</label>
+    {result && <p role={result.ok ? "status" : "alert"} aria-live="polite">{result.message}</p>}<button disabled={pending}>{pending ? labels.submitting : labels.submit}</button>
   </form>;
 }
 ```
 
-Move labels and messages into the EN/ZH/RU locale dictionaries and map `fieldErrors` to `aria-invalid` plus inline descriptions. Controls have a minimum height of `44px`.
+Add all labels and response messages to the EN/ZH/RU locale dictionaries, pass them from both pages, render an inline `<p id="field-error-*">` for each returned field error, and connect it with `aria-describedby`. Controls have a minimum height of `44px`; submission remains interruptible and uses no layout-shifting animation.
 
-- [ ] **Step 5: Write and pass form feedback test**
+- [ ] **Step 6: Write and pass API and form feedback tests**
 
 ```tsx
-// src/components/forms/enquiry-form.test.tsx
+// frontend/src/components/forms/enquiry-form.test.tsx
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { EnquiryForm } from "./enquiry-form";
 
 it("prevents a second submit while pending", async () => {
-  const submit = vi.fn(() => new Promise(() => undefined));
-  render(<EnquiryForm locale="en" action={submit} />);
+  const request = vi.fn(() => new Promise<Response>(() => undefined));
+  const labels = { name: "Name", company: "Company", email: "Email", phone: "Phone", transportNeed: "Transport requirement", message: "Message", consent: "I agree to the privacy notice", submit: "Submit enquiry", submitting: "Submitting", success: "Received", error: "Try again" };
+  render(<EnquiryForm locale="en" privacyVersion="2026-07" labels={labels} request={request as typeof fetch} />);
   await userEvent.click(screen.getByRole("button", { name: "Submit enquiry" }));
   expect(screen.getByRole("button", { name: "Submitting" })).toBeDisabled();
 });
 ```
 
-Run: `pnpm test -- src/inquiries/repository.test.ts src/components/forms/enquiry-form.test.tsx`
-
-Expected: both tests pass.
-
-- [ ] **Step 6: Commit**
+Run:
 
 ```bash
-git add src/inquiries src/components/forms 'src/app/[locale]'
+pnpm --filter @anshow/backend test -- src/inquiries/repository.test.ts src/inquiries/route.test.ts
+pnpm openapi:generate
+pnpm --filter @anshow/frontend test -- src/components/forms/enquiry-form.test.tsx
+```
+
+Expected: backend persistence/route tests and frontend form test pass, and `git diff --exit-code openapi/anshow.json frontend/src/generated/api.ts` reports no generated-contract drift after regeneration.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add backend/src/inquiries backend/src/app.ts openapi/anshow.json frontend/src/generated/api.ts frontend/src/components/forms 'frontend/src/app/[locale]'
 git commit -m "Acknowledge enquiries only after they are safely stored" \
   -m "Constraint: Email failure must never lose or duplicate a lead" \
   -m "Confidence: high" -m "Scope-risk: broad" \
@@ -329,25 +383,25 @@ git commit -m "Acknowledge enquiries only after they are safely stored" \
 ### Task 3: Implement the SMTP Worker, Retry Policy, and Localized Emails
 
 **Files:**
-- Create: `src/worker/index.ts`
-- Create: `src/worker/outbox.ts`
-- Create: `src/worker/outbox-port.ts`
-- Create: `src/worker/mailer.ts`
-- Create: `src/worker/mailer-instance.ts`
-- Create: `src/worker/scheduled-content.ts`
-- Create: `src/worker/outbox.test.ts`
-- Create: `src/inquiries/email-template.ts`
-- Create: `src/inquiries/email-template.test.ts`
-- Modify: `package.json`
-- Modify: `Dockerfile`
+- Create: `backend/src/worker/index.ts`
+- Create: `backend/src/worker/outbox.ts`
+- Create: `backend/src/worker/outbox-port.ts`
+- Create: `backend/src/worker/mailer.ts`
+- Create: `backend/src/worker/mailer-instance.ts`
+- Create: `backend/src/worker/scheduled-content.ts`
+- Create: `backend/src/worker/outbox.test.ts`
+- Create: `backend/src/inquiries/email-template.ts`
+- Create: `backend/src/inquiries/email-template.test.ts`
+- Modify: `backend/package.json`
+- Modify: `backend/Dockerfile`
 - Modify: `compose.yaml`
-- Modify: `src/env.ts`
+- Modify: `backend/src/env.ts`
 - Modify: `.env.example`
 
 - [ ] **Step 1: Write failing retry and template tests**
 
 ```ts
-// src/worker/outbox.test.ts
+// backend/src/worker/outbox.test.ts
 import { expect, it } from "vitest";
 import { nextRetryAt } from "./outbox";
 
@@ -359,7 +413,7 @@ it("uses bounded exponential retry", () => {
 ```
 
 ```ts
-// src/inquiries/email-template.test.ts
+// backend/src/inquiries/email-template.test.ts
 import { expect, it } from "vitest";
 import { renderSalesEmail } from "./email-template";
 
@@ -370,14 +424,14 @@ it("escapes visitor content", () => {
 
 - [ ] **Step 2: Run tests and confirm failure**
 
-Run: `pnpm test -- src/worker/outbox.test.ts src/inquiries/email-template.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/worker/outbox.test.ts src/inquiries/email-template.test.ts`
 
 Expected: FAIL because worker modules do not exist.
 
 - [ ] **Step 3: Implement retry timing and job claiming**
 
 ```ts
-// src/worker/outbox.ts
+// backend/src/worker/outbox.ts
 const retryMinutes = [1, 5, 15, 60, 360] as const;
 export function nextRetryAt(base: Date, attempt: number) {
   const minutes = retryMinutes[Math.min(attempt - 1, retryMinutes.length - 1)];
@@ -386,7 +440,7 @@ export function nextRetryAt(base: Date, attempt: number) {
 ```
 
 ```ts
-// src/worker/outbox.ts
+// backend/src/worker/outbox.ts
 export type DeliveryJob = { id: string; attempts: number; idempotencyKey: string; to: string; subject: string; html: string };
 export interface OutboxPort {
   claimDue(limit: number, workerId: string, now: Date): Promise<DeliveryJob[]>;
@@ -414,7 +468,7 @@ Implement `claimDue` with `BEGIN IMMEDIATE`, select at most ten `pending` jobs w
 - [ ] **Step 4: Implement safe localized templates and SMTP adapter**
 
 ```ts
-// src/inquiries/email-template.ts
+// backend/src/inquiries/email-template.ts
 export type SalesEmailInput = { id: string; locale: "en" | "zh" | "ru"; sourceUrl: string; email: string; phone: string; transportNeed: string; message: string };
 const subjects = { en: "We received your AnShow enquiry", zh: "我们已收到您的 AnShow 询盘", ru: "Мы получили ваш запрос AnShow" } as const;
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -428,7 +482,7 @@ export function renderVisitorEmail(locale: "en" | "zh" | "ru") {
 ```
 
 ```ts
-// src/worker/mailer.ts
+// backend/src/worker/mailer.ts
 import nodemailer from "nodemailer";
 import type { DeliveryJob } from "./outbox";
 export type SmtpConfig = { host: string; port: number; user: string; password: string; from: string };
@@ -440,18 +494,18 @@ export function createMailer(config: SmtpConfig) {
 
 Sales notification includes lead ID, locale, source, contact details, transport need, and escaped message. Never log SMTP passwords or full visitor messages.
 
-Extend `src/env.ts` and `.env.example` with required `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and `SALES_EMAIL` values. Parse the port as an integer from 1 to 65535 and never expose these variables through `NEXT_PUBLIC_*`.
+Extend `backend/src/env.ts` and `.env.example` with required `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and `SALES_EMAIL` values. Parse the port as an integer from 1 to 65535 and never expose these variables through `NEXT_PUBLIC_*`.
 
 - [ ] **Step 5: Add worker entry and verify**
 
-Add these scripts to `package.json`:
+Add these scripts to `backend/package.json` while preserving the server build entry from the foundation plan:
 
 ```json
-{"scripts":{"build:worker":"tsup src/worker/index.ts --format esm --out-dir dist","worker":"node dist/index.js"}}
+{"scripts":{"build":"tsup src/server.ts src/worker/index.ts scripts/create-admin.ts --format esm --out-dir dist","worker":"node dist/worker/index.js"}}
 ```
 
 ```ts
-// src/worker/index.ts
+// backend/src/worker/index.ts
 import { setTimeout as delay } from "node:timers/promises";
 import { processOutbox } from "./outbox";
 import { outboxPort } from "./outbox-port";
@@ -468,21 +522,24 @@ while (!stopping) {
 }
 ```
 
-The worker loops every 5 seconds, exits cleanly on SIGTERM, and also publishes translations whose `status` is `scheduled` and `scheduledAt <= now`. Add `RUN pnpm build:worker` to the Docker build stage and `COPY --from=build --chown=app:app /app/dist ./dist` to the runtime stage. Add this Compose service:
+The worker loops every 5 seconds, exits cleanly on SIGTERM, and also publishes translations whose `status` is `scheduled` and `scheduledAt <= now`. The backend Docker build runs `pnpm --filter @anshow/backend build` and copies `/workspace/backend/dist` into its runtime stage. Add this Compose service using the same backend image:
 
 ```yaml
 worker:
-  build: .
-  command: ["node", "dist/index.js"]
+  build: { context: ., dockerfile: backend/Dockerfile }
+  command: ["node", "dist/worker/index.js"]
   env_file: .env
+  depends_on:
+    backend: { condition: service_healthy }
   volumes: ["app-data:/data", "media-data:/media"]
+  restart: unless-stopped
 ```
 
 Run:
 
 ```bash
-pnpm test -- src/worker/outbox.test.ts src/inquiries/email-template.test.ts
-pnpm typecheck
+pnpm --filter @anshow/backend test -- src/worker/outbox.test.ts src/inquiries/email-template.test.ts
+pnpm --filter @anshow/backend typecheck
 ```
 
 Expected: tests and typecheck pass.
@@ -490,7 +547,7 @@ Expected: tests and typecheck pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/worker src/inquiries/email-template* package.json
+git add backend/src/worker backend/src/inquiries/email-template* backend/package.json backend/Dockerfile compose.yaml backend/src/env.ts .env.example
 git commit -m "Deliver enquiry notifications without coupling them to requests" \
   -m "Constraint: SMTP latency and outages cannot delay or erase public submissions" \
   -m "Confidence: high" -m "Scope-risk: broad" \
@@ -501,19 +558,21 @@ git commit -m "Deliver enquiry notifications without coupling them to requests" 
 ### Task 4: Build the Lead Workspace, Assignment, History, Notes, and CSV Export
 
 **Files:**
-- Create: `src/admin/repositories/inquiry-repository.ts`
-- Create: `src/admin/repositories/inquiry-repository.test.ts`
-- Create: `src/admin/actions/inquiries.ts`
-- Create: `src/components/admin/inquiry-table.tsx`
-- Create: `src/components/admin/inquiry-detail.tsx`
-- Create: `src/app/admin/(protected)/inquiries/page.tsx`
-- Create: `src/app/admin/(protected)/inquiries/[id]/page.tsx`
-- Create: `src/app/admin/(protected)/inquiries/export/route.ts`
+- Create: `backend/src/admin/repositories/inquiry-repository.ts`
+- Create: `backend/src/admin/repositories/inquiry-repository.test.ts`
+- Create: `backend/src/admin/routes/inquiries.ts`
+- Create: `backend/src/admin/routes/inquiries.test.ts`
+- Modify: `backend/src/app.ts`
+- Create: `frontend/src/api/admin-inquiries.ts`
+- Create: `frontend/src/components/admin/inquiry-table.tsx`
+- Create: `frontend/src/components/admin/inquiry-detail.tsx`
+- Create: `frontend/src/app/admin/(protected)/inquiries/page.tsx`
+- Create: `frontend/src/app/admin/(protected)/inquiries/[id]/page.tsx`
 
 - [ ] **Step 1: Write the failing history test**
 
 ```ts
-// src/admin/repositories/inquiry-repository.test.ts
+// backend/src/admin/repositories/inquiry-repository.test.ts
 import { expect, it } from "vitest";
 import { createInquiryFixture } from "@/inquiries/test-fixture";
 import { createAdminInquiryRepository } from "./inquiry-repository";
@@ -530,14 +589,14 @@ it("records assignment and status history", async () => {
 
 - [ ] **Step 2: Run test and confirm failure**
 
-Run: `pnpm test -- src/admin/repositories/inquiry-repository.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/admin/repositories/inquiry-repository.test.ts`
 
 Expected: FAIL because admin inquiry repository does not exist.
 
 - [ ] **Step 3: Implement transactional lead operations**
 
 ```ts
-// src/admin/repositories/inquiry-repository.ts
+// backend/src/admin/repositories/inquiry-repository.ts
 import { canTransition, type InquiryStatus } from "@/inquiries/state-machine";
 export interface AdminInquiryPort {
   transaction<T>(work: (tx: AdminInquiryPort) => Promise<T>): Promise<T>;
@@ -568,24 +627,45 @@ export function createAdminInquiryRepository(port: AdminInquiryPort) {
 }
 ```
 
-The list query accepts search, status, owner, locale, source, from/to dates, and a `(createdAt,id)` cursor, orders newest first, and returns at most 50 rows. Server actions call `requirePermission("inquiry.assign")`, `inquiry.status`, `inquiry.note`, or `inquiry.retry` before invoking the matching method.
+The list query accepts search, status, owner, locale, source, from/to dates, and a `(createdAt,id)` cursor, orders newest first, and returns at most 50 rows. Define OpenAPI routes for `GET /`, `GET /:id`, `PATCH /:id/assignment-status`, `POST /:id/notes`, and `POST /:id/notification-retry`; mount them at `/api/admin/inquiries`. Apply `requirePermission("inquiry.read")`, `inquiry.assign`, `inquiry.status`, `inquiry.note`, or `inquiry.retry` to the matching Hono route before invoking the repository. Every mutation reads the authenticated actor from Hono context and returns `{ data, error, requestId }`.
+
+```ts
+// backend/src/admin/routes/inquiries.test.ts
+import { expect, it } from "vitest";
+import { createAdminTestApp } from "@/test/admin-app";
+
+it("rejects assignment without inquiry.assign", async () => {
+  const fixture = await createAdminTestApp({ permissions: ["inquiry.read"] });
+  const inquiry = await fixture.createInquiry();
+  const response = await fixture.request(`/api/admin/inquiries/${inquiry.id}/assignment-status`, { method: "PATCH", body: { assigneeId: "sales-1", status: "contacted" } });
+  expect(response.status).toBe(403);
+  expect(await fixture.history(inquiry.id)).toHaveLength(1);
+});
+```
 
 - [ ] **Step 4: Implement safe CSV export**
 
 ```ts
-// src/app/admin/(protected)/inquiries/export/route.ts
+// backend/src/admin/routes/inquiries.ts excerpt
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { requirePermission } from "@/auth/permission-middleware";
+import { inquiryRepository } from "@/admin/repositories";
+
 const csvCell = (value: unknown) => {
   let text = String(value ?? "");
   if (/^[=+\-@]/.test(text)) text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
 };
-export async function GET(request: Request) {
-  await requirePermission("inquiry.export");
-  const filters = inquiryFilterSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-  const rows = await inquiryRepository.export(filters, 10_000);
-  const csv = ["id,name,company,email,phone,need,status,owner,locale,createdAt", ...rows.map((row) => [row.id, row.name, row.company, row.email, row.phone, row.transportNeed, row.status, row.ownerEmail, row.locale, row.createdAt.toISOString()].map(csvCell).join(","))].join("\r\n");
-  return new Response(`\uFEFF${csv}`, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="anshow-inquiries-${new Date().toISOString().slice(0, 10)}.csv"` } });
-}
+const exportRoute = createRoute({ method: "get", path: "/export", request: { query: inquiryFilterSchema }, responses: { 200: { description: "Filtered CSV", content: { "text/csv": { schema: z.string() } } } } });
+export const adminInquiryRoutes = new OpenAPIHono()
+  .use("/export", requirePermission("inquiry.export"))
+  .openapi(exportRoute, async (context) => {
+    const rows = await inquiryRepository.export(context.req.valid("query"), 10_000);
+    const csv = ["id,name,company,email,phone,need,status,owner,locale,createdAt", ...rows.map((row) => [row.id, row.name, row.company, row.email, row.phone, row.transportNeed, row.status, row.ownerEmail, row.locale, row.createdAt.toISOString()].map(csvCell).join(","))].join("\r\n");
+    context.header("content-type", "text/csv; charset=utf-8");
+    context.header("content-disposition", `attachment; filename="anshow-inquiries-${new Date().toISOString().slice(0, 10)}.csv"`);
+    return context.body(`\uFEFF${csv}`, 200);
+  });
 ```
 
 The export applies the active list filters and caps one download at 10,000 rows.
@@ -593,8 +673,9 @@ The export applies the active list filters and caps one download at 10,000 rows.
 - [ ] **Step 5: Build the workspace UI**
 
 ```tsx
-// src/components/admin/inquiry-table.tsx
-type InquiryRow = { id: string; name: string; email: string; phone: string; company: string; transportNeed: string; ownerName: string | null; status: string; locale: string; createdAtLabel: string };
+// frontend/src/components/admin/inquiry-table.tsx
+import type { components } from "@/generated/api";
+type InquiryRow = components["schemas"]["AdminInquiryRow"];
 export function InquiryTable({ rows }: { rows: readonly InquiryRow[] }) {
   if (!rows.length) return <p>No enquiries match these filters.</p>;
   return <div className="overflow-x-auto"><table><thead><tr>{["Contact", "Company", "Need", "Owner", "Status", "Locale", "Created"].map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td><a href={`/admin/inquiries/${row.id}`}>{row.name}<br />{row.email || row.phone}</a></td><td>{row.company}</td><td>{row.transportNeed}</td><td>{row.ownerName ?? "Unassigned"}</td><td>{row.status}</td><td>{row.locale}</td><td>{row.createdAtLabel}</td></tr>)}</tbody></table></div>;
@@ -602,28 +683,31 @@ export function InquiryTable({ rows }: { rows: readonly InquiryRow[] }) {
 ```
 
 ```tsx
-// src/components/admin/inquiry-detail.tsx
-type InquiryDetailRecord = InquiryRow & { sourceUrl: string; history: readonly unknown[]; deliveries: readonly unknown[] };
+// frontend/src/components/admin/inquiry-detail.tsx
+import type { components } from "@/generated/api";
+type InquiryDetailRecord = components["schemas"]["AdminInquiryDetail"];
 export function InquiryDetail({ inquiry }: { inquiry: InquiryDetailRecord }) {
   return <main><h1>{inquiry.name}</h1><dl><dt>Company</dt><dd>{inquiry.company}</dd><dt>Source</dt><dd>{inquiry.sourceUrl}</dd><dt>Contact</dt><dd>{inquiry.email || inquiry.phone}</dd></dl><AssignmentForm inquiry={inquiry} /><StatusForm inquiry={inquiry} /><NoteForm inquiryId={inquiry.id} /><HistoryList rows={inquiry.history} /><DeliveryAttempts rows={inquiry.deliveries} /></main>;
 }
 ```
 
-The pages render loading skeletons from `loading.tsx`; failed notification rows expose a permission-guarded retry command.
+`frontend/src/api/admin-inquiries.ts` wraps the generated contract: server reads call `${BACKEND_INTERNAL_URL}/api/admin/inquiries` and forward the request cookie; browser mutations call same-origin `/api/admin/inquiries/*`. It exports no handwritten DTOs. The pages render loading skeletons from `loading.tsx`; failed notification rows expose a retry button only when `/api/admin/session` includes `inquiry.retry`, while the backend permission middleware remains authoritative.
 
 - [ ] **Step 6: Verify and commit**
 
 Run:
 
 ```bash
-pnpm test -- src/admin/repositories/inquiry-repository.test.ts
-pnpm build
+pnpm --filter @anshow/backend test -- src/admin/repositories/inquiry-repository.test.ts src/admin/routes/inquiries.test.ts
+pnpm openapi:generate
+pnpm --filter @anshow/backend typecheck
+pnpm --filter @anshow/frontend build
 ```
 
 Expected: history test and build pass.
 
 ```bash
-git add src/admin/repositories/inquiry-repository* src/admin/actions/inquiries.ts src/components/admin/inquiry* 'src/app/admin/(protected)/inquiries'
+git add backend/src/admin/repositories/inquiry-repository* backend/src/admin/routes/inquiries* backend/src/app.ts openapi/anshow.json frontend/src/generated/api.ts frontend/src/api/admin-inquiries.ts frontend/src/components/admin/inquiry* 'frontend/src/app/admin/(protected)/inquiries'
 git commit -m "Give sales staff a complete history for every lead" \
   -m "Constraint: Assignment, status, notes, retries, and exports need independent permissions" \
   -m "Confidence: high" -m "Scope-risk: broad" \
@@ -633,18 +717,20 @@ git commit -m "Give sales staff a complete history for every lead" \
 ### Task 5: Add Rate Limits, Origin Validation, CSP, and Upload Headers
 
 **Files:**
-- Create: `src/security/rate-limit.ts`
-- Create: `src/security/rate-limit.test.ts`
-- Create: `src/security/origin.ts`
-- Create: `src/security/origin.test.ts`
-- Modify: `next.config.ts`
+- Create: `backend/src/security/rate-limit.ts`
+- Create: `backend/src/security/rate-limit.test.ts`
+- Create: `backend/src/security/origin.ts`
+- Create: `backend/src/security/origin.test.ts`
+- Modify: `backend/src/auth/server.ts`
+- Modify: `backend/src/worker/index.ts`
+- Modify: `frontend/next.config.ts`
 - Modify: `Caddyfile`
-- Modify: `src/inquiries/actions.ts`
+- Modify: `backend/src/inquiries/route.ts`
 
 - [ ] **Step 1: Write failing security tests**
 
 ```ts
-// src/security/rate-limit.test.ts
+// backend/src/security/rate-limit.test.ts
 import { expect, it } from "vitest";
 import { createRateLimiter } from "./rate-limit";
 
@@ -656,7 +742,7 @@ it("blocks the sixth enquiry in ten minutes", async () => {
 ```
 
 ```ts
-// src/security/origin.test.ts
+// backend/src/security/origin.test.ts
 import { expect, it } from "vitest";
 import { isAllowedOrigin } from "./origin";
 
@@ -667,14 +753,14 @@ it("rejects a foreign form origin", () => {
 
 - [ ] **Step 2: Run tests and confirm failure**
 
-Run: `pnpm test -- src/security/rate-limit.test.ts src/security/origin.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/security/rate-limit.test.ts src/security/origin.test.ts`
 
 Expected: FAIL because security helpers do not exist.
 
 - [ ] **Step 3: Implement SQLite-backed limits and origin checks**
 
 ```ts
-// src/security/rate-limit.ts
+// backend/src/security/rate-limit.ts
 import { createHmac } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/client";
@@ -699,10 +785,10 @@ export async function consumeRateLimit(db: AppDatabase, action: string, rawKey: 
 
 Hash IP addresses with a rotating `RATE_LIMIT_SECRET` before persistence. Public enquiry limit is 5 per 10 minutes; login limit is 10 failures per 15 minutes per IP hash and normalized account key. Purge rows whose `expiresAt` is in the past from the worker.
 
-Replace the private `allowedOrigin` and `consumeEnquiryRateLimit` helpers in `src/inquiries/actions.ts` with imports of `isAllowedOrigin` and `consumeRateLimit`; keep the action behavior unchanged.
+Replace the private origin and rate-limit helpers in `backend/src/inquiries/route.ts` with `isAllowedOrigin` and `consumeRateLimit`. Apply the same limiter in the Better Auth sign-in path at 10 failed attempts per 15 minutes using both the IP digest and normalized account digest. `backend/src/worker/index.ts` deletes expired `rate_limits` rows once per hour; successful login clears only the current account/IP bucket and never disables the public enquiry limit.
 
 ```ts
-// src/security/origin.ts
+// backend/src/security/origin.ts
 export function isAllowedOrigin(origin: string | null, siteUrl: string) {
   if (!origin) return false;
   return new URL(origin).origin === new URL(siteUrl).origin;
@@ -712,7 +798,7 @@ export function isAllowedOrigin(origin: string | null, siteUrl: string) {
 - [ ] **Step 4: Add response headers**
 
 ```ts
-// next.config.ts
+// frontend/next.config.ts
 import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const csp = ["default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: https:", "font-src 'self'", "connect-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'"].join("; ");
@@ -732,15 +818,17 @@ Keep HSTS, `X-Content-Type-Options`, and `Referrer-Policy` in Caddy as defined b
 Run:
 
 ```bash
-pnpm test -- src/security
-pnpm build
-curl -I http://localhost:3000/en
+pnpm --filter @anshow/backend test -- src/security
+pnpm --filter @anshow/backend typecheck
+pnpm --filter @anshow/frontend build
+docker compose up -d frontend backend caddy
+curl -kI https://localhost/en -H 'Host: localhost'
 ```
 
 Expected: tests/build pass and headers are present in the local production server response.
 
 ```bash
-git add src/security next.config.ts Caddyfile
+git add backend/src/security backend/src/auth/server.ts backend/src/worker/index.ts backend/src/inquiries/route.ts frontend/next.config.ts Caddyfile
 git commit -m "Reduce abuse without burdening legitimate enquiries" \
   -m "Constraint: Version 1 uses rate limits and honeypots without CAPTCHA" \
   -m "Confidence: high" -m "Scope-risk: broad" \
@@ -750,18 +838,18 @@ git commit -m "Reduce abuse without burdening legitimate enquiries" \
 ### Task 6: Implement Tencent COS Media Storage
 
 **Files:**
-- Create: `src/media/cos-storage.ts`
-- Create: `src/media/cos-storage.test.ts`
-- Modify: `src/media/storage.ts`
-- Modify: `src/env.ts`
+- Create: `backend/src/media/cos-storage.ts`
+- Create: `backend/src/media/cos-storage.test.ts`
+- Modify: `backend/src/media/storage.ts`
+- Modify: `backend/src/env.ts`
 - Modify: `.env.example`
 
 - [ ] **Step 1: Install the Tencent COS SDK and write failing adapter test**
 
-Run: `pnpm add cos-nodejs-sdk-v5`
+Run: `pnpm --filter @anshow/backend add cos-nodejs-sdk-v5`
 
 ```ts
-// src/media/cos-storage.test.ts
+// backend/src/media/cos-storage.test.ts
 import { expect, it, vi } from "vitest";
 import { CosStorage } from "./cos-storage";
 
@@ -775,7 +863,7 @@ it("writes immutable cache metadata", async () => {
 
 - [ ] **Step 2: Run test and confirm failure**
 
-Run: `pnpm test -- src/media/cos-storage.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/media/cos-storage.test.ts`
 
 Expected: FAIL because COS adapter does not exist.
 
@@ -784,13 +872,13 @@ Expected: FAIL because COS adapter does not exist.
 `CosStorage` implements `MediaStorage.put/delete`, applies correct content type and immutable cache control, normalizes public URLs, and never exposes secret ID/key to client bundles. `MEDIA_DRIVER=cos` requires bucket, region, public base URL, secret ID, and secret key at startup.
 
 ```ts
-// src/env.ts COS refinement
+// backend/src/env.ts COS refinement
 const cosSchema = z.object({ COS_BUCKET: z.string().min(1), COS_REGION: z.string().min(1), COS_PUBLIC_BASE_URL: z.string().url(), COS_SECRET_ID: z.string().min(1), COS_SECRET_KEY: z.string().min(1) });
 export function requireCosEnv(input: Record<string, unknown>) { return cosSchema.parse(input); }
 ```
 
 ```ts
-// src/media/cos-storage.ts
+// backend/src/media/cos-storage.ts
 import type COS from "cos-nodejs-sdk-v5";
 import type { MediaStorage } from "./storage";
 export class CosStorage implements MediaStorage {
@@ -812,14 +900,14 @@ export class CosStorage implements MediaStorage {
 Run:
 
 ```bash
-pnpm test -- src/media/cos-storage.test.ts
-pnpm typecheck
+pnpm --filter @anshow/backend test -- src/media/cos-storage.test.ts
+pnpm --filter @anshow/backend typecheck
 ```
 
 Expected: test and typecheck pass.
 
 ```bash
-git add package.json pnpm-lock.yaml src/media src/env.ts .env.example
+git add backend/package.json pnpm-lock.yaml backend/src/media backend/src/env.ts .env.example
 git commit -m "Serve production media through Tencent COS and CDN" \
   -m "Constraint: International visitors should not fetch every asset from the application container" \
   -m "Confidence: medium" -m "Scope-risk: moderate" \
@@ -829,19 +917,24 @@ git commit -m "Serve production media through Tencent COS and CDN" \
 ### Task 7: Add Encrypted Backup, COS Retention, and Restore Verification
 
 **Files:**
-- Create: `scripts/backup/create-backup.ts`
-- Create: `scripts/backup/verify-restore.ts`
-- Create: `scripts/backup/backup.test.ts`
-- Create: `docker/backup.Dockerfile`
+- Create: `backend/src/backup/create-backup.ts`
+- Create: `backend/src/backup/verify-restore.ts`
+- Create: `backend/src/backup/cos-backup-storage.ts`
+- Create: `backend/src/backup/scheduler.ts`
+- Create: `backend/src/backup/backup.test.ts`
+- Create: `backend/src/db/schema/operations.ts`
+- Modify: `backend/src/db/schema/index.ts`
+- Modify: `backend/package.json`
+- Modify: `backend/Dockerfile`
 - Modify: `compose.yaml`
-- Modify: `src/env.ts`
+- Modify: `backend/src/env.ts`
 - Modify: `.env.example`
 - Create: `docs/deployment/backup-and-restore.md`
 
 - [ ] **Step 1: Write the failing retention test**
 
 ```ts
-// scripts/backup/backup.test.ts
+// backend/src/backup/backup.test.ts
 import { expect, it } from "vitest";
 import { retentionClass } from "./create-backup";
 
@@ -853,14 +946,14 @@ it("classifies daily, weekly, and monthly backups", () => {
 
 - [ ] **Step 2: Run test and confirm failure**
 
-Run: `pnpm test -- scripts/backup/backup.test.ts`
+Run: `pnpm --filter @anshow/backend test -- src/backup/backup.test.ts`
 
 Expected: FAIL because backup script does not exist.
 
 - [ ] **Step 3: Implement consistent encrypted backup**
 
 ```ts
-// scripts/backup/create-backup.ts
+// backend/src/backup/create-backup.ts
 import { createCipheriv, randomBytes } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -872,6 +965,8 @@ import Database from "better-sqlite3";
 export interface BackupConfig {
   databasePath: string; stagingRoot: string; encryptionKey: string;
   media: { list(): Promise<unknown[]> };
+  caddyDataRoot: string;
+  configuration: { snapshot(): Promise<Record<string, string | number | boolean>> };
   storage: { putFile(key: string, file: string, metadata: { retention: string }): Promise<void>; prune(policy: { daily: number; weekly: number; monthly: number }): Promise<void> };
 }
 export function retentionClass(date: Date) {
@@ -894,6 +989,8 @@ export async function createBackup(config: BackupConfig) {
     const database = new Database(config.databasePath, { readonly: true });
     await database.backup(snapshot); database.close();
     await fs.writeFile(path.join(staging, "media-manifest.json"), JSON.stringify(await config.media.list(), null, 2));
+    await fs.writeFile(path.join(staging, "configuration.json"), JSON.stringify(await config.configuration.snapshot(), null, 2));
+    await run("tar", ["-cf", path.join(staging, "caddy-data.tar"), "-C", config.caddyDataRoot, "."]);
     const archive = `${staging}.tar`; await run("tar", ["-cf", archive, "-C", staging, "."]);
     const encrypted = `${archive}.enc`; await encrypt(archive, encrypted, Buffer.from(config.encryptionKey, "base64"));
     const now = new Date(); const key = `backups/${now.toISOString()}.tar.enc`;
@@ -904,14 +1001,14 @@ export async function createBackup(config: BackupConfig) {
 }
 ```
 
-Validate that `BACKUP_ENCRYPTION_KEY` decodes to exactly 32 bytes. The backup service runs daily and writes an audit/notification record on success or failure; it never logs the key, COS secret, or archive contents.
+Validate that `BACKUP_ENCRYPTION_KEY` decodes to exactly 32 bytes. `backend/src/backup/cos-backup-storage.ts` implements `putFile`, `downloadLatest`, and retention pruning against the configured private COS backup prefix; media objects continue to use the public media adapter and are never mixed with backup objects. Add a `backup_runs` table with `id`, `status`, `objectKey`, `startedAt`, `finishedAt`, and redacted `error`; the scheduler records every success/failure and sends the configured administrator a short failure notification without secrets or visitor content.
 
 Add `BACKUP_ENCRYPTION_KEY` and `BACKUP_STAGING_ROOT=/staging` to the server-only environment schema and `.env.example`. Validation decodes the key from base64 and rejects any value that is not exactly 32 bytes.
 
 - [ ] **Step 4: Implement restore verification**
 
 ```ts
-// scripts/backup/verify-restore.ts
+// backend/src/backup/verify-restore.ts
 import { createDecipheriv } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -940,32 +1037,50 @@ export async function verifyRestore(config: RestoreConfig) {
     restored.close();
     const manifest = JSON.parse(await fs.readFile(path.join(isolated, "media-manifest.json"), "utf8"));
     if (!Array.isArray(manifest)) throw new Error("Invalid media manifest");
-    return { ok: true as const, tables: tables.size, media: manifest.length };
+    const configuration = JSON.parse(await fs.readFile(path.join(isolated, "configuration.json"), "utf8"));
+    await fs.access(path.join(isolated, "caddy-data.tar"));
+    return { ok: true as const, tables: tables.size, media: manifest.length, configurationKeys: Object.keys(configuration).length };
   } finally { await fs.rm(isolated, { recursive: true, force: true }); }
 }
 ```
 
 `decryptBackup` checks the `ANSHOW1` header and AES-GCM authentication tag before extracting. Never point the production app at the verification database.
 
-- [ ] **Step 5: Add Compose backup service and runbook**
+- [ ] **Step 5: Add the scheduler, backend-image service, and runbook**
 
-```dockerfile
-# docker/backup.Dockerfile
-FROM node:24-alpine
-RUN apk add --no-cache tar && corepack enable
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY scripts ./scripts
-CMD ["sh", "-c", "while true; do pnpm tsx scripts/backup/create-backup.ts; sleep 86400; done"]
+```ts
+// backend/src/backup/scheduler.ts
+import { setTimeout as delay } from "node:timers/promises";
+import { createBackup } from "./create-backup";
+import { backupConfig, backupRuns, notifyBackupFailure } from "./wiring";
+
+let stopping = false;
+process.on("SIGTERM", () => { stopping = true; });
+while (!stopping) {
+  const run = await backupRuns.start(new Date());
+  try {
+    const result = await createBackup(backupConfig);
+    await backupRuns.succeed(run.id, result.key, new Date());
+  } catch (error) {
+    const message = error instanceof Error ? error.message.slice(0, 500) : "Unknown backup error";
+    await backupRuns.fail(run.id, message, new Date());
+    await notifyBackupFailure(message);
+  }
+  if (!stopping) await delay(86_400_000);
+}
 ```
+
+Add `src/backup/scheduler.ts` and `src/backup/verify-restore.ts` as `tsup` entries in `backend/package.json`, producing `dist/backup/scheduler.js` and `dist/backup/verify-restore.js`. Install `tar` in the backend runtime stage; do not create a separate dependency image that can drift from the backend schema and native SQLite build. The configuration snapshot contains only non-secret mode/version identifiers and hashes, never `.env`, SMTP credentials, COS credentials, Better Auth secrets, or the backup key.
 
 ```yaml
 # compose.yaml addition
   backup:
-    build: { context: ., dockerfile: docker/backup.Dockerfile }
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: ["node", "dist/backup/scheduler.js"]
     env_file: .env
-    volumes: ["app-data:/data:ro", "media-data:/media:ro", "backup-staging:/staging"]
+    depends_on:
+      backend: { condition: service_healthy }
+    volumes: ["app-data:/data", "media-data:/media:ro", "caddy-data:/caddy-data:ro", "backup-staging:/staging"]
     restart: unless-stopped
 volumes:
   backup-staging: {}
@@ -973,12 +1088,12 @@ volumes:
 
 ```markdown
 <!-- docs/deployment/backup-and-restore.md -->
-1. Stop writers: `docker compose stop app worker`.
+1. Stop writers: `docker compose stop frontend backend worker backup`.
 2. Download and decrypt the selected COS backup into an isolated directory.
-3. Run `pnpm tsx scripts/backup/verify-restore.ts --file <backup>` and require `ok`.
-4. Copy the verified database to the `app-data` volume and restore media objects listed in `media-manifest.json`.
-5. Run `docker compose run --rm app pnpm db:migrate`.
-6. Start services with `docker compose up -d app worker caddy` and verify `/api/health`, admin login, and one read-only public route.
+3. Run `docker compose run --rm backend node dist/backup/verify-restore.js --file <backup>` and require `ok`.
+4. Copy the verified database to the `app-data` volume; restore media objects from `media-manifest.json` and Caddy state from `caddy-data.tar` only while Caddy is stopped.
+5. Run `docker compose run --rm backend pnpm db:migrate`.
+6. Start services with `docker compose up -d backend frontend worker backup caddy` and verify `/api/health`, admin login, and one read-only public route.
 7. Keep the replaced database until the restored system has passed the release checklist.
 ```
 
@@ -987,16 +1102,17 @@ volumes:
 Run:
 
 ```bash
-pnpm test -- scripts/backup/backup.test.ts
+pnpm --filter @anshow/backend test -- src/backup/backup.test.ts
+pnpm --filter @anshow/backend typecheck
 docker compose config
-pnpm tsx scripts/backup/create-backup.ts --dry-run
-pnpm tsx scripts/backup/verify-restore.ts --fixture
+pnpm --filter @anshow/backend backup:dry-run
+pnpm --filter @anshow/backend backup:verify-fixture
 ```
 
 Expected: test passes, Compose is valid, dry-run leaves no plaintext archive, fixture restore reports `ok`.
 
 ```bash
-git add scripts/backup docker/backup.Dockerfile compose.yaml docs/deployment/backup-and-restore.md
+git add backend/src/backup backend/src/db/schema backend/package.json backend/Dockerfile backend/migrations compose.yaml backend/src/env.ts .env.example docs/deployment/backup-and-restore.md
 git commit -m "Make AnShow recoverable after a server loss" \
   -m "Constraint: A local volume is not a backup and live SQLite files cannot be copied raw" \
   -m "Confidence: high" -m "Scope-risk: broad" \
@@ -1007,16 +1123,16 @@ git commit -m "Make AnShow recoverable after a server loss" \
 ### Task 8: Complete Production E2E, Accessibility, Performance, and Deployment Runbook
 
 **Files:**
-- Create: `tests/e2e/enquiry.spec.ts`
-- Create: `tests/e2e/accessibility.spec.ts`
-- Create: `tests/e2e/performance.spec.ts`
+- Create: `frontend/tests/e2e/enquiry.spec.ts`
+- Create: `frontend/tests/e2e/accessibility.spec.ts`
+- Create: `frontend/tests/e2e/performance.spec.ts`
 - Create: `docs/deployment/tencent-cloud.md`
 - Create: `docs/deployment/release-checklist.md`
 
 - [ ] **Step 1: Write full enquiry and permission E2E flows**
 
 ```ts
-// tests/e2e/enquiry.spec.ts
+// frontend/tests/e2e/enquiry.spec.ts
 import { test, expect } from "@playwright/test";
 
 test("persists a Chinese enquiry before showing success", async ({ page }) => {
@@ -1035,7 +1151,7 @@ test("persists a Chinese enquiry before showing success", async ({ page }) => {
 - [ ] **Step 2: Add accessibility and motion E2E**
 
 ```ts
-// tests/e2e/accessibility.spec.ts
+// frontend/tests/e2e/accessibility.spec.ts
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
 for (const path of ["/en", "/zh", "/ru", "/admin/login", "/en/services/ocean-freight"]) {
@@ -1058,7 +1174,7 @@ Add a keyboard-only test that tabs through language, carousel pause, quote, and 
 - [ ] **Step 3: Add measurable performance assertions**
 
 ```ts
-// tests/e2e/performance.spec.ts
+// frontend/tests/e2e/performance.spec.ts
 import { test, expect } from "@playwright/test";
 test("mobile avoids heavy scenes and image budget regressions", async ({ page }) => {
   const responses: { url: string; bytes: number }[] = [];
@@ -1082,7 +1198,7 @@ Run the production build behind Caddy under the agreed Playwright desktop profil
 2. Allow inbound TCP 80 and 443 only; keep SSH restricted to administrative source addresses.
 3. Create a Tencent DNS A record for the production hostname pointing to the CVM public IP and wait for it to resolve.
 4. Install Docker Engine with the Compose plugin, clone the release, and create `.env` from `.env.example` with `SITE_HOST`, `SITE_URL`, Better Auth, SMTP, COS, rate-limit, and backup secrets.
-5. Run `docker compose run --rm app pnpm db:migrate` and the documented first-admin command.
+5. Run `docker compose run --rm backend pnpm db:migrate` and the documented first-admin command.
 6. Start with `docker compose up -d --build`; verify `docker compose ps`, `https://<host>/api/health`, and the Caddy certificate issuer in `docker compose logs caddy`.
 7. Complete legal name, public contact, privacy controller, and one contact channel in `/admin/settings` before publishing.
 8. Trigger one backup and one isolated restore verification before accepting traffic.
@@ -1096,11 +1212,11 @@ The release checklist records image tags, migration ID, certificate result, back
 Run:
 
 ```bash
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm build
-pnpm test:e2e
+pnpm -r test
+pnpm -r lint
+pnpm -r typecheck
+pnpm -r build
+pnpm --filter @anshow/frontend test:e2e
 docker compose config
 docker compose build
 ```
@@ -1110,7 +1226,7 @@ Expected: every command passes with zero known errors.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add tests/e2e docs/deployment
+git add frontend/tests/e2e docs/deployment
 git commit -m "Prove AnShow is ready for a Tencent Cloud handoff" \
   -m "Constraint: Delivery includes deployment, recovery, accessibility, and performance evidence" \
   -m "Confidence: high" -m "Scope-risk: broad" \
