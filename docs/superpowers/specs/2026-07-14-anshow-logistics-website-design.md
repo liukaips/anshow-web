@@ -13,7 +13,7 @@ The product has three bounded surfaces:
 2. A private administration console under the same domain at `/admin`.
 3. A server-side content, identity, lead, media, email, and configuration layer backed by SQLite.
 
-The production deployment target is a Tencent Cloud CVM using Docker Compose. Tencent Cloud DNS points the production domain to the CVM. Caddy terminates HTTPS and automatically obtains and renews certificates.
+The production deployment target is a Tencent Cloud CVM using Docker Compose. Tencent Cloud DNS points the production domain to the CVM. Caddy terminates HTTPS and uses ACME to obtain and renew free publicly trusted certificates from Let's Encrypt, with ZeroSSL available as a configurable fallback CA.
 
 ## 2. Goals
 
@@ -439,31 +439,46 @@ Audit events include:
 
 ### 13.1 Application Shape
 
-A single Next.js TypeScript application contains:
+The repository is a pnpm workspace with two independently buildable application directories:
 
-- Public locale routes.
-- Administration routes.
-- Server-rendered content pages.
-- Route handlers and server actions.
-- Authentication and RBAC.
-- Enquiry and notification services.
-- Media processing and storage adapters.
-- Scheduled maintenance entry points.
+```text
+frontend/  Next.js public website and /admin user interface
+backend/   Hono API, Better Auth, Drizzle, SQLite, media services, and worker entry points
+```
 
-Implementation components:
+The root also contains shared deployment configuration, generated media, brand sources, and operational documentation. The frontend and backend deploy together through one Docker Compose project but never share application source directories or direct database imports.
 
-- Next.js App Router and TypeScript.
-- Tailwind CSS with custom public-site components and restrained shadcn/ui primitives for the admin console.
-- Drizzle ORM with SQLite migrations.
+Frontend responsibilities:
+
+- Public locale routes and the `/admin` interface.
+- Server-rendered content and SEO metadata obtained through the backend API.
+- next-intl dictionaries and locale-aware routing.
+- Embla Carousel, GSAP, ScrollTrigger, and capability-gated Three.js presentation.
+- Accessible forms, loading states, error states, and API response handling.
+- No Drizzle schema, SQLite connection, password hashing, session persistence, SMTP credentials, or COS secrets.
+
+Backend responsibilities:
+
+- Hono REST API under `/api`.
 - Better Auth with its Drizzle adapter, database-backed sessions, and email/password staff login.
-- Argon2id password hashing.
-- next-intl for typed locale routing and interface dictionaries.
-- Embla Carousel for accessible carousel behavior.
-- GSAP and ScrollTrigger for public-site choreography.
-- Three.js for the desktop route scene.
-- Sharp for server-side image derivatives.
-- Lucide icons for interface controls.
+- Argon2id password hashing and default-deny RBAC.
+- Drizzle schema, migrations, SQLite access, content publishing, enquiry intake, media processing, audit records, and configuration.
+- Database-backed notification outbox, scheduled publishing, and maintenance entry points under `backend/src/worker`.
+- Local-media and Tencent COS storage adapters.
 - SMTP through a configurable provider.
+
+Primary API groups:
+
+- `/api/auth/*`: Better Auth session lifecycle.
+- `/api/public/content/*`: published locale content, navigation, SEO data, and translation alternates.
+- `/api/public/inquiries`: validated enquiry intake and transactional outbox creation.
+- `/api/public/settings`: enabled public contact channels.
+- `/api/admin/content/*`, `/media/*`, `/inquiries/*`, `/staff/*`, `/settings/*`, and `/audit/*`: permission-guarded administration resources.
+- `/api/health/live` and `/api/health/ready`: process and dependency health.
+
+Production requests remain same-origin. Caddy sends `/api/*` to the backend and all other paths to the frontend. Browser requests use `/api/*`; Next.js server rendering calls the backend through its private Compose hostname. Better Auth cookies are scoped to the public domain with Secure, HttpOnly, and SameSite=Lax settings. Development uses an explicit localhost origin allowlist.
+
+The backend emits an OpenAPI contract and generates the frontend API types. Frontend code must not duplicate backend DTOs manually. Application API responses other than Better Auth's own protocol use the stable shape `{ data, error, requestId }`; validation failures include field errors, while server stack traces and secrets never cross the API boundary.
 
 Three.js, GSAP-heavy scenes, and below-fold feature code are dynamically imported. The main page remains functional without them.
 
@@ -500,8 +515,10 @@ Core table groups:
 - articles and article_translations.
 - partners and partner_translations.
 - certificates and certificate_translations.
+- proof_metrics and proof_metric_translations.
 - navigation_items and navigation_item_translations.
 - media_assets and media_asset_translations.
+- media_derivatives and media_usage.
 
 #### Leads
 
@@ -517,7 +534,7 @@ Core table groups:
 - audit_logs.
 - rate_limits.
 
-Shared identity, ordering, visibility, timestamps, and publish state stay on base records. Language-specific slugs, text, SEO, and alt text stay in typed translation tables. Generic EAV content and opaque JSON translation blobs are not used.
+Shared identity, ordering, archive state, verification source, and timestamps stay on base records. Language-specific slugs, text, SEO, alt text, schedule, and publish state stay in typed translation tables so each locale can publish independently. Generic EAV content and opaque JSON translation blobs are not used.
 
 ### 13.3 Enquiry Flow
 
@@ -550,9 +567,10 @@ Shared identity, ordering, visibility, timestamps, and publish state stay on bas
 
 ### 15.1 Docker Compose Services
 
-- `app`: production Next.js standalone container.
-- `worker`: the same application image running database-backed notifications, scheduled publishing, and maintenance jobs.
-- `caddy`: public reverse proxy, HTTP-to-HTTPS redirect, automatic certificate issue and renewal.
+- `frontend`: production Next.js standalone container serving the public and administration interfaces.
+- `backend`: production Hono API container and the only application service with database write access.
+- `worker`: the backend image running database-backed notifications, scheduled publishing, and maintenance jobs.
+- `caddy`: public reverse proxy, HTTP-to-HTTPS redirect, and ACME certificate automation.
 - `backup`: scheduled SQLite, upload-manifest, and configuration backup process.
 
 Persistent storage:
@@ -566,16 +584,18 @@ Persistent storage:
 
 - Tencent Cloud DNS A record points the production domain to the CVM public IP.
 - CVM security group exposes ports 80 and 443.
-- The application container is reachable only from the internal Compose network.
-- Caddy proxies the configured production domain and `/admin` to the application.
-- Caddy automatically obtains and renews publicly trusted TLS certificates.
+- Only Caddy publishes host ports; the frontend, backend, worker, and backup services remain on the internal Compose network.
+- Caddy proxies `/api/*` to `backend:4000`, serves `/media/*` from the read-only media volume in local-media mode, and sends all remaining paths, including `/admin`, to `frontend:3000`.
+- Caddy uses ACME to obtain and renew free publicly trusted TLS certificates from Let's Encrypt. ZeroSSL may be configured as the fallback CA.
+- Tencent Cloud provides DNS resolution and the CVM network only; Tencent Cloud console certificates are not part of the normal deployment path.
+- Caddy account and certificate state is stored in a persistent `caddy-data` volume so container replacement does not trigger unnecessary reissuance.
 
 ### 15.3 Deployment Behavior
 
-- Multi-stage Docker build.
-- Non-root application runtime.
-- Health checks for app and proxy.
-- Database migrations run as an explicit deploy step before traffic is switched to the new application.
+- Independent multi-stage Docker builds for frontend and backend.
+- Non-root frontend and backend runtimes.
+- Health checks for frontend, backend liveness/readiness, and proxy routing.
+- Database migrations run through a one-shot backend command before traffic is switched; frontend and worker containers never run migrations concurrently.
 - Deployment fails closed if migration or health checks fail.
 - Persistent volumes are never replaced by a normal image update.
 - Environment validation stops startup when required production settings are absent.
@@ -616,7 +636,7 @@ Targets on representative production hardware and network conditions:
 
 Performance measures:
 
-- Server rendering and caching for public content.
+- Frontend server rendering and bounded caching of backend public-content responses.
 - Route-level code splitting.
 - Dynamic import of Three.js and heavy GSAP scenes.
 - Responsive images and strict asset budgets.
@@ -639,6 +659,8 @@ Performance measures:
 
 ### 19.1 Unit Tests
 
+- Frontend rendering, interaction, and motion-profile helpers.
+- Backend domain services and Zod request schemas.
 - Locale and slug validation.
 - Translation completeness.
 - RBAC decisions.
@@ -648,6 +670,9 @@ Performance measures:
 
 ### 19.2 Integration Tests
 
+- Hono API routes through `app.request()` with real in-memory SQLite.
+- Better Auth cookies, session loading, and permission middleware.
+- Generated OpenAPI types with a no-drift contract check in the frontend build.
 - Content create, edit, schedule, publish, unpublish, and archive.
 - Locale-independent publishing.
 - Session rotation and invalidation.
@@ -675,12 +700,14 @@ Performance measures:
 - Accessibility checks with axe plus keyboard and focus review.
 - Lighthouse/Core Web Vitals checks using production builds and optimized media.
 - Docker Compose cold-start, restart, certificate, migration, backup, and restore smoke tests.
+- Caddy routing checks that `/api/*` reaches Hono while public and `/admin` routes reach Next.js.
 
 ## 20. Delivery Contents
 
 The completed implementation delivers:
 
 - Public AnShow website in English, Chinese, and Russian.
+- Independent `frontend/` Next.js and `backend/` Hono applications in one pnpm workspace.
 - Route Apex logo system and favicon exports.
 - Approved generated logistics imagery and responsive derivatives.
 - Homepage and supporting page animation system.
@@ -697,7 +724,7 @@ The completed implementation delivers:
 
 ## 21. Delivery Sequence
 
-1. Foundation: repository, Next.js, design tokens, locale routing, database, authentication, and Docker baseline.
+1. Foundation: pnpm workspace, separate Next.js frontend and Hono backend, shared API contract generation, database, authentication, and Docker baseline.
 2. Public shell: logo, header, navigation, footer, locale switcher, responsive layout, and SEO foundation.
 3. Content system: typed collections, translations, media library, publishing, and settings.
 4. Public pages: homepage, services, corridors, special cargo, company, cases, insights, contact, and legal pages.
