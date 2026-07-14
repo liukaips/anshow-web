@@ -1,0 +1,72 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AnShow API",
+    "version": "0.1.0"
+  },
+  "components": {
+    "schemas": {
+      "HealthLiveResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "HealthStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/health/live": {
+      "get": {
+        "operationId": "getHealthLive",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "The API process is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthLiveResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

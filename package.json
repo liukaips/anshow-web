@@ -1,0 +1,18 @@
+{
+  "name": "@anshow/workspace",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @anshow/frontend --filter @anshow/backend dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @anshow/frontend test:e2e",
+    "openapi:generate": "pnpm --filter @anshow/backend openapi:export && openapi-typescript openapi/anshow.json -o frontend/src/generated/api.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}
