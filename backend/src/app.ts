@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 import type { AppEnv } from "./http/context.js";
+import {
+  registerAdminSessionRoute,
+  type AdminSessionDependencies,
+} from "./routes/admin-session.js";
 
 const API_VERSION = "0.1.0";
 
@@ -93,7 +97,24 @@ function errorDiagnostic(error: unknown) {
   };
 }
 
-export function createApp(): OpenAPIHono<AppEnv> {
+export type AppDependencies = AdminSessionDependencies & {
+  handleAuthRequest: (request: Request) => Promise<Response>;
+};
+
+const defaultDependencies: AppDependencies = {
+  getPermissions: () => [],
+  getSession: async () => null,
+  handleAuthRequest: async () =>
+    Response.json(
+      { code: "AUTH_NOT_CONFIGURED", message: "Authentication unavailable" },
+      { status: 503 },
+    ),
+};
+
+export function createApp(
+  dependencies: Partial<AppDependencies> = {},
+): OpenAPIHono<AppEnv> {
+  const resolvedDependencies = { ...defaultDependencies, ...dependencies };
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result, context) => {
       if (!result.success) {
@@ -128,6 +149,11 @@ export function createApp(): OpenAPIHono<AppEnv> {
       200,
     );
   });
+
+  app.on(["GET", "POST"], "/api/auth/*", (context) =>
+    resolvedDependencies.handleAuthRequest(context.req.raw),
+  );
+  registerAdminSessionRoute(app, resolvedDependencies);
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");

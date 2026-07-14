@@ -1,9 +1,16 @@
 import { serve } from "@hono/node-server";
 
 import { createApp } from "./app.js";
+import { permissionsForUser } from "./auth/permission-repository.js";
+import { auth, handleAuthRequest } from "./auth/runtime.js";
+import { db } from "./db/client.js";
 
 const port = Number.parseInt(process.env.PORT ?? "4000", 10);
-const app = createApp();
+const app = createApp({
+  getPermissions: (userId) => permissionsForUser(db, userId),
+  getSession: (headers) => auth.api.getSession({ headers }),
+  handleAuthRequest,
+});
 
 const server = serve(
   {

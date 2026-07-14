@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -45,6 +61,28 @@ export interface components {
         ApiError: {
             code: string;
             message: string;
+        };
+        AdminSessionResponse: {
+            data: components["schemas"]["AdminSessionData"];
+            error: unknown;
+            requestId: string;
+        };
+        AdminSessionData: {
+            user: {
+                id: string;
+                /** Format: email */
+                email: string;
+            };
+            permissions: string[];
+        };
+        UnauthenticatedResponse: {
+            data: unknown;
+            error: {
+                /** @enum {string} */
+                code: "UNAUTHENTICATED";
+                message: string;
+            };
+            requestId: string;
         };
     };
     responses: never;
@@ -80,6 +118,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getAdminSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current authenticated staff session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionResponse"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
                 };
             };
         };
