@@ -1,0 +1,16 @@
+:root {
+  --color-carbon: #06090d;
+  --color-dark-surface: #0b1117;
+  --color-light-surface: #f5f7f8;
+  --color-surface: #ffffff;
+  --color-text: #071018;
+  --color-text-inverse: #eef6fb;
+  --color-muted-inverse: #b9c7d1;
+  --color-cyan: #38bdf8;
+  --color-teal: #14b8a6;
+  --color-action: #f97316;
+  --color-danger: #dc2626;
+  --motion-fast: 180ms;
+  --motion-standard: 260ms;
+  --radius-control: 4px;
+}
