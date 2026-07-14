@@ -455,7 +455,7 @@ Implementation components:
 - Next.js App Router and TypeScript.
 - Tailwind CSS with custom public-site components and restrained shadcn/ui primitives for the admin console.
 - Drizzle ORM with SQLite migrations.
-- Auth.js with database-backed sessions and a credentials-based staff login flow.
+- Better Auth with its Drizzle adapter, database-backed sessions, and email/password staff login.
 - Argon2id password hashing.
 - next-intl for typed locale routing and interface dictionaries.
 - Embla Carousel for accessible carousel behavior.
