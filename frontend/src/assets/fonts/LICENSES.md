@@ -7,7 +7,7 @@ licensed under the SIL Open Font License, Version 1.1.
 | --- | --- | --- |
 | Exo 2 | [`@fontsource/exo-2@5.2.8`](https://www.npmjs.com/package/@fontsource/exo-2/v/5.2.8) | Latin 600, Cyrillic 600 |
 | Noto Sans | [`@fontsource/noto-sans@5.2.10`](https://www.npmjs.com/package/@fontsource/noto-sans/v/5.2.10) | Latin 400, Cyrillic 400 |
-| Noto Sans SC | [`@fontsource/noto-sans-sc@5.2.9`](https://www.npmjs.com/package/@fontsource/noto-sans-sc/v/5.2.9) | Simplified Chinese 400 |
+| Noto Sans SC | [`@fontsource-variable/noto-sans-sc@5.2.10`](https://www.npmjs.com/package/@fontsource-variable/noto-sans-sc/v/5.2.10) | Unicode-range shards, variable weight 100-900 |
 | Roboto Mono | [`@fontsource/roboto-mono@5.2.9`](https://www.npmjs.com/package/@fontsource/roboto-mono/v/5.2.9) | Latin 400, Cyrillic 400 |
 
 The exact upstream notices and complete OFL text are preserved beside this

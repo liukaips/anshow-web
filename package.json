@@ -10,9 +10,11 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:e2e": "pnpm --filter @anshow/frontend test:e2e",
+    "brand:generate": "tsx scripts/export-brand-assets.ts",
+    "brand:check": "tsx scripts/check-brand-assets.ts",
     "openapi:generate": "pnpm --filter @anshow/backend openapi:export && openapi-typescript openapi/anshow.json -o frontend/src/generated/api.ts",
     "openapi:check": "node scripts/check-openapi.mjs",
-    "verify": "pnpm openapi:check && pnpm -r test && pnpm -r lint && pnpm -r typecheck && pnpm -r build"
+    "verify": "pnpm brand:check && pnpm openapi:check && pnpm -r test && pnpm -r lint && pnpm -r typecheck && pnpm -r build"
   },
   "devDependencies": {
     "openapi-typescript": "^7.13.0",
