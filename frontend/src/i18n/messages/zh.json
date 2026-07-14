@@ -1,0 +1,102 @@
+{
+  "Common": {
+    "learnMore": "了解更多",
+    "viewAll": "查看全部",
+    "previous": "上一步",
+    "next": "下一步",
+    "pause": "暂停",
+    "play": "播放",
+    "close": "关闭",
+    "loading": "加载中",
+    "retry": "重试"
+  },
+  "Navigation": {
+    "services": "服务",
+    "tradeLanes": "贸易航线",
+    "specialCargo": "特种货物",
+    "insights": "行业洞察",
+    "about": "关于 AnShow",
+    "contact": "联系我们",
+    "quote": "获取报价",
+    "language": "语言",
+    "menu": "菜单"
+  },
+  "Home": {
+    "eyebrow": "国际货运代理",
+    "title": "掌控运输，确定抵达。",
+    "cta": "规划您的货运",
+    "services": "贴合货物需求的运输方案",
+    "lanes": "重点贸易航线的全程协同",
+    "cargo": "复杂货物的专业操作",
+    "process": "从路径设计到最终交付",
+    "cases": "精选物流实践",
+    "insights": "面向全球运输的专业洞察",
+    "contact": "告诉我们您的下一项运输需求"
+  },
+  "Process": {
+    "route": {
+      "title": "运输路径规划",
+      "phases": [
+        "需求梳理",
+        "路径设计",
+        "方案确认"
+      ]
+    },
+    "pickup": {
+      "title": "提货与交接",
+      "phases": [
+        "提货预约",
+        "货物交接",
+        "始发检查"
+      ]
+    },
+    "customs": {
+      "title": "报关与文件",
+      "phases": [
+        "单证审核",
+        "出口申报",
+        "放行确认"
+      ]
+    },
+    "transit": {
+      "title": "在途协同",
+      "phases": [
+        "节点跟进",
+        "异常协同",
+        "到港准备"
+      ]
+    },
+    "delivery": {
+      "title": "目的地交付",
+      "phases": [
+        "进口放行",
+        "末端派送",
+        "签收回单"
+      ]
+    }
+  },
+  "Enquiry": {
+    "name": "姓名",
+    "company": "公司",
+    "email": "邮箱",
+    "phone": "电话",
+    "need": "运输需求",
+    "message": "补充说明",
+    "consent": "我同意 AnShow 根据隐私政策处理本次询价信息。",
+    "submit": "提交询价",
+    "submitting": "正在提交",
+    "success": "询价已发送，我们将尽快与您联系。",
+    "invalid": "请检查填写内容后重试。",
+    "rateLimited": "提交过于频繁，请稍后再试。"
+  },
+  "Footer": {
+    "privacy": "隐私政策",
+    "terms": "使用条款",
+    "cookies": "Cookie 政策"
+  },
+  "Errors": {
+    "notFoundTitle": "页面未找到",
+    "notFoundBody": "您访问的页面当前不可用。",
+    "unexpected": "发生意外错误。"
+  }
+}

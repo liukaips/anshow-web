@@ -1,0 +1,102 @@
+{
+  "Common": {
+    "learnMore": "Learn more",
+    "viewAll": "View all",
+    "previous": "Previous",
+    "next": "Next",
+    "pause": "Pause",
+    "play": "Play",
+    "close": "Close",
+    "loading": "Loading",
+    "retry": "Try again"
+  },
+  "Navigation": {
+    "services": "Services",
+    "tradeLanes": "Trade lanes",
+    "specialCargo": "Special cargo",
+    "insights": "Insights",
+    "about": "About AnShow",
+    "contact": "Contact",
+    "quote": "Request a quote",
+    "language": "Language",
+    "menu": "Menu"
+  },
+  "Home": {
+    "eyebrow": "International freight forwarding",
+    "title": "Move freight. Command certainty.",
+    "cta": "Plan your shipment",
+    "services": "Freight solutions built around your cargo",
+    "lanes": "Accountable coordination across key trade lanes",
+    "cargo": "Professional handling for demanding cargo",
+    "process": "From route design to final delivery",
+    "cases": "Selected logistics work",
+    "insights": "Practical intelligence for global shipping",
+    "contact": "Bring us your next shipping challenge"
+  },
+  "Process": {
+    "route": {
+      "title": "Route planning",
+      "phases": [
+        "Requirements review",
+        "Route design",
+        "Plan approval"
+      ]
+    },
+    "pickup": {
+      "title": "Pickup and handover",
+      "phases": [
+        "Pickup booking",
+        "Cargo handover",
+        "Origin check"
+      ]
+    },
+    "customs": {
+      "title": "Customs and documents",
+      "phases": [
+        "Document review",
+        "Export clearance",
+        "Release confirmation"
+      ]
+    },
+    "transit": {
+      "title": "In-transit coordination",
+      "phases": [
+        "Milestone monitoring",
+        "Exception coordination",
+        "Arrival preparation"
+      ]
+    },
+    "delivery": {
+      "title": "Destination delivery",
+      "phases": [
+        "Import release",
+        "Final-mile dispatch",
+        "Proof of delivery"
+      ]
+    }
+  },
+  "Enquiry": {
+    "name": "Name",
+    "company": "Company",
+    "email": "Email",
+    "phone": "Phone",
+    "need": "Shipping requirement",
+    "message": "Additional details",
+    "consent": "I agree that AnShow may process this enquiry in accordance with the privacy policy.",
+    "submit": "Send enquiry",
+    "submitting": "Sending enquiry",
+    "success": "Your enquiry has been sent. We will be in touch.",
+    "invalid": "Review the information provided and try again.",
+    "rateLimited": "Too many requests. Please try again later."
+  },
+  "Footer": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies"
+  },
+  "Errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you requested is unavailable.",
+    "unexpected": "An unexpected error occurred."
+  }
+}
