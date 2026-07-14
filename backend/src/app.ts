@@ -8,6 +8,21 @@ const RequestIdSchema = z.string().openapi({
   example: "71ec11f9-4be5-4305-b164-a9c30ad6207c",
 });
 
+const ApiErrorSchema = z
+  .object({
+    code: z.string(),
+    message: z.string(),
+  })
+  .openapi("ApiError");
+
+const ErrorEnvelopeSchema = z
+  .object({
+    data: z.literal(null),
+    error: ApiErrorSchema,
+    requestId: RequestIdSchema,
+  })
+  .openapi("ErrorEnvelope");
+
 const HealthStatusSchema = z
   .object({
     status: z.literal("ok"),
@@ -36,6 +51,14 @@ const liveRoute = createRoute({
       },
       description: "The API process is running.",
     },
+    500: {
+      content: {
+        "application/json": {
+          schema: ErrorEnvelopeSchema,
+        },
+      },
+      description: "The API encountered an unexpected error.",
+    },
   },
 });
 
@@ -47,9 +70,27 @@ export const OPENAPI_DOCUMENT_CONFIG = {
   },
 } as const;
 
-function requestIdFromHeader(value: string | undefined): string {
-  const requestId = value?.trim();
-  return requestId || crypto.randomUUID();
+function errorEnvelope(requestId: string, code: string, message: string) {
+  return {
+    data: null,
+    error: { code, message },
+    requestId,
+  };
+}
+
+function errorDiagnostic(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+
+  return {
+    name: "NonErrorThrown",
+    message: String(error),
+  };
 }
 
 export function createApp(): OpenAPIHono<AppEnv> {
@@ -57,14 +98,11 @@ export function createApp(): OpenAPIHono<AppEnv> {
     defaultHook: (result, context) => {
       if (!result.success) {
         return context.json(
-          {
-            data: null,
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "The request is invalid.",
-            },
-            requestId: context.get("requestId"),
-          },
+          errorEnvelope(
+            context.get("requestId"),
+            "VALIDATION_ERROR",
+            "The request is invalid.",
+          ),
           400,
         );
       }
@@ -72,7 +110,7 @@ export function createApp(): OpenAPIHono<AppEnv> {
   });
 
   app.use("*", async (context, next) => {
-    const requestId = requestIdFromHeader(context.req.header("x-request-id"));
+    const requestId = crypto.randomUUID();
     context.set("requestId", requestId);
 
     await next();
@@ -91,17 +129,32 @@ export function createApp(): OpenAPIHono<AppEnv> {
     );
   });
 
-  app.onError((_error, context) => {
+  app.onError((error, context) => {
+    const requestId = context.get("requestId");
+    console.error({
+      event: "http.unhandled_error",
+      requestId,
+      error: errorDiagnostic(error),
+    });
+
     return context.json(
-      {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "An unexpected error occurred.",
-        },
-        requestId: context.get("requestId"),
-      },
+      errorEnvelope(
+        requestId,
+        "INTERNAL_SERVER_ERROR",
+        "An unexpected error occurred.",
+      ),
       500,
+    );
+  });
+
+  app.notFound((context) => {
+    return context.json(
+      errorEnvelope(
+        context.get("requestId"),
+        "NOT_FOUND",
+        "The requested resource was not found.",
+      ),
+      404,
     );
   });
 

@@ -35,6 +35,17 @@ export interface components {
             /** @enum {string} */
             status: "ok";
         };
+        ErrorEnvelope: {
+            /** @enum {object|null} */
+            data: never | null;
+            error: components["schemas"]["ApiError"];
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        ApiError: {
+            code: string;
+            message: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -60,6 +71,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthLiveResponse"];
+                };
+            };
+            /** @description The API encountered an unexpected error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

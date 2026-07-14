@@ -43,6 +43,45 @@
         "required": [
           "status"
         ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
       }
     },
     "parameters": {}
@@ -61,6 +100,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HealthLiveResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The API encountered an unexpected error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
