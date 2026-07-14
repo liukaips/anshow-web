@@ -95,6 +95,7 @@ const STATIC_PAGE_CODES = [
   "cookies",
 ] as const;
 const staticPageCodes = new Set<string>(STATIC_PAGE_CODES);
+const FIXED_ROUTES = ["certifications", "quote"] as const;
 const indexedCollections = [
   "services",
   "trade-lanes",
@@ -388,6 +389,14 @@ export function createDrizzleContentStore(
         }));
       });
 
+      const fixedRoutes = FIXED_ROUTES.flatMap((route) =>
+        LOCALES.map((locale) => ({
+          path: `/${locale}/${route}`,
+          updatedAt: localeUpdatedAt[locale].toISOString(),
+          alternates: staticAlternates(`/${route}`),
+        })),
+      );
+
       const details = collectionContent.flatMap(({ config, content }) =>
         content.flatMap(({ item, code, updatedAt }) => {
           const path = config.path(item.locale, item.slug, code);
@@ -403,7 +412,7 @@ export function createDrizzleContentStore(
         }),
       );
 
-      return [...roots, ...indexes, ...details];
+      return [...roots, ...indexes, ...fixedRoutes, ...details];
     },
   };
 }

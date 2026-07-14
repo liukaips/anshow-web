@@ -445,6 +445,30 @@ describe("public content repository", () => {
         zh: "/zh/about",
         ru: "/ru/about",
       });
+      for (const locale of ["en", "zh", "ru"] as const) {
+        expect(
+          sitemap.find((item) => item.path === `/${locale}/certifications`),
+        ).toEqual({
+          path: `/${locale}/certifications`,
+          updatedAt: PUBLISHED_AT.toISOString(),
+          alternates: {
+            en: "/en/certifications",
+            zh: "/zh/certifications",
+            ru: "/ru/certifications",
+          },
+        });
+        expect(
+          sitemap.find((item) => item.path === `/${locale}/quote`),
+        ).toEqual({
+          path: `/${locale}/quote`,
+          updatedAt: PUBLISHED_AT.toISOString(),
+          alternates: {
+            en: "/en/quote",
+            zh: "/zh/quote",
+            ru: "/ru/quote",
+          },
+        });
+      }
     } finally {
       testDatabase.close();
     }
