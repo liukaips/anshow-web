@@ -13,6 +13,20 @@ import { seedPublicContent } from "./seed.js";
 
 const NOW = new Date("2026-07-14T12:00:00.000Z");
 const PUBLISHED_AT = new Date("2026-07-13T12:00:00.000Z");
+const PUBLIC_ITEM_KEYS = [
+  "altText",
+  "alternates",
+  "body",
+  "id",
+  "locale",
+  "media",
+  "processStageId",
+  "seoDescription",
+  "seoTitle",
+  "slug",
+  "summary",
+  "title",
+];
 
 type TestDatabase = ReturnType<typeof createTestDatabase>["db"];
 
@@ -108,6 +122,33 @@ describe("public content repository", () => {
       await expect(
         repository.getBySlug("services", "ru", "ocean-freight"),
       ).resolves.toBeNull();
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("returns only contract fields from detail, list, and home reads", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "ocean-freight",
+        translations: [
+          { locale: "en", slug: "ocean-freight", title: "Ocean Freight" },
+        ],
+      });
+      const repository = createRepository(testDatabase.db);
+      const [detail, list, home] = await Promise.all([
+        repository.getBySlug("services", "en", "ocean-freight"),
+        repository.listCollection("services", "en"),
+        repository.getHome("en"),
+      ]);
+
+      expect(Object.keys(detail ?? {}).sort()).toEqual(PUBLIC_ITEM_KEYS);
+      expect(Object.keys(list[0] ?? {}).sort()).toEqual(PUBLIC_ITEM_KEYS);
+      expect(Object.keys(home.services[0] ?? {}).sort()).toEqual(
+        PUBLIC_ITEM_KEYS,
+      );
     } finally {
       testDatabase.close();
     }
@@ -303,7 +344,7 @@ describe("public content repository", () => {
     }
   });
 
-  it("lists only published locale URLs with actual alternates", async () => {
+  it("lists real locale roots and collection routes with stable updates", async () => {
     const testDatabase = createTestDatabase();
 
     try {
@@ -331,24 +372,103 @@ describe("public content repository", () => {
         ],
       });
 
-      await expect(createRepository(testDatabase.db).listSitemap()).resolves.toEqual([
-        {
-          path: "/en/services/ocean-freight",
-          updatedAt: "2026-07-13T10:00:00.000Z",
-          alternates: {
-            en: "/en/services/ocean-freight",
-            zh: "/zh/services/hai-yun-fu-wu",
-          },
+      const sitemap = await createRepository(testDatabase.db).listSitemap();
+      const byPath = new Map(sitemap.map((item) => [item.path, item]));
+
+      expect([...byPath.keys()]).toEqual(
+        expect.arrayContaining([
+          "/en",
+          "/zh",
+          "/ru",
+          "/en/services",
+          "/zh/services",
+          "/ru/services",
+          "/en/trade-lanes",
+          "/en/special-cargo",
+          "/en/insights",
+          "/en/case-studies",
+          "/en/services/ocean-freight",
+          "/zh/services/hai-yun-fu-wu",
+        ]),
+      );
+      expect(byPath.get("/en")).toEqual({
+        path: "/en",
+        updatedAt: "2026-07-13T10:00:00.000Z",
+        alternates: { en: "/en", zh: "/zh", ru: "/ru" },
+      });
+      expect(byPath.get("/en/services")).toEqual({
+        path: "/en/services",
+        updatedAt: "2026-07-13T10:00:00.000Z",
+        alternates: {
+          en: "/en/services",
+          zh: "/zh/services",
+          ru: "/ru/services",
         },
-        {
-          path: "/zh/services/hai-yun-fu-wu",
-          updatedAt: "2026-07-13T11:00:00.000Z",
-          alternates: {
-            en: "/en/services/ocean-freight",
-            zh: "/zh/services/hai-yun-fu-wu",
-          },
-        },
-      ]);
+      });
+      expect(byPath.get("/en/services/ocean-freight")?.alternates).toEqual({
+        en: "/en/services/ocean-freight",
+        zh: "/zh/services/hai-yun-fu-wu",
+      });
+      expect(byPath.has("/ru/services/morskie-perevozki")).toBe(false);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("uses fixed page codes and excludes system page records", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      seedPublicContent(testDatabase.db, { now: PUBLISHED_AT });
+
+      const sitemap = await createRepository(testDatabase.db).listSitemap();
+      const paths = sitemap.map((item) => item.path);
+      const about = sitemap.find((item) => item.path === "/zh/about");
+
+      expect(paths).toEqual(
+        expect.arrayContaining([
+          "/en/about",
+          "/zh/about",
+          "/ru/about",
+          "/zh/network",
+          "/zh/contact",
+          "/zh/privacy",
+          "/zh/terms",
+          "/zh/cookies",
+        ]),
+      );
+      expect(paths).not.toContain("/zh/guan-yu");
+      expect(paths.some((path) => path.includes("not-found"))).toBe(false);
+      expect(paths.some((path) => path.includes("wei-zhao-dao"))).toBe(false);
+      expect(about?.alternates).toEqual({
+        en: "/en/about",
+        zh: "/zh/about",
+        ru: "/ru/about",
+      });
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("encodes a stored slug as one URL segment", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "reserved-slug",
+        translations: [
+          { locale: "en", slug: "a/b?c#d", title: "Reserved slug" },
+        ],
+      });
+
+      const sitemap = await createRepository(testDatabase.db).listSitemap();
+      const item = sitemap.find(
+        (entry) => entry.path === "/en/services/a%2Fb%3Fc%23d",
+      );
+
+      expect(item).toMatchObject({
+        alternates: { en: "/en/services/a%2Fb%3Fc%23d" },
+      });
     } finally {
       testDatabase.close();
     }

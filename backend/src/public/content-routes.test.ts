@@ -7,6 +7,20 @@ import { services, serviceTranslations } from "../db/schema/index.js";
 import { createTestDatabase } from "../db/test-db.js";
 
 const NOW = new Date("2026-07-14T12:00:00.000Z");
+const PUBLIC_ITEM_KEYS = [
+  "altText",
+  "alternates",
+  "body",
+  "id",
+  "locale",
+  "media",
+  "processStageId",
+  "seoDescription",
+  "seoTitle",
+  "slug",
+  "summary",
+  "title",
+];
 
 function createFixture() {
   const testDatabase = createTestDatabase();
@@ -105,11 +119,17 @@ describe("public content API", () => {
       const requestId = response.headers.get("x-request-id");
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({
+      const body = (await response.json()) as {
+        data: Record<string, unknown>;
+        error: unknown;
+        requestId: string;
+      };
+      expect(body).toMatchObject({
         data: { locale: "zh", slug: "hai-yun-fu-wu", title: "海运服务" },
         error: null,
         requestId,
       });
+      expect(Object.keys(body.data).sort()).toEqual(PUBLIC_ITEM_KEYS);
       expect(requestId).toEqual(expect.any(String));
     } finally {
       fixture.close();

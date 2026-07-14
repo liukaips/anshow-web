@@ -26,7 +26,7 @@ import {
 } from "../db/schema/content.js";
 import type { PublicContentItem } from "./public-contract.js";
 import type { PublicContentStore } from "./public-repository.js";
-import type { Locale, PublicCollection } from "./types.js";
+import { LOCALES, type Locale, type PublicCollection } from "./types.js";
 
 type ContentStoreOptions = {
   now?: () => Date;
@@ -59,12 +59,13 @@ type TranslationTable =
 type CollectionConfig = {
   base: BaseTable;
   translations: TranslationTable;
-  path: (locale: Locale, slug: string) => string | undefined;
+  path: (locale: Locale, slug: string, code: string) => string | undefined;
   requiresVerification?: boolean;
 };
 
 type PublishedRow = {
   id: string;
+  code: string;
   locale: Locale;
   slug: string;
   title: string;
@@ -79,10 +80,37 @@ type PublishedRow = {
   alternateSlug: string | null;
 };
 
-const collectionPath = (collection: Exclude<PublicCollection, "pages">) =>
-  (locale: Locale, slug: string) => `/${locale}/${collection}/${slug}`;
+type PublishedContent = {
+  item: PublicContentItem;
+  code: string;
+  updatedAt: Date;
+};
 
-const pagePath = (locale: Locale, slug: string) => `/${locale}/${slug}`;
+const STATIC_PAGE_CODES = [
+  "about",
+  "network",
+  "contact",
+  "privacy",
+  "terms",
+  "cookies",
+] as const;
+const staticPageCodes = new Set<string>(STATIC_PAGE_CODES);
+const indexedCollections = [
+  "services",
+  "trade-lanes",
+  "special-cargo",
+  "insights",
+  "case-studies",
+] as const satisfies readonly Exclude<PublicCollection, "pages">[];
+
+const encodeSegment = (value: string) => encodeURIComponent(value);
+
+const collectionPath = (collection: Exclude<PublicCollection, "pages">) =>
+  (locale: Locale, slug: string) =>
+    `/${locale}/${collection}/${encodeSegment(slug)}`;
+
+const pagePath = (locale: Locale, _slug: string, code: string) =>
+  staticPageCodes.has(code) ? `/${locale}/${encodeSegment(code)}` : undefined;
 const noPath = () => undefined;
 
 const publicCollections: Record<PublicCollection, CollectionConfig> = {
@@ -123,7 +151,7 @@ export function createDrizzleContentStore(
   async function readPublished(
     config: CollectionConfig,
     filters: { locale?: Locale; slug?: string } = {},
-  ): Promise<Array<PublicContentItem & { updatedAt: Date }>> {
+  ): Promise<PublishedContent[]> {
     const alternateTranslations = alias(
       config.translations,
       "published_alternates",
@@ -150,6 +178,7 @@ export function createDrizzleContentStore(
     const rows: PublishedRow[] = await db
       .select({
         id: config.base.id,
+        code: config.base.code,
         locale: config.translations.locale,
         slug: config.translations.slug,
         title: config.translations.title,
@@ -180,36 +209,40 @@ export function createDrizzleContentStore(
         asc(alternateTranslations.locale),
       );
 
-    const items = new Map<
-      string,
-      PublicContentItem & { updatedAt: Date }
-    >();
+    const items = new Map<string, PublishedContent>();
 
     for (const row of rows) {
       const key = `${row.id}:${row.locale}`;
-      let item = items.get(key);
-      if (!item) {
-        item = {
-          id: row.id,
-          locale: row.locale,
-          slug: row.slug,
-          title: row.title,
-          summary: row.summary,
-          body: row.body,
-          seoTitle: row.seoTitle,
-          seoDescription: row.seoDescription,
-          altText: row.altText,
-          processStageId: row.processStageId,
-          alternates: {},
-          media: null,
+      let content = items.get(key);
+      if (!content) {
+        content = {
+          item: {
+            id: row.id,
+            locale: row.locale,
+            slug: row.slug,
+            title: row.title,
+            summary: row.summary,
+            body: row.body,
+            seoTitle: row.seoTitle,
+            seoDescription: row.seoDescription,
+            altText: row.altText,
+            processStageId: row.processStageId,
+            alternates: {},
+            media: null,
+          },
+          code: row.code,
           updatedAt: row.updatedAt,
         };
-        items.set(key, item);
+        items.set(key, content);
       }
 
       if (row.alternateLocale && row.alternateSlug) {
-        const path = config.path(row.alternateLocale, row.alternateSlug);
-        if (path) item.alternates[row.alternateLocale] = path;
+        const path = config.path(
+          row.alternateLocale,
+          row.alternateSlug,
+          row.code,
+        );
+        if (path) content.item.alternates[row.alternateLocale] = path;
       }
     }
 
@@ -232,6 +265,26 @@ export function createDrizzleContentStore(
       { base, translations, path: noPath, requiresVerification: true },
       { locale },
     );
+
+  const publicItems = (content: PublishedContent[]) =>
+    content.map(({ item }) => item);
+
+  const newestDate = (
+    content: PublishedContent[],
+    fallback?: Date,
+  ): Date | undefined => {
+    const latest = content.reduce<Date | undefined>(
+      (latest, entry) =>
+        !latest || entry.updatedAt > latest ? entry.updatedAt : latest,
+      undefined,
+    );
+    return latest ?? fallback;
+  };
+
+  const staticAlternates = (suffix = "") =>
+    Object.fromEntries(
+      LOCALES.map((locale) => [locale, `/${locale}${suffix}`]),
+    ) as Partial<Record<Locale, string>>;
 
   return {
     async getHome(locale) {
@@ -263,21 +316,23 @@ export function createDrizzleContentStore(
 
       return {
         locale,
-        headline: slides[0]?.title ?? "",
-        slides,
-        services: homeServices,
-        tradeLanes: homeTradeLanes,
-        cargoTypes: homeCargoTypes,
-        proof,
-        verifiedTrust: [...partnersTrust, ...certificatesTrust],
-        cases,
-        articles: homeArticles,
+        headline: slides[0]?.item.title ?? "",
+        slides: publicItems(slides),
+        services: publicItems(homeServices),
+        tradeLanes: publicItems(homeTradeLanes),
+        cargoTypes: publicItems(homeCargoTypes),
+        proof: publicItems(proof),
+        verifiedTrust: publicItems([...partnersTrust, ...certificatesTrust]),
+        cases: publicItems(cases),
+        articles: publicItems(homeArticles),
         channels: [],
       };
     },
 
     async listCollection(collection, locale) {
-      return readPublished(publicCollections[collection], { locale });
+      return publicItems(
+        await readPublished(publicCollections[collection], { locale }),
+      );
     },
 
     async getBySlug(collection, locale, slug) {
@@ -285,30 +340,70 @@ export function createDrizzleContentStore(
         locale,
         slug,
       });
-      return items[0] ?? null;
+      return items[0]?.item ?? null;
     },
 
     async listSitemap() {
-      const collections = await Promise.all(
-        Object.values(publicCollections).map((config) => readPublished(config)),
+      const collectionEntries = Object.entries(publicCollections) as Array<
+        [PublicCollection, CollectionConfig]
+      >;
+      const collectionContent = await Promise.all(
+        collectionEntries.map(async ([collection, config]) => ({
+          collection,
+          config,
+          content: await readPublished(config),
+        })),
       );
+      const allContent = collectionContent.flatMap(({ content }) => content);
+      const globalUpdatedAt = newestDate(allContent) ?? new Date(0);
+      const localeUpdatedAt = Object.fromEntries(
+        LOCALES.map((locale) => [
+          locale,
+          newestDate(
+            allContent.filter((entry) => entry.item.locale === locale),
+            globalUpdatedAt,
+          ) ?? globalUpdatedAt,
+        ]),
+      ) as Record<Locale, Date>;
 
-      return collections.flatMap((items, index) => {
-        const config = Object.values(publicCollections)[index];
-        if (!config) return [];
-        return items.flatMap((item) => {
-          const path = config.path(item.locale, item.slug);
+      const roots = LOCALES.map((locale) => ({
+        path: `/${locale}`,
+        updatedAt: localeUpdatedAt[locale].toISOString(),
+        alternates: staticAlternates(),
+      }));
+
+      const indexes = indexedCollections.flatMap((collection) => {
+        const entries =
+          collectionContent.find((entry) => entry.collection === collection)
+            ?.content ?? [];
+        return LOCALES.map((locale) => ({
+          path: `/${locale}/${collection}`,
+          updatedAt: (
+            newestDate(
+              entries.filter((entry) => entry.item.locale === locale),
+              localeUpdatedAt[locale],
+            ) ?? localeUpdatedAt[locale]
+          ).toISOString(),
+          alternates: staticAlternates(`/${collection}`),
+        }));
+      });
+
+      const details = collectionContent.flatMap(({ config, content }) =>
+        content.flatMap(({ item, code, updatedAt }) => {
+          const path = config.path(item.locale, item.slug, code);
           return path
             ? [
                 {
                   path,
-                  updatedAt: item.updatedAt.toISOString(),
+                  updatedAt: updatedAt.toISOString(),
                   alternates: item.alternates,
                 },
               ]
             : [];
-        });
-      });
+        }),
+      );
+
+      return [...roots, ...indexes, ...details];
     },
   };
 }
