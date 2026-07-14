@@ -1,6 +1,12 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
+import {
+  errorEnvelopeSchema,
+  requestIdSchema,
+} from "./content/public-contract.js";
+import type { PublicContentRepository } from "./content/public-repository.js";
 import type { AppEnv } from "./http/context.js";
+import { registerPublicContentRoutes } from "./public/content-routes.js";
 import {
   registerAdminSessionRoute,
   type AdminSessionDependencies,
@@ -12,25 +18,6 @@ import {
 
 const API_VERSION = "0.1.0";
 
-const RequestIdSchema = z.string().openapi({
-  example: "71ec11f9-4be5-4305-b164-a9c30ad6207c",
-});
-
-const ApiErrorSchema = z
-  .object({
-    code: z.string(),
-    message: z.string(),
-  })
-  .openapi("ApiError");
-
-const ErrorEnvelopeSchema = z
-  .object({
-    data: z.literal(null),
-    error: ApiErrorSchema,
-    requestId: RequestIdSchema,
-  })
-  .openapi("ErrorEnvelope");
-
 const HealthStatusSchema = z
   .object({
     status: z.literal("ok"),
@@ -41,7 +28,7 @@ const HealthLiveResponseSchema = z
   .object({
     data: HealthStatusSchema,
     error: z.literal(null),
-    requestId: RequestIdSchema,
+    requestId: requestIdSchema,
   })
   .openapi("HealthLiveResponse");
 
@@ -62,7 +49,7 @@ const liveRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: ErrorEnvelopeSchema,
+          schema: errorEnvelopeSchema,
         },
       },
       description: "The API encountered an unexpected error.",
@@ -104,6 +91,7 @@ function errorDiagnostic(error: unknown) {
 export type AppDependencies = AdminSessionDependencies & {
   checkReadiness: ReadinessCheck;
   handleAuthRequest: (request: Request) => Promise<Response>;
+  publicContentRepository: PublicContentRepository;
 };
 
 const defaultDependencies: AppDependencies = {
@@ -117,6 +105,24 @@ const defaultDependencies: AppDependencies = {
       { code: "AUTH_NOT_CONFIGURED", message: "Authentication unavailable" },
       { status: 503 },
     ),
+  publicContentRepository: {
+    getHome: async (locale) => ({
+      locale,
+      headline: "",
+      slides: [],
+      services: [],
+      tradeLanes: [],
+      cargoTypes: [],
+      proof: [],
+      verifiedTrust: [],
+      cases: [],
+      articles: [],
+      channels: [],
+    }),
+    listCollection: async () => [],
+    getBySlug: async () => null,
+    listSitemap: async () => [],
+  },
 };
 
 export function createApp(
@@ -164,6 +170,7 @@ export function createApp(
     resolvedDependencies.handleAuthRequest(context.req.raw),
   );
   registerAdminSessionRoute(app, resolvedDependencies);
+  registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");

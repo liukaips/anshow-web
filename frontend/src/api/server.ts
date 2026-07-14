@@ -2,13 +2,14 @@ import { headers } from "next/headers";
 
 import type { components } from "@/generated/api";
 
+import { getFrontendServerEnv } from "../env";
+
 export type AdminSession = components["schemas"]["AdminSessionData"];
 
 export async function getAdminSession(): Promise<AdminSession | null> {
   const requestHeaders = await headers();
-  const backendUrl =
-    process.env.BACKEND_INTERNAL_URL ?? "http://localhost:4000";
-  const response = await fetch(new URL("/api/admin/session", backendUrl), {
+  const { BACKEND_INTERNAL_URL } = getFrontendServerEnv();
+  const response = await fetch(new URL("/api/admin/session", BACKEND_INTERNAL_URL), {
     headers: { cookie: requestHeaders.get("cookie") ?? "" },
     cache: "no-store",
   });

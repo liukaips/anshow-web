@@ -76,6 +76,15 @@
           },
           "message": {
             "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [
@@ -272,6 +281,368 @@
           "error",
           "requestId"
         ]
+      },
+      "PublicHomeEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicHome"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "PublicHome": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "$ref": "#/components/schemas/PublicLocale"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "slides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "tradeLanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "cargoTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "proof": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "verifiedTrust": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "href": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "href"
+              ]
+            }
+          }
+        },
+        "required": [
+          "locale",
+          "headline",
+          "slides",
+          "services",
+          "tradeLanes",
+          "cargoTypes",
+          "proof",
+          "verifiedTrust",
+          "cases",
+          "articles",
+          "channels"
+        ]
+      },
+      "PublicLocale": {
+        "type": "string",
+        "enum": [
+          "en",
+          "zh",
+          "ru"
+        ]
+      },
+      "PublicContentItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "locale": {
+            "$ref": "#/components/schemas/PublicLocale"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "seoTitle": {
+            "type": "string"
+          },
+          "seoDescription": {
+            "type": "string"
+          },
+          "altText": {
+            "type": "string"
+          },
+          "processStageId": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "route",
+              "pickup",
+              "customs",
+              "transit",
+              "delivery",
+              null
+            ]
+          },
+          "alternates": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "zh": {
+                "type": "string"
+              },
+              "ru": {
+                "type": "string"
+              }
+            }
+          },
+          "media": {
+            "$ref": "#/components/schemas/PublicMedia"
+          }
+        },
+        "required": [
+          "id",
+          "locale",
+          "slug",
+          "title",
+          "summary",
+          "body",
+          "seoTitle",
+          "seoDescription",
+          "altText",
+          "processStageId",
+          "alternates",
+          "media"
+        ]
+      },
+      "PublicMedia": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "alt": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "dominantColor": {
+            "type": "string"
+          },
+          "mobileAvif": {
+            "type": "string",
+            "nullable": true
+          },
+          "avifSrcSet": {
+            "type": "string"
+          },
+          "webpSrcSet": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "alt",
+          "width",
+          "height",
+          "dominantColor",
+          "mobileAvif",
+          "avifSrcSet",
+          "webpSrcSet"
+        ]
+      },
+      "PublicSitemapEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSitemapItem"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "PublicSitemapItem": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "alternates": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string"
+              },
+              "zh": {
+                "type": "string"
+              },
+              "ru": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "updatedAt",
+          "alternates"
+        ]
+      },
+      "PublicCollectionEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "PublicCollection": {
+        "type": "string",
+        "enum": [
+          "services",
+          "trade-lanes",
+          "special-cargo",
+          "insights",
+          "case-studies",
+          "pages"
+        ]
+      },
+      "PublicItemEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
       }
     },
     "parameters": {}
@@ -370,6 +741,182 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/content/home/{locale}": {
+      "get": {
+        "operationId": "getPublicHome",
+        "tags": [
+          "Public content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/PublicLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published homepage content for one locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHomeEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/content/sitemap": {
+      "get": {
+        "operationId": "listPublishedUrls",
+        "tags": [
+          "Public content"
+        ],
+        "responses": {
+          "200": {
+            "description": "Published locale URLs and their actual alternates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSitemapEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/content/{collection}/{locale}": {
+      "get": {
+        "operationId": "listPublicContent",
+        "tags": [
+          "Public content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/PublicCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/PublicLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published items in one collection and locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCollectionEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid collection or locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/content/{collection}/{locale}/{slug}": {
+      "get": {
+        "operationId": "getPublicContent",
+        "tags": [
+          "Public content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/PublicCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/PublicLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published item in the requested locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicItemEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid collection, locale, or slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No published item exists in the requested locale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

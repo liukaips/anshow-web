@@ -1,16 +1,35 @@
-import type { Locale, PublicService } from "./types.js";
+import type {
+  PublicContentItem,
+  PublicHome,
+  PublicSitemapItem,
+} from "./public-contract.js";
+import type { Locale, PublicCollection } from "./types.js";
 
-export interface PublicContentStore {
-  findPublishedService(
+export interface PublicContentRepository {
+  getHome(locale: Locale): Promise<PublicHome>;
+  listCollection(
+    collection: PublicCollection,
+    locale: Locale,
+  ): Promise<PublicContentItem[]>;
+  getBySlug(
+    collection: PublicCollection,
     locale: Locale,
     slug: string,
-  ): Promise<PublicService | null>;
+  ): Promise<PublicContentItem | null>;
+  listSitemap(): Promise<PublicSitemapItem[]>;
 }
 
-export function createPublicRepository(store: PublicContentStore) {
+export type PublicContentStore = PublicContentRepository;
+
+export function createPublicRepository(
+  store: PublicContentStore,
+): PublicContentRepository {
   return {
-    getServiceBySlug(locale: Locale, slug: string) {
-      return store.findPublishedService(locale, slug);
-    },
+    getHome: (locale) => store.getHome(locale),
+    listCollection: (collection, locale) =>
+      store.listCollection(collection, locale),
+    getBySlug: (collection, locale, slug) =>
+      store.getBySlug(collection, locale, slug),
+    listSitemap: () => store.listSitemap(),
   };
 }

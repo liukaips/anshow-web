@@ -1,6 +1,16 @@
 export const LOCALES = ["en", "zh", "ru"] as const;
 export type Locale = (typeof LOCALES)[number];
 
+export const PUBLIC_COLLECTIONS = [
+  "services",
+  "trade-lanes",
+  "special-cargo",
+  "insights",
+  "case-studies",
+  "pages",
+] as const;
+export type PublicCollection = (typeof PUBLIC_COLLECTIONS)[number];
+
 export const PUBLICATION_STATUSES = [
   "draft",
   "scheduled",
