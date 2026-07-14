@@ -3,5 +3,7 @@ packages:
   - "backend"
 
 onlyBuiltDependencies:
+  - argon2
+  - better-sqlite3
   - sharp
   - unrs-resolver
