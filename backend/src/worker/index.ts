@@ -1,12 +1,16 @@
-const keepAlive = setInterval(() => undefined, 60_000);
+import { initializeRuntime } from "../runtime-bootstrap.js";
 
-function shutdown(signal: NodeJS.Signals): void {
-  console.info(`Received ${signal}; stopping AnShow worker.`);
-  clearInterval(keepAlive);
-  process.exitCode = 0;
-}
+await initializeRuntime(process.env, () => {
+  const keepAlive = setInterval(() => undefined, 60_000);
 
-console.info("AnShow worker is ready; no jobs are configured yet.");
+  function shutdown(signal: NodeJS.Signals): void {
+    console.info(`Received ${signal}; stopping AnShow worker.`);
+    clearInterval(keepAlive);
+    process.exitCode = 0;
+  }
 
-process.once("SIGINT", () => shutdown("SIGINT"));
-process.once("SIGTERM", () => shutdown("SIGTERM"));
+  console.info("AnShow worker is ready; no jobs are configured yet.");
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+});

@@ -5,6 +5,10 @@ import {
   registerAdminSessionRoute,
   type AdminSessionDependencies,
 } from "./routes/admin-session.js";
+import {
+  registerHealthReadyRoute,
+  type ReadinessCheck,
+} from "./routes/health-ready.js";
 
 const API_VERSION = "0.1.0";
 
@@ -98,10 +102,14 @@ function errorDiagnostic(error: unknown) {
 }
 
 export type AppDependencies = AdminSessionDependencies & {
+  checkReadiness: ReadinessCheck;
   handleAuthRequest: (request: Request) => Promise<Response>;
 };
 
 const defaultDependencies: AppDependencies = {
+  checkReadiness: () => {
+    throw new Error("Readiness check is not configured");
+  },
   getPermissions: () => [],
   getSession: async () => null,
   handleAuthRequest: async () =>
@@ -149,6 +157,8 @@ export function createApp(
       200,
     );
   });
+
+  registerHealthReadyRoute(app, resolvedDependencies.checkReadiness);
 
   app.on(["GET", "POST"], "/api/auth/*", (context) =>
     resolvedDependencies.handleAuthRequest(context.req.raw),

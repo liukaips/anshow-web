@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getHealthReady"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/session": {
         parameters: {
             query?: never;
@@ -61,6 +77,25 @@ export interface components {
         ApiError: {
             code: string;
             message: string;
+        };
+        HealthReadyResponse: {
+            data: {
+                /** @enum {string} */
+                status: "ready";
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            requestId: string;
+        };
+        HealthNotReadyResponse: {
+            /** @enum {object|null} */
+            data: never | null;
+            error: {
+                /** @enum {string} */
+                code: "NOT_READY";
+                message: string;
+            };
+            requestId: string;
         };
         AdminSessionResponse: {
             data: components["schemas"]["AdminSessionData"];
@@ -127,6 +162,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getHealthReady: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The API and its SQLite database are ready. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthReadyResponse"];
+                };
+            };
+            /** @description The API database is not ready. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthNotReadyResponse"];
                 };
             };
         };

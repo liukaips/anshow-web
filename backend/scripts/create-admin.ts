@@ -1,9 +1,4 @@
-import { parseCreateAdminArguments } from "../src/auth/create-admin-arguments.js";
-import { provisionAdministrator } from "../src/auth/provision-administrator.js";
-import { seedRbac } from "../src/auth/seed-rbac.js";
-import { db } from "../src/db/client.js";
-
-const { email, name } = parseCreateAdminArguments(process.argv.slice(2));
+import { initializeRuntime } from "../src/runtime-bootstrap.js";
 
 async function readPassword(): Promise<string> {
   if (process.env.ANSHOW_ADMIN_PASSWORD) {
@@ -24,8 +19,22 @@ async function readPassword(): Promise<string> {
   return password;
 }
 
-const password = await readPassword();
-seedRbac(db);
-const result = await provisionAdministrator(db, { email, name, password });
+await initializeRuntime(process.env, async () => {
+  const [
+    { parseCreateAdminArguments },
+    { provisionAdministrator },
+    { seedRbac },
+    { db },
+  ] = await Promise.all([
+    import("../src/auth/create-admin-arguments.js"),
+    import("../src/auth/provision-administrator.js"),
+    import("../src/auth/seed-rbac.js"),
+    import("../src/db/client.js"),
+  ]);
+  const { email, name } = parseCreateAdminArguments(process.argv.slice(2));
+  const password = await readPassword();
+  seedRbac(db);
+  const result = await provisionAdministrator(db, { email, name, password });
 
-console.info(`Created administrator ${result.email}`);
+  console.info(`Created administrator ${result.email}`);
+});

@@ -1,33 +1,45 @@
 import { serve } from "@hono/node-server";
 
-import { createApp } from "./app.js";
-import { permissionsForUser } from "./auth/permission-repository.js";
-import { auth, handleAuthRequest } from "./auth/runtime.js";
-import { db } from "./db/client.js";
+import { initializeRuntime } from "./runtime-bootstrap.js";
 
-const port = Number.parseInt(process.env.PORT ?? "4000", 10);
-const app = createApp({
-  getPermissions: (userId) => permissionsForUser(db, userId),
-  getSession: (headers) => auth.api.getSession({ headers }),
-  handleAuthRequest,
-});
-
-const server = serve(
-  {
-    fetch: app.fetch,
-    port,
-  },
-  (info) => {
-    console.info(`AnShow API listening on http://localhost:${info.port}`);
-  },
-);
-
-function shutdown(signal: NodeJS.Signals): void {
-  console.info(`Received ${signal}; stopping AnShow API.`);
-  server.close(() => {
-    process.exitCode = 0;
+await initializeRuntime(process.env, async (environment) => {
+  const [
+    { createApp },
+    { permissionsForUser },
+    { createAuthRuntime },
+    { db },
+    { createDatabaseReadinessCheck },
+  ] = await Promise.all([
+    import("./app.js"),
+    import("./auth/permission-repository.js"),
+    import("./auth/runtime.js"),
+    import("./db/client.js"),
+    import("./routes/health-ready.js"),
+  ]);
+  const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
+  const app = createApp({
+    checkReadiness: createDatabaseReadinessCheck(db),
+    getPermissions: (userId) => permissionsForUser(db, userId),
+    getSession: (headers) => auth.api.getSession({ headers }),
+    handleAuthRequest,
   });
-}
+  const server = serve(
+    {
+      fetch: app.fetch,
+      port: environment.PORT,
+    },
+    (info) => {
+      console.info(`AnShow API listening on http://localhost:${info.port}`);
+    },
+  );
 
-process.once("SIGINT", () => shutdown("SIGINT"));
-process.once("SIGTERM", () => shutdown("SIGTERM"));
+  function shutdown(signal: NodeJS.Signals): void {
+    console.info(`Received ${signal}; stopping AnShow API.`);
+    server.close(() => {
+      process.exitCode = 0;
+    });
+  }
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+});

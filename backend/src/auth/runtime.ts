@@ -1,13 +1,16 @@
-import { db } from "../db/client.js";
-import { resolveBetterAuthSecret } from "./config.js";
+import type { AppDatabase } from "../db/client.js";
+import type { RuntimeEnv } from "../env.js";
 import { createAuth, createAuthHandler } from "./server.js";
 
-export const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+export function createAuthRuntime(database: AppDatabase, environment: RuntimeEnv) {
+  const auth = createAuth(database, {
+    production: environment.NODE_ENV === "production",
+    secret: environment.BETTER_AUTH_SECRET,
+    siteUrl: environment.SITE_URL,
+  });
 
-export const auth = createAuth(db, {
-  production: process.env.NODE_ENV === "production",
-  secret: resolveBetterAuthSecret(),
-  siteUrl,
-});
-
-export const handleAuthRequest = createAuthHandler(auth, siteUrl);
+  return {
+    auth,
+    handleAuthRequest: createAuthHandler(auth, environment.SITE_URL),
+  };
+}

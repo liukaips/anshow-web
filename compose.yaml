@@ -1,0 +1,108 @@
+x-backend-environment: &backend-environment
+  NODE_ENV: production
+  SITE_URL: ${SITE_URL:?Set SITE_URL in .env}
+  SITE_HOST: ${SITE_HOST:?Set SITE_HOST in .env}
+  DATABASE_PATH: /data/anshow.db
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+  RATE_LIMIT_SECRET: ${RATE_LIMIT_SECRET:?Set RATE_LIMIT_SECRET in .env}
+  MEDIA_DRIVER: local
+  PORT: 4000
+
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: anshow-backend:${ANSHOW_IMAGE_TAG:-local}
+    init: true
+    restart: "no"
+    command: ["node", "backend/dist/db/migrate.js"]
+    environment: *backend-environment
+    volumes:
+      - app-data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: anshow-backend:${ANSHOW_IMAGE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    environment: *backend-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - app-data:/data
+      - media:/media
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: anshow-frontend:${ANSHOW_IMAGE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:4000
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/en').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/caddy/Dockerfile
+    image: anshow-caddy:${ANSHOW_IMAGE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+      SITE_HOST: ${SITE_HOST:?Set SITE_HOST in .env}
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - media:/srv/media:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  app-data:
+    name: anshow-app-data
+  media:
+    name: anshow-media
+  caddy-data:
+    name: anshow-caddy-data
+  caddy-config:
+    name: anshow-caddy-config
