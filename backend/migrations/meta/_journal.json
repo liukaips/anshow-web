@@ -36,6 +36,13 @@
       "when": 1784094668923,
       "tag": "0004_absurd_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784096170256,
+      "tag": "0005_bright_vector",
+      "breakpoints": true
     }
   ]
 }

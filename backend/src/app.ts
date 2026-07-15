@@ -13,6 +13,8 @@ import {
   registerMediaRoutes,
   type MediaRouteDependencies,
 } from "./admin/routes/media.js";
+import { registerStaffRoutes } from "./admin/routes/staff.js";
+import type { StaffRepository } from "./admin/repositories/staff-repository.js";
 import {
   errorEnvelopeSchema,
   requestIdSchema,
@@ -127,7 +129,8 @@ export type AppDependencies = AdminSessionDependencies &
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
-    publicContentRepository: PublicContentRepository;
+  publicContentRepository: PublicContentRepository;
+    staffRepository: StaffRepository;
   };
 
 const defaultDependencies: AppDependencies = {
@@ -209,6 +212,15 @@ const defaultDependencies: AppDependencies = {
     },
     retryCleanup: async () => ({ attempted: 0, remaining: 0 }),
   },
+  staffRepository: {
+    list: () => [],
+    get: () => null,
+    listRoles: () => [],
+    disable: () => undefined,
+    enable: () => undefined,
+    setRoles: () => undefined,
+    deleteSessions: () => undefined,
+  } as unknown as StaffRepository,
 };
 
 export function createApp(
@@ -261,6 +273,7 @@ export function createApp(
   registerSettingsRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
+  registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {

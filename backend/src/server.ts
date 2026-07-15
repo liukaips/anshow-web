@@ -16,6 +16,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createDatabaseReadinessCheck },
     { createDrizzleContentStore },
     { createPublicRepository },
+    { createStaffRepository },
   ] = await Promise.all([
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
@@ -29,6 +30,7 @@ await initializeRuntime(process.env, async (environment) => {
     import("./routes/health-ready.js"),
     import("./content/drizzle-content-store.js"),
     import("./content/public-repository.js"),
+    import("./admin/repositories/staff-repository.js"),
   ]);
   const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
   const app = createApp({
@@ -45,6 +47,7 @@ await initializeRuntime(process.env, async (environment) => {
       repository: createMediaRepository(db),
       storage: createLocalMediaStorage(),
     }),
+    staffRepository: createStaffRepository(db),
   });
   const server = serve(
     {
