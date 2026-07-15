@@ -172,6 +172,16 @@ export function HeroCarousel({
                   />
                 )}
                 <div className="absolute inset-0 bg-black/45" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+                  <span className="hero-scanline motion-reduce:hidden" />
+                  <div className="absolute right-8 top-28 hidden h-28 w-64 border border-white/20 bg-black/10 backdrop-blur-[2px] lg:block">
+                    <span className="hero-route-line" />
+                    <span className="hero-route-node left-[12%] top-[63%]" />
+                    <span className="hero-route-node left-[47%] top-[42%] [animation-delay:400ms]" />
+                    <span className="hero-route-node left-[82%] top-[19%] [animation-delay:800ms]" />
+                    <span className="absolute inset-x-3 bottom-3 border-t border-dashed border-white/20" />
+                  </div>
+                </div>
                 <div className="absolute inset-x-0 bottom-24 mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12">
                   <div className="ml-auto max-w-lg overflow-hidden border-l border-white/35 pl-5 sm:pl-7">
                     <div

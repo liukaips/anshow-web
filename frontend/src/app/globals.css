@@ -42,6 +42,92 @@ html {
   animation: shell-drawer-enter var(--motion-fast) ease-out both;
 }
 
+.hero-scanline {
+  animation: hero-scan 8s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgb(56 189 248 / 0.38), transparent);
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 18%;
+}
+
+.hero-route-line {
+  background: rgb(56 189 248 / 0.22);
+  height: 1px;
+  left: 8%;
+  position: absolute;
+  top: 50%;
+  transform: rotate(-12deg);
+  transform-origin: left center;
+  width: 84%;
+}
+
+.hero-route-line::after {
+  animation: hero-route-travel 3.6s ease-in-out infinite;
+  background: var(--color-cyan);
+  box-shadow: 0 0 0 4px rgb(56 189 248 / 0.16), 0 0 18px rgb(56 189 248 / 0.8);
+  content: "";
+  height: 5px;
+  left: 0;
+  position: absolute;
+  top: -2px;
+  width: 5px;
+}
+
+.hero-route-node {
+  animation: hero-node-pulse 2.8s ease-in-out infinite;
+  background: var(--color-cyan);
+  border: 2px solid rgb(7 17 27 / 0.72);
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgb(56 189 248 / 0.18);
+  height: 9px;
+  position: absolute;
+  width: 9px;
+}
+
+@keyframes hero-scan {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12vh);
+  }
+  18%,
+  82% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(72vh);
+  }
+}
+
+@keyframes hero-route-travel {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.7);
+  }
+  12%,
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(84%) scale(1);
+  }
+}
+
+@keyframes hero-node-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 @keyframes shell-enter {
   from {
     opacity: 0;
@@ -70,6 +156,12 @@ html {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .hero-scanline,
+  .hero-route-line::after,
+  .hero-route-node {
+    animation: none;
   }
 }
 
