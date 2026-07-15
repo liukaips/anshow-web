@@ -161,7 +161,7 @@ export function PublicCollectionPage({
                 const isDesktopFeature = items.length % 3 !== 0 && isLast;
                 const isFeature = isTabletFeature || isDesktopFeature;
                 return (
-                <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isDesktopFeature ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
+                <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isTabletFeature && !isDesktopFeature ? "xl:col-span-1" : ""} ${isDesktopFeature ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
                   <PublicMedia compact={!isFeature} item={item} />
                   <div className={`p-6 sm:p-7 ${isFeature ? "xl:flex xl:flex-col xl:justify-center" : ""}`}>
                     <Icon aria-hidden="true" className="size-6 text-[var(--color-teal-ink)]" />
