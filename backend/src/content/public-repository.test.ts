@@ -121,7 +121,7 @@ describe("public content repository", () => {
           en: "/en/services/ocean-freight",
           zh: "/zh/services/hai-yun-fu-wu",
         },
-        media: null,
+        media: expect.objectContaining({ width: expect.any(Number), avifSrcSet: expect.stringContaining("/media/service-ocean/") }),
       });
       await expect(
         repository.getBySlug("services", "ru", "ocean-freight"),

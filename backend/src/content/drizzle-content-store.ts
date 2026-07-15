@@ -27,6 +27,7 @@ import {
 import type { PublicContentItem } from "./public-contract.js";
 import type { PublicContentStore } from "./public-repository.js";
 import { LOCALES, type Locale, type PublicCollection } from "./types.js";
+import { mediaForCatalogId } from "./media-catalog.js";
 
 type ContentStoreOptions = {
   now?: () => Date;
@@ -230,7 +231,7 @@ export function createDrizzleContentStore(
             altText: row.altText,
             processStageId: row.processStageId,
             alternates: {},
-            media: null,
+            media: await mediaForCatalogId(row.code, row.altText),
           },
           code: row.code,
           updatedAt: row.updatedAt,

@@ -4,9 +4,9 @@ This file tracks deliverables that require an external service or runtime unavai
 
 ## Production Image Set
 
-Status: **blocked by image-generation service connectivity**
+Status: **generated and verified locally**
 
-The public site intentionally renders its carbon-black media fallback until these assets are generated and validated. Do not substitute stock logos, fake customer evidence, fake AnShow operations, embedded text, or watermarked images.
+The public site now serves the generated, hashed AVIF/WebP derivatives. Do not substitute stock logos, fake customer evidence, fake AnShow operations, embedded text, or watermarked images.
 
 ### Source Masters
 

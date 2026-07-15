@@ -19,6 +19,8 @@ export const mediaSchema = z
   })
   .openapi("PublicMedia");
 
+export type PublicMedia = z.infer<typeof mediaSchema>;
+
 export const publicItemSchema = z
   .object({
     id: z.string(),

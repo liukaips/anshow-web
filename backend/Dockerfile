@@ -30,5 +30,6 @@ COPY --from=build --chown=node:node /app/backend/dist/db/migrate.js ./backend/di
 COPY --from=build --chown=node:node /app/backend/dist/scripts/create-admin.js ./backend/dist/scripts/create-admin.js
 COPY --from=build --chown=node:node /app/backend/dist/worker/index.js ./backend/dist/worker/index.js
 COPY --from=build --chown=node:node /app/backend/migrations ./backend/migrations
+COPY --from=build --chown=node:node /app/content/assets/manifest.json ./content/assets/manifest.json
 USER node
 CMD ["node", "backend/dist/server.js"]
