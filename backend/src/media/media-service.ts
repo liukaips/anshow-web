@@ -41,6 +41,28 @@ export class MediaServiceError extends Error {
   }
 }
 
+export class MediaCleanupError extends AggregateError {
+  readonly code = "MEDIA_CLEANUP_FAILED";
+  readonly failedKeys: readonly string[];
+
+  constructor(
+    readonly operation: string,
+    failures: readonly Readonly<{ key: string; error: unknown }>[],
+    primaryError?: unknown,
+  ) {
+    super(
+      [
+        ...(primaryError === undefined ? [] : [primaryError]),
+        ...failures.map(({ error }) => error),
+      ],
+      `${operation} failed to delete ${failures.length} media object(s)`,
+      { cause: primaryError },
+    );
+    this.name = "MediaCleanupError";
+    this.failedKeys = failures.map(({ key }) => key);
+  }
+}
+
 export type ValidatedUpload = Readonly<{
   bytes: Uint8Array;
   format: "jpeg" | "png" | "webp" | "avif";
@@ -294,9 +316,21 @@ export function createMediaService(
   const createId = dependencies.createId ?? (() => crypto.randomUUID());
   const process = dependencies.process ?? processUpload;
 
-  async function cleanup(keys: readonly string[]) {
+  async function cleanup(
+    keys: readonly string[],
+    operation: string,
+    primaryError?: unknown,
+  ) {
+    const failures: Array<{ key: string; error: unknown }> = [];
     for (const key of [...keys].reverse()) {
-      await dependencies.storage.delete(key).catch(() => undefined);
+      try {
+        await dependencies.storage.delete(key);
+      } catch (error) {
+        failures.push({ key, error });
+      }
+    }
+    if (failures.length > 0) {
+      throw new MediaCleanupError(operation, failures, primaryError);
     }
   }
 
@@ -351,7 +385,7 @@ export function createMediaService(
         },
       };
     } catch (error) {
-      await cleanup(writtenKeys);
+      await cleanup(writtenKeys, "generation compensation", error);
       throw error;
     }
   }
@@ -367,7 +401,7 @@ export function createMediaService(
       try {
         return await dependencies.repository.insert(generation.input, actorId);
       } catch (error) {
-        await cleanup(generation.writtenKeys);
+        await cleanup(generation.writtenKeys, "upload compensation", error);
         throw error;
       }
     },
@@ -387,20 +421,20 @@ export function createMediaService(
           actorId,
         );
       } catch (error) {
-        await cleanup(generation.writtenKeys);
+        await cleanup(generation.writtenKeys, "replacement compensation", error);
         throw error;
       }
 
       await cleanup([
         existing.storageKey,
         ...existing.derivatives.map(({ storageKey }) => storageKey),
-      ]);
+      ], "replacement retirement");
       return saved;
     },
 
     async delete(id, actorId) {
       const deleted = await dependencies.repository.deleteWithAudit(id, actorId);
-      await cleanup(deleted.storageKeys);
+      await cleanup(deleted.storageKeys, "media deletion");
     },
   };
 }

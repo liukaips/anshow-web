@@ -1,4 +1,5 @@
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
+import { bodyLimit } from "hono/body-limit";
 
 import {
   requirePermission,
@@ -72,7 +73,11 @@ const MediaMetadataInputSchema = mediaMetadataSchema.openapi(
 );
 const MediaMultipartInputSchema = z
   .object({
-    file: z.any().openapi({ type: "string", format: "binary" }),
+    file: z
+      .custom<File>((value) => value instanceof File, {
+        message: "An image file is required",
+      })
+      .openapi({ type: "string", format: "binary" }),
     altEn: z.string(),
     altZh: z.string(),
     altRu: z.string(),
@@ -97,10 +102,6 @@ const listRoute = createRoute({
     },
     401: { description: "No staff session.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     403: { description: "Missing media.read.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    400: { description: "Invalid media request.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    409: { description: "Media conflict.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -116,8 +117,6 @@ const detailRoute = createRoute({
     401: { description: "No staff session.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     403: { description: "Missing media.read.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    409: { description: "Media conflict.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -138,8 +137,6 @@ const uploadRoute = createRoute({
     401: { description: "No staff session.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     403: { description: "Missing media.write.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    409: { description: "Media conflict.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -158,8 +155,6 @@ const updateMetadataRoute = createRoute({
     401: { description: "No staff session.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     403: { description: "Missing media.write.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    409: { description: "Media conflict.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -179,7 +174,6 @@ const replaceRoute = createRoute({
     403: { description: "Missing media.write.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    409: { description: "Media conflict.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -196,7 +190,6 @@ const deleteRoute = createRoute({
     403: { description: "Missing media.write.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     404: { description: "Media not found.", content: { "application/json": { schema: errorEnvelopeSchema } } },
     409: { description: "Media is referenced.", content: { "application/json": { schema: errorEnvelopeSchema } } },
-    413: { description: "Upload exceeds 20 MB.", content: { "application/json": { schema: errorEnvelopeSchema } } },
   },
 });
 
@@ -242,6 +235,48 @@ function errorResponse(context: Parameters<Parameters<OpenAPIHono<AppEnv>["onErr
   throw error;
 }
 
+function serviceErrorEnvelope(
+  context: Parameters<Parameters<OpenAPIHono<AppEnv>["onError"]>[0]>[1],
+  error: MediaServiceError,
+) {
+  return {
+    data: null,
+    error: { code: error.code, message: error.message },
+    requestId: context.get("requestId"),
+  } as const;
+}
+
+function repositoryErrorEnvelope(
+  context: Parameters<Parameters<OpenAPIHono<AppEnv>["onError"]>[0]>[1],
+  error: MediaRepositoryError,
+) {
+  return {
+    data: null,
+    error: {
+      code: error.code,
+      message: error.message,
+      ...(error.references.length > 0
+        ? { details: { references: error.references.map((reference) => ({ ...reference })) } }
+        : {}),
+    },
+    requestId: context.get("requestId"),
+  };
+}
+
+function validationErrorResponse(
+  context: Parameters<Parameters<OpenAPIHono<AppEnv>["onError"]>[0]>[1],
+  error: z.ZodError,
+) {
+  const fields = Object.fromEntries(
+    Object.entries(error.flatten().fieldErrors).map(([field, messages]) => [field, messages ?? []]),
+  );
+  return context.json({
+    data: null,
+    error: { code: "VALIDATION_ERROR", message: "The media metadata is invalid.", fields },
+    requestId: context.get("requestId"),
+  }, 400);
+}
+
 function toMediaResponse(asset: AdminMediaAsset): MediaAssetResponse {
   return {
     ...asset,
@@ -281,49 +316,108 @@ export function registerMediaRoutes(
     const required = context.req.method === "GET" ? "media.read" : "media.write";
     return requirePermission(required, dependencies)(context, next);
   };
-  app.use("/api/admin/media", permission);
   app.use("/api/admin/media/*", permission);
-  app.use("/api/admin/media", async (context, next) => {
-    if (context.req.method === "POST" && Number(context.req.header("content-length") ?? 0) > MAX_MULTIPART_BYTES) {
-      return errorResponse(context, new MediaServiceError("MEDIA_TOO_LARGE", "Media uploads must not exceed 20 MB", 413));
-    }
-    await next();
+
+  const streamedLimit = bodyLimit({
+    maxSize: MAX_MULTIPART_BYTES,
+    onError: (context) =>
+      errorResponse(
+        context,
+        new MediaServiceError(
+          "MEDIA_TOO_LARGE",
+          "Media uploads must not exceed 20 MB",
+          413,
+        ),
+      ),
   });
   app.use("/api/admin/media/*", async (context, next) => {
-    if (context.req.method === "POST" && Number(context.req.header("content-length") ?? 0) > MAX_MULTIPART_BYTES) {
+    if (context.req.method !== "POST") {
+      await next();
+      return;
+    }
+
+    const declaredLength = Number(context.req.header("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_MULTIPART_BYTES) {
       return errorResponse(context, new MediaServiceError("MEDIA_TOO_LARGE", "Media uploads must not exceed 20 MB", 413));
     }
-    await next();
+
+    const request = context.req.raw;
+    if (request.body && request.headers.has("content-length")) {
+      const headers = new Headers(request.headers);
+      headers.delete("content-length");
+      context.req.raw = new Request(request, {
+        body: request.body,
+        headers,
+        duplex: "half",
+      } as RequestInit & { duplex: "half" });
+    }
+    return streamedLimit(context, next);
   });
 
   app.openapi(listRoute, async (context) => context.json({ data: (await dependencies.mediaService.list()).map(toMediaResponse), error: null, requestId: context.get("requestId") }, 200));
   app.openapi(detailRoute, async (context) => {
     try {
       return context.json({ data: toMediaResponse(await dependencies.mediaService.get(context.req.valid("param").id)), error: null, requestId: context.get("requestId") }, 200);
-    } catch (error) { return errorResponse(context, error); }
+    } catch (error) {
+      if (error instanceof MediaRepositoryError) {
+        return context.json(repositoryErrorEnvelope(context, error), 404);
+      }
+      throw error;
+    }
   });
   app.openapi(uploadRoute, async (context) => {
     try {
       const { upload, metadata } = await multipartInput(context.req.valid("form"));
       return context.json({ data: toMediaResponse(await dependencies.mediaService.upload(upload, metadata, actorId(context))), error: null, requestId: context.get("requestId") }, 201);
-    } catch (error) { return errorResponse(context, error); }
+    } catch (error) {
+      if (error instanceof MediaServiceError) {
+        return error.status === 413
+          ? context.json(serviceErrorEnvelope(context, error), 413)
+          : context.json(serviceErrorEnvelope(context, error), 400);
+      }
+      if (error instanceof z.ZodError) return validationErrorResponse(context, error);
+      throw error;
+    }
   });
   app.openapi(updateMetadataRoute, async (context) => {
     try {
       return context.json({ data: toMediaResponse(await dependencies.mediaService.updateMetadata(context.req.valid("param").id, context.req.valid("json"), actorId(context))), error: null, requestId: context.get("requestId") }, 200);
-    } catch (error) { return errorResponse(context, error); }
+    } catch (error) {
+      if (error instanceof MediaRepositoryError) {
+        return context.json(repositoryErrorEnvelope(context, error), 404);
+      }
+      throw error;
+    }
   });
   app.openapi(replaceRoute, async (context) => {
     try {
       const { upload, metadata } = await multipartInput(context.req.valid("form"));
       return context.json({ data: toMediaResponse(await dependencies.mediaService.replace(context.req.valid("param").id, upload, metadata, actorId(context))), error: null, requestId: context.get("requestId") }, 200);
-    } catch (error) { return errorResponse(context, error); }
+    } catch (error) {
+      if (error instanceof MediaServiceError) {
+        return error.status === 413
+          ? context.json(serviceErrorEnvelope(context, error), 413)
+          : context.json(serviceErrorEnvelope(context, error), 400);
+      }
+      if (error instanceof MediaRepositoryError) {
+        return context.json(repositoryErrorEnvelope(context, error), 404);
+      }
+      if (error instanceof z.ZodError) return validationErrorResponse(context, error);
+      throw error;
+    }
   });
   app.openapi(deleteRoute, async (context) => {
     const id = context.req.valid("param").id;
     try {
       await dependencies.mediaService.delete(id, actorId(context));
       return context.json({ data: { id, deleted: true as const }, error: null, requestId: context.get("requestId") }, 200);
-    } catch (error) { return errorResponse(context, error); }
+    } catch (error) {
+      if (error instanceof MediaRepositoryError) {
+        return error.code === "MEDIA_NOT_FOUND"
+          ? context.json(repositoryErrorEnvelope(context, error), 404)
+          : context.json(repositoryErrorEnvelope(context, error), 409);
+      }
+      throw error;
+    }
   });
 }

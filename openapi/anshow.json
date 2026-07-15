@@ -1629,6 +1629,7 @@
           }
         },
         "required": [
+          "file",
           "altEn",
           "altZh",
           "altRu",
@@ -3262,16 +3263,6 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid media request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "401": {
             "description": "No staff session.",
             "content": {
@@ -3284,36 +3275,6 @@
           },
           "403": {
             "description": "Missing media.read.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Media not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Media conflict.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Upload exceeds 20 MB.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3372,26 +3333,6 @@
           },
           "403": {
             "description": "Missing media.write.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Media not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Media conflict.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3479,26 +3420,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "Media conflict.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Upload exceeds 20 MB.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           }
         }
       },
@@ -3570,26 +3491,6 @@
           },
           "404": {
             "description": "Media not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Media conflict.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Upload exceeds 20 MB.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3675,16 +3576,6 @@
                 }
               }
             }
-          },
-          "413": {
-            "description": "Upload exceeds 20 MB.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           }
         }
       }
@@ -3758,16 +3649,6 @@
           },
           "404": {
             "description": "Media not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Media conflict.",
             "content": {
               "application/json": {
                 "schema": {

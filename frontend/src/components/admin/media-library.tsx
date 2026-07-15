@@ -50,17 +50,22 @@ function phaseLabel(phase: Phase, progress: number) {
 function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
   const [file, setFile] = useState<File | null>(null);
   const [alt, setAlt] = useState({ en: "", zh: "", ru: "" });
+  const [focal, setFocal] = useState({ x: 0.5, y: 0.5 });
+  const [validationErrors, setValidationErrors] = useState<ReturnType<typeof validateMetadata>>({});
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const firstInput = useRef<HTMLInputElement>(null);
+  const focalXInput = useRef<HTMLInputElement>(null);
+  const focalYInput = useRef<HTMLInputElement>(null);
   const pending = ["validating", "uploading", "processing"].includes(phase);
 
   async function submit() {
     setPhase("validating");
     setError(null);
-    const metadata = { alt, focalX: 0.5, focalY: 0.5 };
+    const metadata = { alt, focalX: focal.x, focalY: focal.y };
     const errors = validateMetadata(metadata);
+    setValidationErrors(errors);
     if (!file) {
       setPhase("error");
       setError("Choose an image file. File type and extension are checked again by the server.");
@@ -69,7 +74,9 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
     if (Object.keys(errors).length > 0) {
       setPhase("error");
       setError(Object.values(errors)[0] ?? "Upload metadata is invalid.");
-      firstInput.current?.focus();
+      if (errors.en || errors.zh || errors.ru) firstInput.current?.focus();
+      else if (errors.focalX) focalXInput.current?.focus();
+      else focalYInput.current?.focus();
       return;
     }
     setPhase("uploading");
@@ -85,6 +92,7 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
       setPhase("saved");
       setFile(null);
       setAlt({ en: "", zh: "", ru: "" });
+      setFocal({ x: 0.5, y: 0.5 });
     } catch (reason) {
       setPhase("error");
       setError(reason instanceof Error ? reason.message : "Media upload failed.");
@@ -108,6 +116,18 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
           {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Upload aria-hidden="true" className="size-4" />}
           Upload media
         </button>
+      </div>
+      <div className="mt-3 grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="text-sm font-semibold text-[var(--color-text)]">
+          Upload focal X
+          <input aria-describedby={validationErrors.focalX ? "upload-focal-x-error" : undefined} aria-invalid={Boolean(validationErrors.focalX)} className={inputClass} disabled={pending} max="1" min="0" onChange={(event) => setFocal((current) => ({ ...current, x: Number(event.target.value) }))} ref={focalXInput} step="0.01" type="number" value={focal.x} />
+          {validationErrors.focalX ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id="upload-focal-x-error">{validationErrors.focalX}</span> : null}
+        </label>
+        <label className="text-sm font-semibold text-[var(--color-text)]">
+          Upload focal Y
+          <input aria-describedby={validationErrors.focalY ? "upload-focal-y-error" : undefined} aria-invalid={Boolean(validationErrors.focalY)} className={inputClass} disabled={pending} max="1" min="0" onChange={(event) => setFocal((current) => ({ ...current, y: Number(event.target.value) }))} ref={focalYInput} step="0.01" type="number" value={focal.y} />
+          {validationErrors.focalY ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id="upload-focal-y-error">{validationErrors.focalY}</span> : null}
+        </label>
       </div>
       <div aria-live="polite" className="mt-2 min-h-6 text-sm">
         {error ? <span className="font-medium text-[var(--color-danger)]" role="alert">{error}</span> : phaseLabel(phase, progress)}
@@ -182,8 +202,8 @@ function AssetEditor({ asset, canWrite, view, onChange, onDelete }: { asset: Adm
       <div className="min-w-0">
         {preview ? <Image alt="" className="aspect-[3/2] w-full bg-neutral-100 object-cover" height={asset.height} loading="lazy" src={preview.url} unoptimized width={asset.width} /> : <div aria-label="No derivative preview" className="aspect-[3/2] bg-neutral-100" />}
         <p className="mt-3 break-all font-mono text-xs text-neutral-500">{asset.id}</p>
-        <p className="mt-1 text-sm text-neutral-700">{asset.width} x {asset.height} · {asset.mimeType.replace("image/", "").toUpperCase()}</p>
-        <p className="mt-1 text-sm text-neutral-700">{preview ? `${Math.ceil(preview.byteSize / 1024)} KB preview` : "No derivative"} · {asset.referenceCount} references</p>
+        <p className="mt-1 text-base text-neutral-700">{asset.width} x {asset.height} · {asset.mimeType.replace("image/", "").toUpperCase()}</p>
+        <p className="mt-1 text-base text-neutral-700">{preview ? `${Math.ceil(preview.byteSize / 1024)} KB preview` : "No derivative"} · {asset.referenceCount} references</p>
       </div>
       <div className="mt-5 min-w-0 space-y-4 lg:mt-0">
         {canWrite ? (
@@ -204,14 +224,14 @@ function AssetEditor({ asset, canWrite, view, onChange, onDelete }: { asset: Adm
             <div className="flex min-w-0 flex-col gap-3 border-t border-neutral-200 pt-4 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 text-sm font-semibold">Replacement image<input accept="image/jpeg,image/png,image/webp,image/avif" className={`${inputClass} py-2`} onChange={(event) => setReplacement(event.target.files?.[0] ?? null)} type="file" /></label>
               <button className={`${buttonClass} border border-neutral-300 bg-white`} disabled={pending !== null} onClick={replace} type="button"><RotateCcw aria-hidden="true" className="size-4" />Replace media</button>
-              <button className={`${buttonClass} border border-red-200 bg-white text-[var(--color-danger)]`} disabled={pending !== null || asset.referenceCount > 0} onClick={remove} title={asset.referenceCount > 0 ? "Remove references before deleting" : undefined} type="button"><Trash2 aria-hidden="true" className="size-4" />Delete media</button>
+              <button className={`${buttonClass} border border-red-200 bg-white text-[var(--color-danger)]`} disabled={pending !== null || blockingReferences.length > 0} onClick={remove} title={blockingReferences.length > 0 ? "Remove references before deleting" : undefined} type="button"><Trash2 aria-hidden="true" className="size-4" />Delete media</button>
             </div>
           </>
         ) : (
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">{(["en", "zh", "ru"] as const).map((locale) => <div key={locale}><dt className="font-semibold text-neutral-500">Alt text ({locale.toUpperCase()})</dt><dd className="mt-1 break-words text-[var(--color-text)]">{asset.alt[locale]}</dd></div>)}</dl>
+          <dl className="grid gap-3 text-base sm:grid-cols-3">{(["en", "zh", "ru"] as const).map((locale) => <div key={locale}><dt className="text-sm font-semibold text-neutral-500">Alt text ({locale.toUpperCase()})</dt><dd className="mt-1 break-words text-base text-[var(--color-text)]">{asset.alt[locale]}</dd></div>)}<div><dt className="text-sm font-semibold text-neutral-500">Focal X</dt><dd className="mt-1 text-base text-[var(--color-text)]">{asset.focalX}</dd></div><div><dt className="text-sm font-semibold text-neutral-500">Focal Y</dt><dd className="mt-1 text-base text-[var(--color-text)]">{asset.focalY}</dd></div></dl>
         )}
-        {blockingReferences.length > 0 ? <div><h3 className="text-sm font-semibold">References</h3><ul className="mt-1 space-y-1 text-sm text-neutral-600">{blockingReferences.map((reference) => <li key={`${reference.entityType}-${reference.entityId}-${reference.field}`}>{reference.entityType} / {reference.entityId} / {reference.field}</li>)}</ul></div> : null}
-        <div aria-live="polite" className="min-h-5 text-sm text-neutral-600">{message}</div>
+        {blockingReferences.length > 0 ? <div><h3 className="text-sm font-semibold">References</h3><ul className="mt-1 space-y-1 text-base text-neutral-600">{blockingReferences.map((reference) => <li className="text-base" key={`${reference.entityType}-${reference.entityId}-${reference.field}`}>{reference.entityType} / {reference.entityId} / {reference.field}</li>)}</ul></div> : null}
+        <div aria-live="polite" className="min-h-5 text-base text-neutral-600">{message}</div>
       </div>
     </article>
   );
@@ -234,7 +254,7 @@ export function MediaLibrary({ canWrite, initialItems }: MediaLibraryProps) {
           <button aria-label="List view" aria-pressed={view === "list"} className="flex size-11 items-center justify-center aria-pressed:bg-neutral-200" onClick={() => setView("list")} title="List view" type="button"><List aria-hidden="true" className="size-5" /></button>
         </div>
       </div>
-      {items.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><ImagePlus aria-hidden="true" className="mx-auto size-8 text-neutral-400" /><h2 className="mt-3 text-lg font-semibold">No media assets yet</h2><p className="mt-1 text-sm text-neutral-600">Use the upload controls to add the first staff media asset.</p></div> : filtered.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><h2 className="text-lg font-semibold">No media matches this search</h2></div> : <div className={view === "grid" ? "grid min-w-0 grid-cols-1 border-t border-neutral-200 xl:grid-cols-2" : "border-t border-neutral-200"}>{filtered.map((item) => <AssetEditor asset={item} canWrite={canWrite} key={item.id} onChange={change} onDelete={(id) => setItems((current) => current.filter((item) => item.id !== id))} view={view} />)}</div>}
+      {items.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><ImagePlus aria-hidden="true" className="mx-auto size-8 text-neutral-400" /><h2 className="mt-3 text-lg font-semibold">No media assets yet</h2><p className="mt-1 text-base text-neutral-600">Use the upload controls to add the first staff media asset.</p></div> : filtered.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><h2 className="text-lg font-semibold">No media matches this search</h2></div> : <div className={view === "grid" ? "grid min-w-0 grid-cols-1 border-t border-neutral-200 xl:grid-cols-2" : "border-t border-neutral-200"}>{filtered.map((item) => <AssetEditor asset={item} canWrite={canWrite} key={item.id} onChange={change} onDelete={(id) => setItems((current) => current.filter((item) => item.id !== id))} view={view} />)}</div>}
     </div>
   );
 }

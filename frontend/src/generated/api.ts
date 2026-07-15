@@ -689,7 +689,7 @@ export interface components {
         };
         AdminMediaMultipartInput: {
             /** Format: binary */
-            file?: string;
+            file: string;
             altEn: string;
             altZh: string;
             altRu: string;
@@ -1666,15 +1666,6 @@ export interface operations {
                     "application/json": components["schemas"]["AdminMediaListResponse"];
                 };
             };
-            /** @description Invalid media request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description No staff session. */
             401: {
                 headers: {
@@ -1686,33 +1677,6 @@ export interface operations {
             };
             /** @description Missing media.read. */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media conflict. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Upload exceeds 20 MB. */
-            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1764,24 +1728,6 @@ export interface operations {
             };
             /** @description Missing media.write. */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media conflict. */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1856,24 +1802,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Media conflict. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Upload exceeds 20 MB. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
         };
     };
     updateAdminMediaMetadata: {
@@ -1929,24 +1857,6 @@ export interface operations {
             };
             /** @description Media not found. */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media conflict. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Upload exceeds 20 MB. */
-            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2021,15 +1931,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Upload exceeds 20 MB. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
         };
     };
     replaceAdminMedia: {
@@ -2085,15 +1986,6 @@ export interface operations {
             };
             /** @description Media not found. */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Media conflict. */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };

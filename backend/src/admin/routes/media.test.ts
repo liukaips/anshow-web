@@ -65,6 +65,30 @@ function multipartRequest(path: string) {
   return new Request(`http://localhost${path}`, { method: "POST", body: form });
 }
 
+function streamedMultipartRequest(
+  path: string,
+  byteLength: number,
+  contentLength?: number,
+) {
+  const headers = new Headers({
+    "content-type": "multipart/form-data; boundary=oversized",
+  });
+  if (contentLength !== undefined) {
+    headers.set("content-length", String(contentLength));
+  }
+  return new Request(`http://localhost${path}`, {
+    method: "POST",
+    headers,
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(byteLength));
+        controller.close();
+      },
+    }),
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
+}
+
 describe("administration media routes", () => {
   it("short-circuits unauthenticated multipart requests before service or body parsing", async () => {
     const mediaService = fakeService();
@@ -81,6 +105,22 @@ describe("administration media routes", () => {
     const response = await app.request(request);
 
     expect(response.status).toBe(401);
+    expect(mediaService.upload).not.toHaveBeenCalled();
+  });
+
+  it("short-circuits authenticated staff lacking media.write before streaming the body", async () => {
+    const mediaService = fakeService();
+    const app = createApp({
+      mediaService,
+      getSession: session,
+      getPermissions: () => ["media.read"],
+    });
+
+    const response = await app.request(
+      streamedMultipartRequest("/api/admin/media", 21 * 1024 * 1024),
+    );
+
+    expect(response.status).toBe(403);
     expect(mediaService.upload).not.toHaveBeenCalled();
   });
 
@@ -162,6 +202,30 @@ describe("administration media routes", () => {
     expect(mediaService.upload).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["chunked without Content-Length", undefined],
+    ["underreported Content-Length", 16],
+  ])("rejects %s before multipart parsing", async (_case, contentLength) => {
+    const mediaService = fakeService();
+    const app = createApp({
+      mediaService,
+      getSession: session,
+      getPermissions: () => ["media.write"],
+    });
+
+    const response = await app.request(
+      streamedMultipartRequest(
+        "/api/admin/media",
+        21 * 1024 * 1024,
+        contentLength,
+      ),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: "MEDIA_TOO_LARGE" } });
+    expect(mediaService.upload).not.toHaveBeenCalled();
+  });
+
   it("validates metadata and canonical UUID route parameters", async () => {
     const mediaService = fakeService();
     const app = createApp({
@@ -215,5 +279,22 @@ describe("administration media routes", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "MEDIA_IN_USE", details: { references } },
     });
+  });
+
+  it("documents a required binary file and only operation-specific statuses", async () => {
+    const openApiResponse = await createApp().request("/api/openapi.json");
+    const document = await openApiResponse.json() as {
+      components: { schemas: { AdminMediaMultipartInput: { required?: string[]; properties: { file: { format?: string } } } } };
+      paths: Record<string, Record<string, { responses: Record<string, unknown> }>>;
+    };
+
+    expect(document.components.schemas.AdminMediaMultipartInput.required).toContain("file");
+    expect(document.components.schemas.AdminMediaMultipartInput.properties.file.format).toBe("binary");
+    expect(Object.keys(document.paths["/api/admin/media"]!.get!.responses).sort()).toEqual(["200", "401", "403"]);
+    expect(Object.keys(document.paths["/api/admin/media/{id}"]!.get!.responses).sort()).toEqual(["200", "400", "401", "403", "404"]);
+    expect(Object.keys(document.paths["/api/admin/media/{id}"]!.put!.responses).sort()).toEqual(["200", "400", "401", "403", "404"]);
+    expect(Object.keys(document.paths["/api/admin/media/{id}"]!.delete!.responses).sort()).toEqual(["200", "400", "401", "403", "404", "409"]);
+    expect(Object.keys(document.paths["/api/admin/media"]!.post!.responses).sort()).toEqual(["201", "400", "401", "403", "413"]);
+    expect(Object.keys(document.paths["/api/admin/media/{id}/replacement"]!.post!.responses).sort()).toEqual(["200", "400", "401", "403", "404", "413"]);
   });
 });

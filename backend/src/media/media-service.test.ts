@@ -9,6 +9,7 @@ import {
   createMediaService,
   DERIVATIVE_BUDGETS,
   MAX_UPLOAD_BYTES,
+  MediaServiceError,
   processUpload,
   type ProcessedMedia,
   validateUpload,
@@ -58,6 +59,21 @@ describe("validateUpload", () => {
         bytes: new Uint8Array(MAX_UPLOAD_BYTES + 1),
       }),
     ).rejects.toMatchObject({ code: "MEDIA_TOO_LARGE", status: 413 });
+  });
+
+  it("rejects decoded image dimensions above 8000 pixels", async () => {
+    const bytes = await sharp({
+      create: {
+        width: 8001,
+        height: 1,
+        channels: 3,
+        background: "#112233",
+      },
+    }).png().toBuffer();
+
+    await expect(
+      validateUpload({ name: "wide.png", type: "image/png", bytes }),
+    ).rejects.toMatchObject({ code: "INVALID_MEDIA_DIMENSIONS" });
   });
 
   it("rejects animated WebP input", async () => {
@@ -243,6 +259,42 @@ describe("media service orchestration", () => {
     expect(storage.keys.size).toBe(0);
   });
 
+  it("preserves the database failure when upload compensation deletion also fails", async () => {
+    const attempted: string[] = [];
+    const storage: MediaStorage = {
+      async put(key) { return `/media/${key}`; },
+      async delete(key) { attempted.push(key); throw new Error(`cannot delete ${key}`); },
+    };
+    const repository = fakeRepository({
+      insert: vi.fn(async () => { throw new Error("database unavailable"); }),
+    });
+    const ids = [
+      "11111111-1111-4111-8111-111111111111",
+      "generation-a",
+      "derivative-a",
+      "derivative-b",
+    ];
+    const service = createMediaService({ storage, repository, process: async () => processedFixture, createId: () => ids.shift()! });
+
+    const error = await service.upload(
+      { name: "photo.jpg", type: "image/jpeg", bytes: new Uint8Array([1]) },
+      inputMetadata,
+      "staff-1",
+    ).catch((reason: unknown) => reason);
+
+    expect(error).toMatchObject({
+      code: "MEDIA_CLEANUP_FAILED",
+      operation: "upload compensation",
+      failedKeys: expect.arrayContaining([
+        "11111111-1111-4111-8111-111111111111/generation-a/master.jpg",
+        "11111111-1111-4111-8111-111111111111/generation-a/480.avif",
+        "11111111-1111-4111-8111-111111111111/generation-a/480.webp",
+      ]),
+      cause: expect.objectContaining({ message: "database unavailable" }),
+    });
+    expect(attempted).toHaveLength(3);
+  });
+
   it("cleans earlier objects when a derivative write fails", async () => {
     const deleted: string[] = [];
     let writes = 0;
@@ -353,5 +405,69 @@ describe("media service orchestration", () => {
       ),
     ).rejects.toThrow("replacement audit rejected");
     expect(storage.keys.size).toBe(0);
+  });
+
+  it("fails replacement visibly after commit when old generation retirement fails", async () => {
+    const attempted: string[] = [];
+    const storage: MediaStorage = {
+      async put(key) { return `/media/${key}`; },
+      async delete(key) {
+        attempted.push(key);
+        if (key.includes("old/")) throw new Error("retirement failed");
+      },
+    };
+    const current = {
+      id: "11111111-1111-4111-8111-111111111111",
+      storageKey: "old/master.jpg",
+      derivatives: [{ storageKey: "old/480.webp" }],
+    } as unknown as AdminMediaAsset;
+    const repository = fakeRepository({
+      get: vi.fn(async () => current),
+      replace: vi.fn(async (_id, input) => ({ ...current, ...input }) as AdminMediaAsset),
+    });
+    const ids = ["generation-b", "derivative-a", "derivative-b"];
+    const service = createMediaService({ storage, repository, process: async () => processedFixture, createId: () => ids.shift()! });
+
+    await expect(service.replace(
+      current.id,
+      { name: "replacement.jpg", type: "image/jpeg", bytes: new Uint8Array([1]) },
+      inputMetadata,
+      "staff-2",
+    )).rejects.toMatchObject({ code: "MEDIA_CLEANUP_FAILED", operation: "replacement retirement" });
+    expect(attempted).toEqual(expect.arrayContaining(["old/master.jpg", "old/480.webp"]));
+  });
+
+  it("fails deletion visibly when committed object retirement fails", async () => {
+    const attempted: string[] = [];
+    const repository = fakeRepository({
+      deleteWithAudit: vi.fn(async () => ({ storageKeys: ["old/master.jpg", "old/480.webp"] })),
+    });
+    const storage: MediaStorage = {
+      async put(key) { return `/media/${key}`; },
+      async delete(key) { attempted.push(key); throw new Error("delete failed"); },
+    };
+    const service = createMediaService({ storage, repository });
+
+    await expect(service.delete("11111111-1111-4111-8111-111111111111", "staff-1"))
+      .rejects.toMatchObject({ code: "MEDIA_CLEANUP_FAILED", operation: "media deletion" });
+    expect(attempted).toEqual(["old/480.webp", "old/master.jpg"]);
+  });
+
+  it("does not write storage or repository records when processing cannot meet a derivative budget", async () => {
+    const storage = fakeStorage();
+    const repository = fakeRepository();
+    const service = createMediaService({
+      storage,
+      repository,
+      process: async () => { throw new MediaServiceError("MEDIA_BUDGET_EXCEEDED", "budget failed"); },
+    });
+
+    await expect(service.upload(
+      { name: "noise.png", type: "image/png", bytes: new Uint8Array([1]) },
+      inputMetadata,
+      "staff-1",
+    )).rejects.toMatchObject({ code: "MEDIA_BUDGET_EXCEEDED" });
+    expect(storage.keys.size).toBe(0);
+    expect(repository.insert).not.toHaveBeenCalled();
   });
 });
