@@ -115,6 +115,7 @@ const defaultDependencies: AppDependencies = {
       cargoTypes: [],
       proof: [],
       verifiedTrust: [],
+      certificates: [],
       cases: [],
       articles: [],
       channels: [],

@@ -211,6 +211,7 @@ export interface components {
             cargoTypes: components["schemas"]["PublicContentItem"][];
             proof: components["schemas"]["PublicContentItem"][];
             verifiedTrust: components["schemas"]["PublicContentItem"][];
+            certificates: components["schemas"]["PublicContentItem"][];
             cases: components["schemas"]["PublicContentItem"][];
             articles: components["schemas"]["PublicContentItem"][];
             channels: {

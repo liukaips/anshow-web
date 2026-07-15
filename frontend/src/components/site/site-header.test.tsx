@@ -1,9 +1,19 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { usePathname } from "next/navigation";
+
+import { refreshPublishedUrls } from "../../api/public-content.browser";
 
 import { LocaleSwitcher } from "./locale-switcher";
 import { MobileMenu } from "./mobile-menu";
 import { SiteHeader, type SiteHeaderLabels } from "./site-header";
+
+vi.mock("../../api/public-content.browser", () => ({
+  refreshPublishedUrls: vi.fn(async () => []),
+}));
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => window.location.pathname),
+}));
 
 const englishLabels: SiteHeaderLabels = {
   about: "About AnShow",
@@ -25,6 +35,10 @@ const englishLabels: SiteHeaderLabels = {
 afterEach(() => {
   cleanup();
   document.body.style.overflow = "";
+  window.history.replaceState({}, "", "/");
+  vi.clearAllMocks();
+  vi.mocked(refreshPublishedUrls).mockResolvedValue([]);
+  vi.mocked(usePathname).mockImplementation(() => window.location.pathname);
 });
 
 describe("SiteHeader", () => {
@@ -158,5 +172,124 @@ describe("LocaleSwitcher", () => {
     fireEvent.click(trigger);
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("resolves the current published detail path before switching locale", async () => {
+    window.history.replaceState({}, "", "/en/services/ocean-freight");
+    vi.mocked(refreshPublishedUrls).mockResolvedValue([
+      {
+        alternates: {
+          en: "/en/services/ocean-freight",
+          ru: "/ru/services/morskie-perevozki",
+          zh: "/zh/services/hai-yun-fu-wu",
+        },
+        path: "/en/services/ocean-freight",
+        updatedAt: "2026-07-15T00:00:00.000Z",
+      },
+    ]);
+
+    render(
+      <LocaleSwitcher
+        alternates={{ en: "/en", ru: "/ru", zh: "/zh" }}
+        current="en"
+        label={englishLabels.changeLanguage}
+        menuLabel={englishLabels.languageMenu}
+      />,
+    );
+
+    await waitFor(() => expect(refreshPublishedUrls).toHaveBeenCalledOnce());
+    fireEvent.click(
+      screen.getByRole("button", { name: englishLabels.changeLanguage }),
+    );
+    expect(screen.getByRole("menuitem", { name: "中文" })).toHaveAttribute(
+      "href",
+      "/zh/services/hai-yun-fu-wu",
+    );
+  });
+
+  it("refreshes published alternates after client-side navigation", async () => {
+    vi.mocked(usePathname).mockReturnValue("/en");
+    const { rerender } = render(
+      <LocaleSwitcher
+        alternates={{ en: "/en", ru: "/ru", zh: "/zh" }}
+        current="en"
+        label={englishLabels.changeLanguage}
+        menuLabel={englishLabels.languageMenu}
+      />,
+    );
+    expect(refreshPublishedUrls).not.toHaveBeenCalled();
+
+    vi.mocked(usePathname).mockReturnValue("/en/services/ocean-freight");
+    rerender(
+      <LocaleSwitcher
+        alternates={{ en: "/en", ru: "/ru", zh: "/zh" }}
+        current="en"
+        label={englishLabels.changeLanguage}
+        menuLabel={englishLabels.languageMenu}
+      />,
+    );
+
+    await waitFor(() => expect(refreshPublishedUrls).toHaveBeenCalledOnce());
+  });
+
+  it("drops stale detail alternates after navigating back to the locale home", async () => {
+    vi.mocked(usePathname).mockReturnValue("/en/services/ocean-freight");
+    vi.mocked(refreshPublishedUrls).mockResolvedValue([
+      {
+        alternates: { zh: "/zh/services/hai-yun-fu-wu" },
+        path: "/en/services/ocean-freight",
+        updatedAt: "2026-07-15T00:00:00.000Z",
+      },
+    ]);
+    const props = {
+      alternates: { en: "/en", ru: "/ru", zh: "/zh" },
+      current: "en" as const,
+      label: englishLabels.changeLanguage,
+      menuLabel: englishLabels.languageMenu,
+    };
+    const { rerender } = render(<LocaleSwitcher {...props} />);
+    await waitFor(() => expect(refreshPublishedUrls).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: englishLabels.changeLanguage }));
+    await waitFor(() =>
+      expect(screen.getByRole("menuitem", { name: "中文" })).toHaveAttribute(
+        "href",
+        "/zh/services/hai-yun-fu-wu",
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: englishLabels.changeLanguage }));
+    vi.mocked(usePathname).mockReturnValue("/en");
+    rerender(<LocaleSwitcher {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: englishLabels.changeLanguage }));
+    expect(screen.getByRole("menuitem", { name: "中文" })).toHaveAttribute(
+      "href",
+      "/zh",
+    );
+  });
+
+  it("keeps the language menu disabled until detail alternates resolve", async () => {
+    vi.mocked(usePathname).mockReturnValue("/en/services/ocean-freight");
+    let finish: (records: Awaited<ReturnType<typeof refreshPublishedUrls>>) => void =
+      () => undefined;
+    vi.mocked(refreshPublishedUrls).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    render(
+      <LocaleSwitcher
+        alternates={{ en: "/en", ru: "/ru", zh: "/zh" }}
+        current="en"
+        label={englishLabels.changeLanguage}
+        menuLabel={englishLabels.languageMenu}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: englishLabels.changeLanguage,
+    });
+    expect(trigger).toBeDisabled();
+    finish([]);
+    await waitFor(() => expect(trigger).toBeEnabled());
   });
 });

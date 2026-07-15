@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
+import { routeProgress } from "./route-progress";
+
 export function RouteSceneClient() {
   const host = useRef<HTMLDivElement>(null);
 
@@ -84,8 +86,7 @@ export function RouteSceneClient() {
     let frame = 0;
     const start = performance.now();
     const draw = (now: number) => {
-      const raw = Math.min(1, (now - start) / 1800);
-      const progress = 1 - Math.pow(1 - raw, 3);
+      const { eased: progress, raw } = routeProgress(now, start);
       routeGeometry.setDrawRange(0, Math.max(1, Math.floor(progress * points.length)));
       cargo.position.copy(curve.getPointAt(progress));
       cargo.rotation.z = progress * 0.35;
@@ -121,4 +122,3 @@ export function RouteSceneClient() {
 
   return <div className="absolute inset-0 min-h-[26rem] w-full" data-route-canvas ref={host} />;
 }
-

@@ -351,6 +351,12 @@
               "$ref": "#/components/schemas/PublicContentItem"
             }
           },
+          "certificates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          },
           "cases": {
             "type": "array",
             "items": {
@@ -395,6 +401,7 @@
           "cargoTypes",
           "proof",
           "verifiedTrust",
+          "certificates",
           "cases",
           "articles",
           "channels"

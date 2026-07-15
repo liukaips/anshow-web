@@ -46,6 +46,7 @@ export const homeSchema = z
     cargoTypes: z.array(publicItemSchema),
     proof: z.array(publicItemSchema),
     verifiedTrust: z.array(publicItemSchema),
+    certificates: z.array(publicItemSchema),
     cases: z.array(publicItemSchema),
     articles: z.array(publicItemSchema),
     channels: z.array(

@@ -324,6 +324,7 @@ export function createDrizzleContentStore(
         cargoTypes: publicItems(homeCargoTypes),
         proof: publicItems(proof),
         verifiedTrust: publicItems([...partnersTrust, ...certificatesTrust]),
+        certificates: publicItems(certificatesTrust),
         cases: publicItems(cases),
         articles: publicItems(homeArticles),
         channels: [],

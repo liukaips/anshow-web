@@ -57,6 +57,7 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_INTERNAL_URL: http://backend:4000
+      SITE_URL: ${SITE_URL:?Set SITE_URL in .env}
     depends_on:
       backend:
         condition: service_healthy

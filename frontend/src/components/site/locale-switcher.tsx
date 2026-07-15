@@ -2,8 +2,10 @@
 
 import { Languages } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { refreshPublishedUrls } from "../../api/public-content.browser";
 import {
   SUPPORTED_LOCALES,
   type SupportedLocale,
@@ -29,9 +31,49 @@ export function LocaleSwitcher({
   menuLabel,
 }: LocaleSwitcherProps) {
   const [open, setOpen] = useState(false);
+  const [publishedResolution, setPublishedResolution] = useState<{
+    pathname: string;
+    alternates: Partial<Record<SupportedLocale, string>>;
+  } | null>(null);
+  const pathname = usePathname();
+  const needsPublishedResolution =
+    pathname.startsWith(`/${current}/`) &&
+    pathname !== `/${current}/`;
+  const resolutionPending =
+    needsPublishedResolution && publishedResolution?.pathname !== pathname;
+  const resolvedAlternates =
+    publishedResolution?.pathname === pathname
+      ? { ...alternates, ...publishedResolution.alternates }
+      : alternates;
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const currentLocaleRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (
+      pathname === `/${current}` ||
+      pathname === `/${current}/` ||
+      !pathname.startsWith(`/${current}/`)
+    ) {
+      return;
+    }
+    let active = true;
+    void refreshPublishedUrls()
+      .then((records) => {
+        if (!active) return;
+        const currentRecord = records.find((record) => record.path === pathname);
+        setPublishedResolution({
+          alternates: currentRecord?.alternates ?? {},
+          pathname,
+        });
+      })
+      .catch(() => {
+        if (active) setPublishedResolution({ alternates: {}, pathname });
+      });
+    return () => {
+      active = false;
+    };
+  }, [alternates, current, pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,8 +108,10 @@ export function LocaleSwitcher({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={label}
-        className="grid size-11 cursor-pointer place-items-center text-[var(--color-text-inverse)] hover:text-[var(--color-cyan)]"
+        aria-busy={resolutionPending}
+        className="grid size-11 cursor-pointer place-items-center text-[var(--color-text-inverse)] hover:text-[var(--color-cyan)] disabled:cursor-wait disabled:opacity-50"
         onClick={() => setOpen((value) => !value)}
+        disabled={resolutionPending}
         ref={triggerRef}
         title={label}
         type="button"
@@ -86,7 +130,7 @@ export function LocaleSwitcher({
             <Link
               aria-current={locale === current ? "page" : undefined}
               className="flex min-h-11 items-center border-l-2 border-transparent px-3 py-2 text-base text-[var(--color-text-inverse)] hover:border-[var(--color-cyan)] hover:bg-[var(--color-hover-inverse)] aria-[current=page]:border-[var(--color-teal)] aria-[current=page]:text-[var(--color-cyan)]"
-              href={alternates[locale] ?? `/${locale}`}
+              href={resolvedAlternates[locale] ?? `/${locale}`}
               hrefLang={locale}
               key={locale}
               onClick={() => setOpen(false)}

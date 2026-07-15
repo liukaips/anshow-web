@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../db/test-db.js";
 import {
+  certificates,
+  certificateTranslations,
   proofMetrics,
   proofMetricTranslations,
   services,
@@ -281,6 +283,7 @@ describe("public content repository", () => {
         cargoTypes: expect.any(Array),
         proof: [],
         verifiedTrust: [],
+        certificates: [],
         cases: [],
         articles: expect.any(Array),
         channels: [],
@@ -339,6 +342,60 @@ describe("public content repository", () => {
 
       expect(home.proof).toHaveLength(1);
       expect(home.proof[0]?.id).toBe("verified-proof");
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("exposes certificates separately and only after verification", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      testDatabase.db
+        .insert(certificates)
+        .values([
+          {
+            id: "unverified-certificate",
+            code: "unverified-certificate",
+            sortOrder: 0,
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+          {
+            id: "verified-certificate",
+            code: "verified-certificate",
+            sortOrder: 1,
+            verifiedAt: PUBLISHED_AT,
+            verificationSource: "certificate registry record",
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+        ])
+        .run();
+      testDatabase.db
+        .insert(certificateTranslations)
+        .values(
+          ["unverified-certificate", "verified-certificate"].map((ownerId) => ({
+            ownerId,
+            locale: "en" as const,
+            status: "published" as const,
+            publishedAt: PUBLISHED_AT,
+            slug: ownerId,
+            title: ownerId,
+            summary: `${ownerId} summary`,
+            body: `${ownerId} body`,
+            seoTitle: `${ownerId} | AnShow`,
+            seoDescription: `${ownerId} description`,
+            altText: `${ownerId} alt text`,
+            updatedAt: NOW,
+          })),
+        )
+        .run();
+
+      const home = await createRepository(testDatabase.db).getHome("en");
+
+      expect(home.certificates).toHaveLength(1);
+      expect(home.certificates[0]?.id).toBe("verified-certificate");
     } finally {
       testDatabase.close();
     }

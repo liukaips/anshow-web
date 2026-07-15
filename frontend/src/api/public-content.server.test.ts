@@ -20,6 +20,7 @@ const emptyHome = {
   cargoTypes: [],
   proof: [],
   verifiedTrust: [],
+  certificates: [],
   cases: [],
   articles: [],
   channels: [],
