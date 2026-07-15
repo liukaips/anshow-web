@@ -9,6 +9,11 @@ const RuntimeEnvSchema = z
     BETTER_AUTH_SECRET: z.string().min(32),
     RATE_LIMIT_SECRET: z.string().min(32),
     MEDIA_DRIVER: z.enum(["local", "cos"]).default("local"),
+    COS_BUCKET: z.string().trim().min(1).optional(),
+    COS_REGION: z.string().trim().min(1).optional(),
+    COS_PUBLIC_BASE_URL: z.url().optional(),
+    COS_SECRET_ID: z.string().min(1).optional(),
+    COS_SECRET_KEY: z.string().min(1).optional(),
     BACKUP_DIR: z.string().trim().min(1).optional(),
     BACKUP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
     BACKUP_INTERVAL_HOURS: z.coerce.number().int().min(1).max(168).optional(),
@@ -47,6 +52,14 @@ const RuntimeEnvSchema = z
         message: "SITE_HOST must match the SITE_URL hostname",
         path: ["SITE_HOST"],
       });
+    }
+
+    if (environment.MEDIA_DRIVER === "cos") {
+      for (const key of ["COS_BUCKET", "COS_REGION", "COS_PUBLIC_BASE_URL", "COS_SECRET_ID", "COS_SECRET_KEY"] as const) {
+        if (!environment[key]) {
+          context.addIssue({ code: "custom", message: `${key} is required when MEDIA_DRIVER=cos`, path: [key] });
+        }
+      }
     }
   });
 

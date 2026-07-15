@@ -22,8 +22,12 @@ describe("parseEnv", () => {
 
   it("accepts an explicit COS media driver and port", () => {
     expect(
-      parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos", PORT: "8080" }),
+      parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos", PORT: "8080", COS_BUCKET: "b", COS_REGION: "r", COS_PUBLIC_BASE_URL: "https://cdn.example.com", COS_SECRET_ID: "id", COS_SECRET_KEY: "key" }),
     ).toMatchObject({ MEDIA_DRIVER: "cos", PORT: 8080 });
+  });
+
+  it("requires COS credentials when COS media is selected", () => {
+    expect(() => parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos" })).toThrow(/COS_BUCKET/);
   });
 
   it("requires HTTPS for the production site URL", () => {

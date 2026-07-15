@@ -10,6 +10,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createMediaRepository },
     { createMediaService },
     { createLocalMediaStorage },
+    { createCosMediaStorage },
     { permissionsForUser },
     { createAuthRuntime },
     { db },
@@ -24,6 +25,7 @@ await initializeRuntime(process.env, async (environment) => {
     import("./admin/repositories/media-repository.js"),
     import("./media/media-service.js"),
     import("./media/local-storage.js"),
+    import("./media/cos-storage.js"),
     import("./auth/permission-repository.js"),
     import("./auth/runtime.js"),
     import("./db/client.js"),
@@ -45,7 +47,16 @@ await initializeRuntime(process.env, async (environment) => {
     settingsRepository: createSettingsRepository(db),
     mediaService: createMediaService({
       repository: createMediaRepository(db),
-      storage: createLocalMediaStorage(),
+      storage:
+        environment.MEDIA_DRIVER === "cos"
+          ? createCosMediaStorage({
+              bucket: environment.COS_BUCKET!,
+              region: environment.COS_REGION!,
+              publicBaseUrl: environment.COS_PUBLIC_BASE_URL!,
+              secretId: environment.COS_SECRET_ID!,
+              secretKey: environment.COS_SECRET_KEY!,
+            })
+          : createLocalMediaStorage(),
     }),
     staffRepository: createStaffRepository(db),
   });
