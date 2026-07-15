@@ -1,21 +1,13 @@
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 
+import type {
+  PermissionMiddlewareDependencies,
+  StaffSession,
+} from "../auth/permission-middleware.js";
 import type { AppEnv } from "../http/context.js";
-import type { PermissionKey } from "../auth/permissions.js";
 
-export type StaffSession = {
-  user: {
-    email: string;
-    id: string;
-  };
-};
-
-export type AdminSessionDependencies = {
-  getPermissions: (
-    userId: string,
-  ) => Promise<readonly PermissionKey[]> | readonly PermissionKey[];
-  getSession: (headers: Headers) => Promise<StaffSession | null>;
-};
+export type { StaffSession };
+export type AdminSessionDependencies = PermissionMiddlewareDependencies;
 
 const AdminSessionDataSchema = z
   .object({

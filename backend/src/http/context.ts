@@ -1,5 +1,11 @@
+import type { PermissionKey } from "../auth/permissions.js";
+
 export type AppActor = {
-  id: string;
+  user: {
+    email: string;
+    id: string;
+  };
+  permissions: PermissionKey[];
 };
 
 export type AppEnv = {
