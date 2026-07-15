@@ -1,0 +1,3 @@
+import { z } from "@hono/zod-openapi";
+export const enquirySchema = z.object({ name:z.string().trim().min(2).max(100), company:z.string().trim().min(1).max(160), email:z.string().trim().email().or(z.literal("")), phone:z.string().trim().max(50), transportNeed:z.string().trim().min(2).max(200), message:z.string().trim().min(10).max(3000), consent:z.literal(true), privacyVersion:z.string().trim().min(1).max(40), locale:z.enum(["en","zh","ru"]), website:z.string().max(0).default(""), startedAt:z.number().int().positive() }).superRefine((v,c)=>{if(!v.email&&!v.phone)c.addIssue({code:"custom",path:["email"],message:"Email or phone is required"});});
+export type ValidInquiry = z.infer<typeof enquirySchema>;
