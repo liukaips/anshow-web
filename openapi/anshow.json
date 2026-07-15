@@ -815,6 +815,391 @@
         ],
         "additionalProperties": false
       },
+      "AdminContentListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminContentItem"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminContentItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "archivedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "verificationSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "translations": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "$ref": "#/components/schemas/AdminContentTranslation"
+              },
+              "zh": {
+                "$ref": "#/components/schemas/AdminContentTranslation"
+              },
+              "ru": {
+                "$ref": "#/components/schemas/AdminContentTranslation"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "sortOrder",
+          "archivedAt",
+          "verified",
+          "verificationSource",
+          "createdAt",
+          "updatedAt",
+          "translations"
+        ]
+      },
+      "AdminContentTranslation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AdminContentTranslationInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "locale": {
+                "$ref": "#/components/schemas/AdminContentLocale"
+              },
+              "status": {
+                "$ref": "#/components/schemas/AdminPublicationState"
+              },
+              "scheduledAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "publishedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "locale",
+              "status",
+              "scheduledAt",
+              "publishedAt",
+              "updatedAt"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AdminContentLocale": {
+        "type": "string",
+        "enum": [
+          "en",
+          "zh",
+          "ru"
+        ]
+      },
+      "AdminPublicationState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "scheduled",
+          "published"
+        ]
+      },
+      "AdminContentTranslationInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "seoTitle": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "seoDescription": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "altText": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "title",
+          "slug",
+          "summary",
+          "body",
+          "seoTitle",
+          "seoDescription",
+          "altText"
+        ],
+        "additionalProperties": false
+      },
+      "AdminContentCollection": {
+        "type": "string",
+        "enum": [
+          "pages",
+          "hero-slides",
+          "services",
+          "trade-lanes",
+          "cargo-types",
+          "case-studies",
+          "articles",
+          "partners",
+          "certificates",
+          "proof-metrics",
+          "navigation-items"
+        ]
+      },
+      "AdminContentDetailResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "CreateAdminContentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "CreateAdminContentInput": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "verificationSource": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "SaveAdminContentDraftResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "PublishAdminContentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "ScheduleAdminContentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "ScheduleAdminContentInput": {
+        "type": "object",
+        "properties": {
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "scheduledAt"
+        ],
+        "additionalProperties": false
+      },
+      "ArchiveAdminContentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
       "PublicHomeEnvelope": {
         "type": "object",
         "properties": {
@@ -1473,6 +1858,648 @@
           },
           "403": {
             "description": "The staff member cannot manage settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}": {
+      "get": {
+        "operationId": "listAdminContent",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content items with all administration locale states.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminContentListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminContent",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminContentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created draft content shell.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAdminContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}": {
+      "get": {
+        "operationId": "getAdminContent",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A content item with independent locale states.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminContentDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/translations/{locale}": {
+      "put": {
+        "operationId": "saveAdminContentDraft",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminContentTranslationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved locale draft, including incomplete draft fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveAdminContentDraftResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/translations/{locale}/publish": {
+      "post": {
+        "operationId": "publishAdminContentTranslation",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published one complete locale independently.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishAdminContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/translations/{locale}/schedule": {
+      "post": {
+        "operationId": "scheduleAdminContentTranslation",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentLocale"
+            },
+            "required": true,
+            "name": "locale",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleAdminContentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scheduled one complete locale for future publication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleAdminContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/archive": {
+      "post": {
+        "operationId": "archiveAdminContent",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived content without exposing drafts publicly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveAdminContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
             "content": {
               "application/json": {
                 "schema": {

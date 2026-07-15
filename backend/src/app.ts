@@ -6,6 +6,10 @@ import {
 } from "./admin/routes/settings.js";
 import { DEFAULT_SITE_SETTINGS } from "./admin/repositories/settings-repository.js";
 import {
+  registerContentRoutes,
+  type ContentRouteDependencies,
+} from "./admin/routes/content.js";
+import {
   errorEnvelopeSchema,
   requestIdSchema,
 } from "./content/public-contract.js";
@@ -94,7 +98,8 @@ function errorDiagnostic(error: unknown) {
 }
 
 export type AppDependencies = AdminSessionDependencies &
-  SettingsRouteDependencies & {
+  SettingsRouteDependencies &
+  ContentRouteDependencies & {
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
     publicContentRepository: PublicContentRepository;
@@ -135,6 +140,27 @@ const defaultDependencies: AppDependencies = {
     saveSettings: async (settings) => settings,
     listContactChannels: async () => [],
     saveContactChannels: async (channels) => [...channels],
+  },
+  contentRepository: {
+    list: async () => [],
+    get: async () => {
+      throw new Error("Content repository is not configured");
+    },
+    create: async () => {
+      throw new Error("Content repository is not configured");
+    },
+    saveDraft: async () => {
+      throw new Error("Content repository is not configured");
+    },
+    publish: async () => {
+      throw new Error("Content repository is not configured");
+    },
+    schedule: async () => {
+      throw new Error("Content repository is not configured");
+    },
+    archive: async () => {
+      throw new Error("Content repository is not configured");
+    },
   },
 };
 
@@ -184,6 +210,7 @@ export function createApp(
   );
   registerAdminSessionRoute(app, resolvedDependencies);
   registerSettingsRoutes(app, resolvedDependencies);
+  registerContentRoutes(app, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {

@@ -199,7 +199,7 @@ function localizedCollection(
       uniqueIndex(`${translationName}_locale_slug_unique`).on(
         table.locale,
         table.slug,
-      ),
+      ).where(sql`${table.slug} <> ''`),
     ],
   );
 

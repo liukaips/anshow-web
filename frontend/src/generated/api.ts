@@ -84,6 +84,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/{collection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminContent"];
+        put?: never;
+        post: operations["createAdminContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/translations/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveAdminContentDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/translations/{locale}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publishAdminContentTranslation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/translations/{locale}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["scheduleAdminContentTranslation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["archiveAdminContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -330,6 +426,108 @@ export interface components {
         };
         SaveContactChannelsInput: {
             channels: components["schemas"]["AdminContactChannel"][];
+        };
+        AdminContentListResponse: {
+            data: components["schemas"]["AdminContentItem"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContentItem: {
+            id: string;
+            code: string;
+            sortOrder: number;
+            /** Format: date-time */
+            archivedAt: string | null;
+            verified: boolean;
+            verificationSource: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            translations: {
+                en?: components["schemas"]["AdminContentTranslation"];
+                zh?: components["schemas"]["AdminContentTranslation"];
+                ru?: components["schemas"]["AdminContentTranslation"];
+            };
+        };
+        AdminContentTranslation: components["schemas"]["AdminContentTranslationInput"] & {
+            locale: components["schemas"]["AdminContentLocale"];
+            status: components["schemas"]["AdminPublicationState"];
+            /** Format: date-time */
+            scheduledAt: string | null;
+            /** Format: date-time */
+            publishedAt: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @enum {string} */
+        AdminContentLocale: "en" | "zh" | "ru";
+        /** @enum {string} */
+        AdminPublicationState: "draft" | "scheduled" | "published";
+        AdminContentTranslationInput: {
+            title: string;
+            slug: string;
+            summary: string;
+            body: string;
+            seoTitle: string;
+            seoDescription: string;
+            altText: string;
+        };
+        /** @enum {string} */
+        AdminContentCollection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+        AdminContentDetailResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CreateAdminContentResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CreateAdminContentInput: {
+            code: string;
+            sortOrder?: number;
+            verified?: boolean;
+            verificationSource?: string | null;
+        };
+        SaveAdminContentDraftResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        PublishAdminContentResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        ScheduleAdminContentResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        ScheduleAdminContentInput: {
+            /** Format: date-time */
+            scheduledAt: string;
+        };
+        ArchiveAdminContentResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
         };
         PublicHomeEnvelope: {
             data: components["schemas"]["PublicHome"];
@@ -693,6 +891,477 @@ export interface operations {
             };
             /** @description The staff member cannot manage settings. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Content items with all administration locale states. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentListResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminContentInput"];
+            };
+        };
+        responses: {
+            /** @description Created draft content shell. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminContentResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A content item with independent locale states. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentDetailResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveAdminContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+                id: string;
+                locale: components["schemas"]["AdminContentLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminContentTranslationInput"];
+            };
+        };
+        responses: {
+            /** @description Saved locale draft, including incomplete draft fields. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveAdminContentDraftResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    publishAdminContentTranslation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+                id: string;
+                locale: components["schemas"]["AdminContentLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published one complete locale independently. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishAdminContentResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    scheduleAdminContentTranslation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+                id: string;
+                locale: components["schemas"]["AdminContentLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleAdminContentInput"];
+            };
+        };
+        responses: {
+            /** @description Scheduled one complete locale for future publication. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleAdminContentResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archiveAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["AdminContentCollection"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archived content without exposing drafts publicly. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveAdminContentResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

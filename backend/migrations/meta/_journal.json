@@ -22,6 +22,13 @@
       "when": 1784082413431,
       "tag": "0002_simple_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784085805152,
+      "tag": "0003_boring_spacker_dave",
+      "breakpoints": true
     }
   ]
 }

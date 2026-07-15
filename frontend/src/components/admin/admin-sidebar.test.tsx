@@ -61,6 +61,16 @@ describe("AdminSidebar", () => {
     for (const label of [
       "Dashboard",
       "Pages",
+      "Hero Slides",
+      "Services",
+      "Trade Lanes",
+      "Special Cargo",
+      "Case Studies",
+      "Articles",
+      "Partners",
+      "Certificates",
+      "Proof Metrics",
+      "Navigation Items",
       "Media Library",
       "Enquiries",
       "Staff & Roles",
@@ -90,7 +100,7 @@ describe("AdminMobileNavigation", () => {
     expect(document.body.style.overflow).toBe("hidden");
 
     fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
-    expect(screen.getByRole("link", { name: "Cases & Insights" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Navigation Items" })).toHaveFocus();
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
