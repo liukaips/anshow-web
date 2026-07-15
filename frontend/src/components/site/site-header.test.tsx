@@ -49,6 +49,10 @@ describe("SiteHeader", () => {
       "href",
       "/en/quote",
     );
+    expect(screen.getAllByRole("link", { name: englishLabels.home })[0]).toHaveAttribute(
+      "href",
+      "/en",
+    );
     expect(
       screen.getByRole("button", { name: englishLabels.changeLanguage }),
     ).toBeVisible();

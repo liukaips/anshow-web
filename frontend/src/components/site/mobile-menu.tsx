@@ -8,6 +8,7 @@ import type { SupportedLocale } from "../../lib/app-config";
 import type { SiteHeaderLabels } from "./site-header";
 
 const navigationItems = [
+  ["home", ""],
   ["services", "services"],
   ["tradeLanes", "trade-lanes"],
   ["specialCargo", "special-cargo"],
@@ -113,7 +114,7 @@ export function MobileMenu({ labels, locale }: MobileMenuProps) {
               {navigationItems.map(([key, path]) => (
                 <Link
                   className="flex min-h-14 items-center border-b border-[var(--color-divider-inverse)] py-3 text-xl leading-snug hover:text-[var(--color-cyan)] sm:text-2xl"
-                  href={`/${locale}/${path}`}
+                  href={path ? `/${locale}/${path}` : `/${locale}`}
                   key={key}
                   onClick={() => setOpen(false)}
                 >

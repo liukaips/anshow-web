@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "./locale-switcher";
 import { MobileMenu } from "./mobile-menu";
 
 const navigationItems = [
+  ["home", ""],
   ["services", "services"],
   ["tradeLanes", "trade-lanes"],
   ["specialCargo", "special-cargo"],
@@ -60,7 +61,7 @@ export function SiteHeader({
           {navigationItems.map(([key, path]) => (
             <Link
               className="flex min-h-11 items-center text-sm font-medium text-[var(--color-muted-inverse)] hover:text-[var(--color-cyan)]"
-              href={`/${locale}/${path}`}
+              href={path ? `/${locale}/${path}` : `/${locale}`}
               key={key}
             >
               {labels[key]}

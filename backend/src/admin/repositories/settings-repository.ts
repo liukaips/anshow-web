@@ -1,5 +1,5 @@
 import { asc } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "@hono/zod-openapi";
 
 import type { AppDatabase } from "../../db/client.js";
 import {

@@ -17,7 +17,7 @@ const manifestPaths = process.env.MEDIA_MANIFEST_PATH
   : [path.resolve(process.cwd(), "content/assets/manifest.json"), path.resolve(process.cwd(), "../content/assets/manifest.json")];
 let catalogPromise: Promise<Map<string, ManifestRecord>> | undefined;
 const catalogAliases: Record<string, string> = {
-  ocean: "hero-ocean", air: "hero-air", rail: "hero-rail", road: "hero-road",
+  ocean: "hero-ocean", air: "hero-rail", rail: "hero-air", road: "hero-road",
   "ocean-freight": "service-ocean", "air-freight": "service-air", "rail-freight": "service-rail", "road-freight": "service-road", multimodal: "service-multimodal", customs: "service-customs", warehousing: "service-warehouse",
   "china-russia": "lane-china-russia", "china-europe": "lane-china-europe", "central-asia": "lane-central-asia", "global-network": "lane-global",
   "project-cargo": "cargo-project", "oversized-cargo": "cargo-oversized", "dangerous-goods": "cargo-dangerous", "temperature-controlled": "cargo-cold-chain",

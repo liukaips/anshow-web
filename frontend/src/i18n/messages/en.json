@@ -22,7 +22,7 @@
     "menu": "Menu"
   },
   "Shell": {
-    "home": "AnShow home",
+  "home": "Home",
     "primary": "Primary navigation",
     "services": "Services",
     "tradeLanes": "Trade lanes",
