@@ -22,12 +22,12 @@ export function ServiceGrid({ eyebrow, items, learnMore, locale, title }: Servic
     <section className="bg-[var(--color-surface)] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading eyebrow={eyebrow} title={title} />
-        <div className="mt-12 grid gap-px bg-black/10 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-px bg-black/10 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item, index) => {
             const Icon = icons[index % icons.length];
             return (
               <article
-                className="group relative min-h-80 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7"
+                className={`group relative min-h-80 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7 ${items.length % 2 === 1 && index === items.length - 1 ? "sm:col-span-2 xl:col-span-3" : ""}`}
                 key={item.id}
               >
                 {item.media ? (

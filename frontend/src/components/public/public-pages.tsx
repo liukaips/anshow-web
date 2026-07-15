@@ -154,9 +154,9 @@ export function PublicCollectionPage({
       <section className="bg-[var(--color-light-surface)] px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
         <div className="mx-auto w-full max-w-7xl">
           {items.length ? (
-            <div className="grid gap-px overflow-hidden bg-black/10 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
-                <article className="group bg-white" key={item.id}>
+            <div className="grid grid-cols-1 gap-px overflow-hidden bg-black/10 sm:grid-cols-2 xl:grid-cols-3">
+              {items.map((item, index) => (
+                <article className={`group bg-white ${items.length % 2 === 1 && index === items.length - 1 ? "sm:col-span-2 xl:col-span-3" : ""}`} key={item.id}>
                   <PublicMedia compact item={item} />
                   <div className="p-6 sm:p-7">
                     <Icon aria-hidden="true" className="size-6 text-[var(--color-teal-ink)]" />

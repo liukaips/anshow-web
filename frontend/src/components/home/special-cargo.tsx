@@ -22,7 +22,7 @@ export function SpecialCargo({ eyebrow, items, learnMore, locale, title }: Speci
     <section className="bg-[var(--color-light-surface)] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading eyebrow={eyebrow} title={title} />
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
+        <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
           {items.map((item, index) => {
             const Icon = icons[index % icons.length];
             return (
@@ -53,4 +53,3 @@ export function SpecialCargo({ eyebrow, items, learnMore, locale, title }: Speci
     </section>
   );
 }
-
