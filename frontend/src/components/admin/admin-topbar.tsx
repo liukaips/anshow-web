@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { authClient } from "../../auth/client";
+import { requestAdminNavigation } from "./admin-navigation";
 
 type AdminTopbarProps = {
   email: string;
@@ -17,6 +18,14 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
   const [pending, setPending] = useState(false);
 
   async function signOut() {
+    if (
+      !requestAdminNavigation({
+        destination: "/admin/login",
+        source: "sign-out",
+      })
+    ) {
+      return;
+    }
     setError("");
     setPending(true);
     try {

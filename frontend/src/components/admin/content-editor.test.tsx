@@ -56,20 +56,24 @@ const ITEM: AdminContentItem = {
     },
   },
 };
+const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  confirm.mockReturnValue(false);
   saveDraft.mockResolvedValue(ITEM);
   publishTranslation.mockResolvedValue(ITEM);
   scheduleTranslation.mockResolvedValue(ITEM);
   archiveContent.mockResolvedValue(ITEM);
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.history.replaceState(null, "", "/");
+});
 
 describe("ContentEditor", () => {
   it("warns on unload and locale changes while dirty, then clears dirty state after save", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(
       <ContentEditor canPublish collection="services" initialItem={ITEM} />,
     );
@@ -91,9 +95,11 @@ describe("ContentEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await screen.findByText("Draft saved.");
 
-    const afterSave = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(afterSave);
-    expect(afterSave.defaultPrevented).toBe(false);
+    await waitFor(() => {
+      const afterSave = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(afterSave);
+      expect(afterSave.defaultPrevented).toBe(false);
+    });
   });
 
   it("locks all async commands while a save is pending", async () => {
@@ -158,9 +164,12 @@ describe("ContentEditor", () => {
       "en",
       expect.objectContaining({ title: "Atomic published title" }),
     );
-    const afterPublish = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(afterPublish);
-    expect(afterPublish.defaultPrevented).toBe(false);
+    await waitFor(() => {
+      const afterPublish = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(afterPublish);
+      expect(afterPublish.defaultPrevented).toBe(false);
+    });
+    expect(confirm).not.toHaveBeenCalled();
   });
 
   it("keeps dirty state when the atomic publish command fails", async () => {
@@ -185,7 +194,6 @@ describe("ContentEditor", () => {
   });
 
   it("guards internal document navigation while dirty and allows hash or clean navigation", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(
       <>
         <Link href="/admin/content/pages">Back to pages</Link>
@@ -222,6 +230,146 @@ describe("ContentEditor", () => {
     const clean = new MouseEvent("click", { bubbles: true, cancelable: true });
     backLink.dispatchEvent(clean);
     expect(preventedBeforeBubble).toBe(false);
+  });
+
+  it("restores the editor history entry when dirty back navigation is cancelled", () => {
+    window.history.replaceState(
+      { page: "editor" },
+      "",
+      "/admin/content/services/content-1",
+    );
+    const downstreamPopstate = vi.fn();
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Dirty before back" },
+    });
+    window.addEventListener("popstate", downstreamPopstate);
+
+    window.history.replaceState(
+      { page: "list" },
+      "",
+      "/admin/content/services",
+    );
+    window.dispatchEvent(
+      new PopStateEvent("popstate", { state: { page: "list" } }),
+    );
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe(
+      "/admin/content/services/content-1",
+    );
+    expect(window.history.state).toEqual({ page: "editor" });
+    expect(downstreamPopstate).not.toHaveBeenCalled();
+    window.removeEventListener("popstate", downstreamPopstate);
+  });
+
+  it("allows dirty back navigation after confirmation", () => {
+    window.history.replaceState(
+      { page: "editor" },
+      "",
+      "/admin/content/services/content-1",
+    );
+    confirm.mockReturnValue(true);
+    const downstreamPopstate = vi.fn();
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Dirty before back" },
+    });
+    window.addEventListener("popstate", downstreamPopstate);
+
+    window.history.replaceState(
+      { page: "list" },
+      "",
+      "/admin/content/services",
+    );
+    window.dispatchEvent(
+      new PopStateEvent("popstate", { state: { page: "list" } }),
+    );
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe("/admin/content/services");
+    expect(downstreamPopstate).toHaveBeenCalledOnce();
+    window.removeEventListener("popstate", downstreamPopstate);
+  });
+
+  it("keeps an edited schedule time dirty after saving the translation", async () => {
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    fireEvent.change(screen.getByLabelText("Publication date and time"), {
+      target: { value: "2099-07-16T12:00" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Draft saved.");
+
+    const afterSave = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterSave);
+    expect(afterSave.defaultPrevented).toBe(true);
+  });
+
+  it("clears translation and schedule dirtiness only after schedule succeeds", async () => {
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Scheduled title" },
+    });
+    fireEvent.change(screen.getByLabelText("Publication date and time"), {
+      target: { value: "2099-07-16T12:00" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
+    await screen.findByText("Translation scheduled.");
+
+    const afterSchedule = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterSchedule);
+    expect(afterSchedule.defaultPrevented).toBe(false);
+  });
+
+  it("keeps the schedule time dirty when scheduling fails", async () => {
+    scheduleTranslation.mockRejectedValueOnce(new Error("Schedule failed."));
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    fireEvent.change(screen.getByLabelText("Publication date and time"), {
+      target: { value: "2099-07-16T12:00" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Schedule failed.",
+    );
+
+    const afterFailure = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterFailure);
+    expect(afterFailure.defaultPrevented).toBe(true);
+  });
+
+  it("prompts for dirty schedule times and keeps a draft per locale", () => {
+    confirm.mockReturnValue(true);
+    render(
+      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+    );
+    const scheduledAt = screen.getByLabelText("Publication date and time");
+    fireEvent.change(scheduledAt, {
+      target: { value: "2099-07-16T12:00" },
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: /Russian/i }));
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(scheduledAt).toHaveValue("");
+    fireEvent.change(scheduledAt, {
+      target: { value: "2099-08-17T13:30" },
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: /English/i }));
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(scheduledAt).toHaveValue("2099-07-16T12:00");
   });
 
   it("maps API validation fields inline and focuses the first invalid control", async () => {

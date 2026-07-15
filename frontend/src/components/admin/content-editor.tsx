@@ -8,7 +8,7 @@ import {
   Save,
   Send,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   archiveAdminContent,
@@ -21,6 +21,10 @@ import {
   type AdminContentTranslationInput,
 } from "../../api/admin-content";
 import { ApiError } from "../../api/http";
+import {
+  ADMIN_NAVIGATION_REQUEST,
+  requestAdminNavigation,
+} from "./admin-navigation";
 import { LocaleTabs } from "./locale-tabs";
 
 type ContentEditorProps = {
@@ -77,6 +81,23 @@ function itemDrafts(item: AdminContentItem) {
   ) as Record<AdminContentLocale, AdminContentTranslationInput>;
 }
 
+function toLocalDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+function itemScheduleDrafts(item: AdminContentItem) {
+  return Object.fromEntries(
+    locales.map((locale) => [
+      locale,
+      toLocalDateTime(item.translations[locale]?.scheduledAt),
+    ]),
+  ) as Record<AdminContentLocale, string>;
+}
+
 function publishErrors(input: AdminContentTranslationInput): FieldErrors {
   const errors: FieldErrors = {};
   for (const field of Object.keys(fieldLabels) as TranslationField[]) {
@@ -117,16 +138,27 @@ export function ContentEditor({
   const [dirtyLocales, setDirtyLocales] = useState<Set<AdminContentLocale>>(
     () => new Set(),
   );
+  const [scheduleDrafts, setScheduleDrafts] = useState(() =>
+    itemScheduleDrafts(initialItem),
+  );
+  const [scheduleDirtyLocales, setScheduleDirtyLocales] = useState<
+    Set<AdminContentLocale>
+  >(() => new Set());
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState<Command | null>(null);
-  const [scheduledAt, setScheduledAt] = useState("");
+  const editorHistoryEntry = useRef<{ state: unknown; url: string } | null>(
+    null,
+  );
   const [message, setMessage] = useState<{
     kind: "error" | "success";
     text: string;
   } | null>(null);
 
-  const dirty = dirtyLocales.size > 0;
+  const dirty = dirtyLocales.size > 0 || scheduleDirtyLocales.size > 0;
   const activeDraft = drafts[activeLocale];
+  const activeScheduledAt = scheduleDrafts[activeLocale];
+  const activeDirty =
+    dirtyLocales.has(activeLocale) || scheduleDirtyLocales.has(activeLocale);
   const activeState = item.translations[activeLocale]?.status ?? "draft";
   const tabTranslations = useMemo(
     () =>
@@ -153,8 +185,21 @@ export function ContentEditor({
   }, [dirty]);
 
   useEffect(() => {
-    if (!dirty) return;
-    const guardNavigation = (event: MouseEvent) => {
+    if (!dirty) {
+      editorHistoryEntry.current = null;
+      return;
+    }
+    editorHistoryEntry.current ??= {
+      state: window.history.state,
+      url: window.location.href,
+    };
+
+    const guardNavigationRequest = (event: Event) => {
+      if (!window.confirm("This item has unsaved changes. Leave this page?")) {
+        event.preventDefault();
+      }
+    };
+    const guardAnchorNavigation = (event: MouseEvent) => {
       if (
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -179,17 +224,69 @@ export function ContentEditor({
       if (!rawHref || rawHref.startsWith("#")) return;
       const destination = new URL(anchor.href, window.location.href);
       if (destination.origin !== window.location.origin) return;
-      if (!window.confirm("This item has unsaved changes. Leave this page?")) {
+      if (
+        !requestAdminNavigation({
+          destination: destination.href,
+          source: "link",
+        })
+      ) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     };
-    document.addEventListener("click", guardNavigation, true);
-    return () => document.removeEventListener("click", guardNavigation, true);
+    const guardHistoryNavigation = (event: PopStateEvent) => {
+      if (
+        requestAdminNavigation({
+          destination: window.location.href,
+          source: "history",
+        })
+      ) {
+        return;
+      }
+      const editorEntry = editorHistoryEntry.current;
+      event.stopImmediatePropagation();
+      if (editorEntry) {
+        window.history.pushState(
+          editorEntry.state,
+          "",
+          editorEntry.url,
+        );
+      }
+    };
+
+    window.addEventListener(
+      ADMIN_NAVIGATION_REQUEST,
+      guardNavigationRequest,
+    );
+    document.addEventListener("click", guardAnchorNavigation, true);
+    window.addEventListener("popstate", guardHistoryNavigation, true);
+    return () => {
+      window.removeEventListener(
+        ADMIN_NAVIGATION_REQUEST,
+        guardNavigationRequest,
+      );
+      document.removeEventListener("click", guardAnchorNavigation, true);
+      window.removeEventListener("popstate", guardHistoryNavigation, true);
+    };
   }, [dirty]);
 
-  function markSaved(locale: AdminContentLocale) {
+  function markTranslationSaved(locale: AdminContentLocale) {
     setDirtyLocales((current) => {
+      const next = new Set(current);
+      next.delete(locale);
+      return next;
+    });
+  }
+
+  function markScheduleSaved(
+    locale: AdminContentLocale,
+    persistedValue: string | null | undefined,
+  ) {
+    setScheduleDrafts((current) => ({
+      ...current,
+      [locale]: toLocalDateTime(persistedValue),
+    }));
+    setScheduleDirtyLocales((current) => {
       const next = new Set(current);
       next.delete(locale);
       return next;
@@ -209,7 +306,7 @@ export function ContentEditor({
   function selectLocale(locale: AdminContentLocale) {
     if (
       locale !== activeLocale &&
-      dirtyLocales.has(activeLocale) &&
+      activeDirty &&
       !window.confirm("This translation has unsaved changes. Change language anyway?")
     ) {
       return;
@@ -270,7 +367,7 @@ export function ContentEditor({
         activeDraft,
       );
       setItem(saved);
-      markSaved(activeLocale);
+      markTranslationSaved(activeLocale);
       setMessage({ kind: "success", text: "Draft saved." });
     } catch (error) {
       handleCommandError(error);
@@ -291,7 +388,7 @@ export function ContentEditor({
         activeDraft,
       );
       setItem(published);
-      markSaved(activeLocale);
+      markTranslationSaved(activeLocale);
       setMessage({ kind: "success", text: "Translation published." });
     } catch (error) {
       handleCommandError(error);
@@ -302,8 +399,12 @@ export function ContentEditor({
 
   async function schedule() {
     if (!validatePublish()) return;
-    const date = new Date(scheduledAt);
-    if (!scheduledAt || Number.isNaN(date.getTime()) || date <= new Date()) {
+    const date = new Date(activeScheduledAt);
+    if (
+      !activeScheduledAt ||
+      Number.isNaN(date.getTime()) ||
+      date <= new Date()
+    ) {
       setMessage({
         kind: "error",
         text: "Choose a future publication date and time.",
@@ -320,7 +421,11 @@ export function ContentEditor({
         { ...activeDraft, scheduledAt: date.toISOString() },
       );
       setItem(scheduled);
-      markSaved(activeLocale);
+      markTranslationSaved(activeLocale);
+      markScheduleSaved(
+        activeLocale,
+        scheduled.translations[activeLocale]?.scheduledAt,
+      );
       setMessage({ kind: "success", text: "Translation scheduled." });
     } catch (error) {
       handleCommandError(error);
@@ -340,6 +445,7 @@ export function ContentEditor({
       const archived = await archiveAdminContent(collection, item.id);
       setItem(archived);
       setDirtyLocales(new Set());
+      setScheduleDirtyLocales(new Set());
       setMessage({ kind: "success", text: "Content archived." });
     } catch (error) {
       handleCommandError(error);
@@ -372,7 +478,7 @@ export function ContentEditor({
             </p>
             <p className="mt-1 text-sm text-neutral-600">
               State: <span className="font-semibold capitalize text-[var(--color-text)]">{activeState}</span>
-              {dirtyLocales.has(activeLocale) ? " · Unsaved changes" : ""}
+              {activeDirty ? " · Unsaved changes" : ""}
             </p>
           </div>
           <a
@@ -461,14 +567,20 @@ export function ContentEditor({
             disabled={pending !== null || !canPublish}
             id="scheduled-at"
             onChange={(event) => {
-              setScheduledAt(event.target.value);
+              setScheduleDrafts((current) => ({
+                ...current,
+                [activeLocale]: event.target.value,
+              }));
+              setScheduleDirtyLocales((current) =>
+                new Set(current).add(activeLocale),
+              );
               setErrors((current) => ({
                 ...current,
                 scheduledAt: undefined,
               }));
             }}
             type="datetime-local"
-            value={scheduledAt}
+            value={activeScheduledAt}
           />
           {errors.scheduledAt ? (
             <p className="mt-1 text-sm text-[var(--color-danger)]" id="scheduled-at-error">

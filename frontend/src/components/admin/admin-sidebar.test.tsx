@@ -22,6 +22,7 @@ vi.mock("../../auth/client", () => ({
 }));
 
 import { AdminSidebar, AdminMobileNavigation } from "./admin-sidebar";
+import { ADMIN_NAVIGATION_REQUEST } from "./admin-navigation";
 import { AdminTopbar } from "./admin-topbar";
 
 const contentPermissions = ["content.read", "content.write"];
@@ -110,6 +111,23 @@ describe("AdminMobileNavigation", () => {
 });
 
 describe("AdminTopbar", () => {
+  it("does not sign out when admin navigation is cancelled", async () => {
+    const cancelNavigation = (event: Event) => event.preventDefault();
+    window.addEventListener(ADMIN_NAVIGATION_REQUEST, cancelNavigation);
+    render(<AdminTopbar email="editor@anshow.example" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+
+    await waitFor(() => expect(signOut).not.toHaveBeenCalled());
+    expect(replace).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+    window.removeEventListener(
+      ADMIN_NAVIGATION_REQUEST,
+      cancelNavigation,
+    );
+  });
+
   it("shows the staff identity and signs out to the login route", async () => {
     render(<AdminTopbar email="editor@anshow.example" />);
 
