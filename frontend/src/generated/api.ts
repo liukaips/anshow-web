@@ -196,6 +196,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminMedia"];
+        put?: never;
+        post: operations["createAdminMedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminMedia"];
+        put: operations["updateAdminMediaMetadata"];
+        post?: never;
+        delete: operations["deleteAdminMedia"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media/{id}/replacement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["replaceAdminMedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -287,6 +335,9 @@ export interface components {
             message: string;
             fields?: {
                 [key: string]: string[];
+            };
+            details?: {
+                [key: string]: unknown;
             };
         };
         HealthReadyResponse: {
@@ -569,6 +620,111 @@ export interface components {
         };
         ArchiveAdminContentResponse: {
             data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminMediaListResponse: {
+            data: components["schemas"]["AdminMediaAsset"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminMediaAsset: {
+            /** Format: uuid */
+            id: string;
+            storageKey: string;
+            mimeType: string;
+            width: number;
+            height: number;
+            dominantColor: string;
+            focalX: number;
+            focalY: number;
+            alt: components["schemas"]["AdminMediaAltText"];
+            derivatives: components["schemas"]["AdminMediaDerivative"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            replacedAt: string | null;
+            references: components["schemas"]["AdminMediaReference"][];
+            referenceCount: number;
+        };
+        AdminMediaAltText: {
+            en: string;
+            zh: string;
+            ru: string;
+        };
+        AdminMediaDerivative: {
+            id: string;
+            storageKey: string;
+            url: string;
+            /** @enum {string} */
+            format: "avif" | "webp";
+            width: number;
+            height: number;
+            byteSize: number;
+        };
+        AdminMediaReference: {
+            entityType: string;
+            entityId: string;
+            field: string;
+        };
+        AdminMediaDetailResponse: {
+            data: components["schemas"]["AdminMediaAsset"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        /** Format: uuid */
+        AdminMediaId: string;
+        CreateAdminMediaResponse: {
+            data: components["schemas"]["AdminMediaAsset"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminMediaMultipartInput: {
+            /** Format: binary */
+            file?: string;
+            altEn: string;
+            altZh: string;
+            altRu: string;
+            focalX: string;
+            focalY: string;
+        };
+        UpdateAdminMediaResponse: {
+            data: components["schemas"]["AdminMediaAsset"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminMediaMetadataInput: {
+            alt: {
+                en: string;
+                zh: string;
+                ru: string;
+            };
+            focalX: number;
+            focalY: number;
+        };
+        ReplaceAdminMediaResponse: {
+            data: components["schemas"]["AdminMediaAsset"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        DeleteAdminMediaResponse: {
+            data: {
+                id: components["schemas"]["AdminMediaId"];
+                /** @enum {boolean} */
+                deleted: true;
+            };
             /** @enum {object|null} */
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
@@ -1483,6 +1639,470 @@ export interface operations {
             };
             /** @description The requested content state conflicts with publishing rules. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Media library assets with derivatives and references. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaListResponse"];
+                };
+            };
+            /** @description Invalid media request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.read. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createAdminMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AdminMediaMultipartInput"];
+            };
+        };
+        responses: {
+            /** @description Processed media asset. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminMediaResponse"];
+                };
+            };
+            /** @description Invalid media or metadata. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getAdminMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["AdminMediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Media detail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMediaDetailResponse"];
+                };
+            };
+            /** @description Invalid media ID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.read. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateAdminMediaMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["AdminMediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMediaMetadataInput"];
+            };
+        };
+        responses: {
+            /** @description Updated media metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminMediaResponse"];
+                };
+            };
+            /** @description Invalid ID or metadata. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteAdminMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["AdminMediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted unused media. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteAdminMediaResponse"];
+                };
+            };
+            /** @description Invalid media ID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media is referenced. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceAdminMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["AdminMediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AdminMediaMultipartInput"];
+            };
+        };
+        responses: {
+            /** @description Replaced media bytes while preserving the media ID. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplaceAdminMediaResponse"];
+                };
+            };
+            /** @description Invalid media, ID, or metadata. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Media conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds 20 MB. */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

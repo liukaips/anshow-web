@@ -18,6 +18,7 @@ export class ApiError extends Error {
   readonly code: string;
   readonly requestId?: string;
   readonly fields?: Readonly<Record<string, readonly string[]>>;
+  readonly details?: Readonly<Record<string, unknown>>;
 
   constructor(options: {
     status: number;
@@ -25,6 +26,7 @@ export class ApiError extends Error {
     message: string;
     requestId?: string;
     fields?: Readonly<Record<string, readonly string[]>>;
+    details?: Readonly<Record<string, unknown>>;
   }) {
     super(options.message);
     this.name = "ApiError";
@@ -32,6 +34,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.requestId = options.requestId;
     this.fields = options.fields;
+    this.details = options.details;
   }
 }
 
@@ -83,6 +86,7 @@ export async function getEnvelope<T>(
           : "API request failed.",
       requestId,
       fields: safeFields(error?.fields),
+      details: error && isRecord(error.details) ? error.details : undefined,
     });
   }
 

@@ -72,6 +72,7 @@ export const apiErrorSchema = z
     code: z.string(),
     message: z.string(),
     fields: z.record(z.string(), z.array(z.string())).optional(),
+    details: z.record(z.string(), z.unknown()).optional(),
   })
   .openapi("ApiError");
 

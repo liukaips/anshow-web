@@ -7,6 +7,9 @@ await initializeRuntime(process.env, async (environment) => {
     { createApp },
     { createContentRepository },
     { createSettingsRepository },
+    { createMediaRepository },
+    { createMediaService },
+    { createLocalMediaStorage },
     { permissionsForUser },
     { createAuthRuntime },
     { db },
@@ -17,6 +20,9 @@ await initializeRuntime(process.env, async (environment) => {
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
     import("./admin/repositories/settings-repository.js"),
+    import("./admin/repositories/media-repository.js"),
+    import("./media/media-service.js"),
+    import("./media/local-storage.js"),
     import("./auth/permission-repository.js"),
     import("./auth/runtime.js"),
     import("./db/client.js"),
@@ -35,6 +41,10 @@ await initializeRuntime(process.env, async (environment) => {
       createDrizzleContentStore(db),
     ),
     settingsRepository: createSettingsRepository(db),
+    mediaService: createMediaService({
+      repository: createMediaRepository(db),
+      storage: createLocalMediaStorage(),
+    }),
   });
   const server = serve(
     {

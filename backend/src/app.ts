@@ -10,6 +10,10 @@ import {
   type ContentRouteDependencies,
 } from "./admin/routes/content.js";
 import {
+  registerMediaRoutes,
+  type MediaRouteDependencies,
+} from "./admin/routes/media.js";
+import {
   errorEnvelopeSchema,
   requestIdSchema,
 } from "./content/public-contract.js";
@@ -120,6 +124,7 @@ function errorDiagnostic(error: unknown) {
 export type AppDependencies = AdminSessionDependencies &
   SettingsRouteDependencies &
   ContentRouteDependencies & {
+    mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
     publicContentRepository: PublicContentRepository;
@@ -185,6 +190,24 @@ const defaultDependencies: AppDependencies = {
       throw new Error("Content repository is not configured");
     },
   },
+  mediaService: {
+    list: async () => [],
+    get: async () => {
+      throw new Error("Media service is not configured");
+    },
+    upload: async () => {
+      throw new Error("Media service is not configured");
+    },
+    updateMetadata: async () => {
+      throw new Error("Media service is not configured");
+    },
+    replace: async () => {
+      throw new Error("Media service is not configured");
+    },
+    delete: async () => {
+      throw new Error("Media service is not configured");
+    },
+  },
 };
 
 export function createApp(
@@ -236,6 +259,7 @@ export function createApp(
   registerAdminSessionRoute(app, resolvedDependencies);
   registerSettingsRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
+  registerMediaRoutes(app, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {

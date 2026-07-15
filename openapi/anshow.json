@@ -85,6 +85,12 @@
                 "type": "string"
               }
             }
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
           }
         },
         "required": [
@@ -1336,6 +1342,415 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminMediaListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminMediaAsset"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminMediaAsset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storageKey": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "dominantColor": {
+            "type": "string"
+          },
+          "focalX": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "focalY": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "alt": {
+            "$ref": "#/components/schemas/AdminMediaAltText"
+          },
+          "derivatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminMediaDerivative"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replacedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminMediaReference"
+            }
+          },
+          "referenceCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "storageKey",
+          "mimeType",
+          "width",
+          "height",
+          "dominantColor",
+          "focalX",
+          "focalY",
+          "alt",
+          "derivatives",
+          "createdAt",
+          "replacedAt",
+          "references",
+          "referenceCount"
+        ]
+      },
+      "AdminMediaAltText": {
+        "type": "object",
+        "properties": {
+          "en": {
+            "type": "string"
+          },
+          "zh": {
+            "type": "string"
+          },
+          "ru": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "en",
+          "zh",
+          "ru"
+        ]
+      },
+      "AdminMediaDerivative": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "storageKey": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "avif",
+              "webp"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "id",
+          "storageKey",
+          "url",
+          "format",
+          "width",
+          "height",
+          "byteSize"
+        ]
+      },
+      "AdminMediaReference": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityType",
+          "entityId",
+          "field"
+        ]
+      },
+      "AdminMediaDetailResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminMediaAsset"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminMediaId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "CreateAdminMediaResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminMediaAsset"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminMediaMultipartInput": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary"
+          },
+          "altEn": {
+            "type": "string"
+          },
+          "altZh": {
+            "type": "string"
+          },
+          "altRu": {
+            "type": "string"
+          },
+          "focalX": {
+            "type": "string"
+          },
+          "focalY": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "altEn",
+          "altZh",
+          "altRu",
+          "focalX",
+          "focalY"
+        ]
+      },
+      "UpdateAdminMediaResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminMediaAsset"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminMediaMetadataInput": {
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "zh": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "ru": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "en",
+              "zh",
+              "ru"
+            ],
+            "additionalProperties": false
+          },
+          "focalX": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "focalY": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "alt",
+          "focalX",
+          "focalY"
+        ],
+        "additionalProperties": false
+      },
+      "ReplaceAdminMediaResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminMediaAsset"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "DeleteAdminMediaResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AdminMediaId"
+              },
+              "deleted": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "deleted"
+            ]
           },
           "error": {
             "type": "object",
@@ -2819,6 +3234,550 @@
           },
           "409": {
             "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media": {
+      "get": {
+        "operationId": "listAdminMedia",
+        "tags": [
+          "Administration Media"
+        ],
+        "responses": {
+          "200": {
+            "description": "Media library assets with derivatives and references.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMediaListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid media request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminMedia",
+        "tags": [
+          "Administration Media"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminMediaMultipartInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Processed media asset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAdminMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid media or metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media/{id}": {
+      "get": {
+        "operationId": "getAdminMedia",
+        "tags": [
+          "Administration Media"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminMediaId"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMediaDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid media ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAdminMediaMetadata",
+        "tags": [
+          "Administration Media"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminMediaId"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminMediaMetadataInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated media metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateAdminMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAdminMedia",
+        "tags": [
+          "Administration Media"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminMediaId"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted unused media.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAdminMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid media ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media is referenced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media/{id}/replacement": {
+      "post": {
+        "operationId": "replaceAdminMedia",
+        "tags": [
+          "Administration Media"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AdminMediaId"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminMediaMultipartInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced media bytes while preserving the media ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplaceAdminMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid media, ID, or metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Media conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Upload exceeds 20 MB.",
             "content": {
               "application/json": {
                 "schema": {
