@@ -156,9 +156,12 @@ export function PublicCollectionPage({
           {items.length ? (
             <div className="grid grid-cols-1 gap-px overflow-hidden bg-black/10 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((item, index) => {
-                const isFeature = items.length % 2 === 1 && index === items.length - 1;
+                const isLast = index === items.length - 1;
+                const isTabletFeature = items.length % 2 === 1 && isLast;
+                const isDesktopFeature = items.length % 3 !== 0 && isLast;
+                const isFeature = isTabletFeature || isDesktopFeature;
                 return (
-                <article className={`group bg-white ${isFeature ? "sm:col-span-2 xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
+                <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isDesktopFeature ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
                   <PublicMedia compact={!isFeature} item={item} />
                   <div className={`p-6 sm:p-7 ${isFeature ? "xl:flex xl:flex-col xl:justify-center" : ""}`}>
                     <Icon aria-hidden="true" className="size-6 text-[var(--color-teal-ink)]" />
