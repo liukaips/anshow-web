@@ -9,6 +9,7 @@ vi.mock("next/headers", () => ({
 import {
   publishAdminContentTranslation,
   saveAdminContentDraft,
+  scheduleAdminContentTranslation,
 } from "./admin-content";
 import { listAdminContent } from "./admin-content.server";
 
@@ -69,7 +70,11 @@ describe("administration content API", () => {
     };
 
     await saveAdminContentDraft("services", "content-1", "ru", input);
-    await publishAdminContentTranslation("services", "content-1", "ru");
+    await publishAdminContentTranslation("services", "content-1", "ru", input);
+    await scheduleAdminContentTranslation("services", "content-1", "ru", {
+      ...input,
+      scheduledAt: "2026-07-16T04:00:00.000Z",
+    });
 
     expect(fetchMock.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
       [
@@ -80,11 +85,66 @@ describe("administration content API", () => {
         "/api/admin/content/services/content-1/translations/ru/publish",
         "POST",
       ],
+      [
+        "/api/admin/content/services/content-1/translations/ru/schedule",
+        "POST",
+      ],
     ]);
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       body: JSON.stringify(input),
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
+    });
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      body: JSON.stringify(input),
+      headers: { "content-type": "application/json" },
+    });
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        ...input,
+        scheduledAt: "2026-07-16T04:00:00.000Z",
+      }),
+    });
+  });
+
+  it("retains safe validation fields from an API error envelope", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: null,
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "The request is invalid.",
+              fields: { seoTitle: ["SEO title is invalid."] },
+            },
+            requestId: "request-validation",
+          }),
+          { status: 400, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    const error = await saveAdminContentDraft(
+      "services",
+      "content-1",
+      "en",
+      {
+        title: "Title",
+        slug: "title",
+        summary: "Summary",
+        body: "Body",
+        seoTitle: "",
+        seoDescription: "Description",
+        altText: "Alt",
+      },
+    ).catch((reason: unknown) => reason);
+
+    expect(error).toMatchObject({
+      code: "VALIDATION_ERROR",
+      fields: { seoTitle: ["SEO title is invalid."] },
+      requestId: "request-validation",
     });
   });
 });

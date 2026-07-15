@@ -511,6 +511,15 @@ export interface components {
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
             requestId: string;
         };
+        PublishAdminContentInput: {
+            title: string;
+            slug: string;
+            summary: string;
+            body: string;
+            seoTitle: string;
+            seoDescription: string;
+            altText: string;
+        };
         ScheduleAdminContentResponse: {
             data: components["schemas"]["AdminContentItem"];
             /** @enum {object|null} */
@@ -521,6 +530,13 @@ export interface components {
         ScheduleAdminContentInput: {
             /** Format: date-time */
             scheduledAt: string;
+            title: string;
+            slug: string;
+            summary: string;
+            body: string;
+            seoTitle: string;
+            seoDescription: string;
+            altText: string;
         };
         ArchiveAdminContentResponse: {
             data: components["schemas"]["AdminContentItem"];
@@ -1172,7 +1188,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishAdminContentInput"];
+            };
+        };
         responses: {
             /** @description Published one complete locale independently. */
             200: {

@@ -20,6 +20,7 @@ import {
   type AdminContentLocale,
   type AdminContentTranslationInput,
 } from "../../api/admin-content";
+import { ApiError } from "../../api/http";
 import { LocaleTabs } from "./locale-tabs";
 
 type ContentEditorProps = {
@@ -29,7 +30,8 @@ type ContentEditorProps = {
 };
 
 type TranslationField = keyof AdminContentTranslationInput;
-type FieldErrors = Partial<Record<TranslationField, string>>;
+type EditorField = TranslationField | "scheduledAt";
+type FieldErrors = Partial<Record<EditorField, string>>;
 type Command = "archive" | "publish" | "save" | "schedule";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
@@ -150,6 +152,42 @@ export function ContentEditor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  useEffect(() => {
+    if (!dirty) return;
+    const guardNavigation = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      const anchor =
+        target instanceof Element ? target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (
+        !anchor ||
+        anchor.hasAttribute("download") ||
+        (anchor.target && anchor.target !== "_self")
+      ) {
+        return;
+      }
+      const rawHref = anchor.getAttribute("href");
+      if (!rawHref || rawHref.startsWith("#")) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin !== window.location.origin) return;
+      if (!window.confirm("This item has unsaved changes. Leave this page?")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    document.addEventListener("click", guardNavigation, true);
+    return () => document.removeEventListener("click", guardNavigation, true);
+  }, [dirty]);
+
   function markSaved(locale: AdminContentLocale) {
     setDirtyLocales((current) => {
       const next = new Set(current);
@@ -182,11 +220,36 @@ export function ContentEditor({
   }
 
   function focusFirstError(nextErrors: FieldErrors) {
-    const first = firstErrorField(nextErrors);
+    const first =
+      firstErrorField(nextErrors) ??
+      (nextErrors.scheduledAt ? "scheduledAt" : undefined);
     if (!first) return;
     queueMicrotask(() => {
-      document.getElementById(`translation-${first}`)?.focus();
+      document
+        .getElementById(
+          first === "scheduledAt" ? "scheduled-at" : `translation-${first}`,
+        )
+        ?.focus();
     });
+  }
+
+  function handleCommandError(error: unknown) {
+    if (error instanceof ApiError && error.fields) {
+      const nextErrors: FieldErrors = {};
+      for (const [field, messages] of Object.entries(error.fields)) {
+        if (
+          (field in fieldLabels || field === "scheduledAt") &&
+          messages[0]
+        ) {
+          nextErrors[field as EditorField] = messages[0];
+        }
+      }
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors(nextErrors);
+        focusFirstError(nextErrors);
+      }
+    }
+    setMessage({ kind: "error", text: commandMessage(error) });
   }
 
   function validatePublish(): boolean {
@@ -210,22 +273,10 @@ export function ContentEditor({
       markSaved(activeLocale);
       setMessage({ kind: "success", text: "Draft saved." });
     } catch (error) {
-      setMessage({ kind: "error", text: commandMessage(error) });
+      handleCommandError(error);
     } finally {
       setPending(null);
     }
-  }
-
-  async function saveIfDirty() {
-    if (!dirtyLocales.has(activeLocale)) return;
-    const saved = await saveAdminContentDraft(
-      collection,
-      item.id,
-      activeLocale,
-      activeDraft,
-    );
-    setItem(saved);
-    markSaved(activeLocale);
   }
 
   async function publish() {
@@ -233,17 +284,17 @@ export function ContentEditor({
     setPending("publish");
     setMessage(null);
     try {
-      await saveIfDirty();
       const published = await publishAdminContentTranslation(
         collection,
         item.id,
         activeLocale,
+        activeDraft,
       );
       setItem(published);
       markSaved(activeLocale);
       setMessage({ kind: "success", text: "Translation published." });
     } catch (error) {
-      setMessage({ kind: "error", text: commandMessage(error) });
+      handleCommandError(error);
     } finally {
       setPending(null);
     }
@@ -262,18 +313,17 @@ export function ContentEditor({
     setPending("schedule");
     setMessage(null);
     try {
-      await saveIfDirty();
       const scheduled = await scheduleAdminContentTranslation(
         collection,
         item.id,
         activeLocale,
-        { scheduledAt: date.toISOString() },
+        { ...activeDraft, scheduledAt: date.toISOString() },
       );
       setItem(scheduled);
       markSaved(activeLocale);
       setMessage({ kind: "success", text: "Translation scheduled." });
     } catch (error) {
-      setMessage({ kind: "error", text: commandMessage(error) });
+      handleCommandError(error);
     } finally {
       setPending(null);
     }
@@ -292,15 +342,9 @@ export function ContentEditor({
       setDirtyLocales(new Set());
       setMessage({ kind: "success", text: "Content archived." });
     } catch (error) {
-      setMessage({ kind: "error", text: commandMessage(error) });
+      handleCommandError(error);
     } finally {
       setPending(null);
-    }
-  }
-
-  function confirmPreview(event: React.MouseEvent<HTMLAnchorElement>) {
-    if (dirty && !window.confirm("Preview without saving the latest changes?")) {
-      event.preventDefault();
     }
   }
 
@@ -334,7 +378,6 @@ export function ContentEditor({
           <a
             className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-neutral-300 bg-white px-4 text-sm font-semibold text-[var(--color-text)] transition-[background-color,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:bg-neutral-50"
             href="#content-preview"
-            onClick={confirmPreview}
           >
             <Eye aria-hidden="true" className="size-4" />
             Preview
@@ -412,13 +455,26 @@ export function ContentEditor({
             Publication date and time
           </label>
           <input
-            className={`${fieldClass} max-w-md`}
+            aria-describedby={errors.scheduledAt ? "scheduled-at-error" : undefined}
+            aria-invalid={errors.scheduledAt ? true : undefined}
+            className={`${fieldClass} max-w-md ${errors.scheduledAt ? "border-[var(--color-danger)]" : "border-neutral-300"}`}
             disabled={pending !== null || !canPublish}
             id="scheduled-at"
-            onChange={(event) => setScheduledAt(event.target.value)}
+            onChange={(event) => {
+              setScheduledAt(event.target.value);
+              setErrors((current) => ({
+                ...current,
+                scheduledAt: undefined,
+              }));
+            }}
             type="datetime-local"
             value={scheduledAt}
           />
+          {errors.scheduledAt ? (
+            <p className="mt-1 text-sm text-[var(--color-danger)]" id="scheduled-at-error">
+              {errors.scheduledAt}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3 border-t border-neutral-200 pt-6">
@@ -441,7 +497,9 @@ export function ContentEditor({
 
       <section className="border-l-4 border-[var(--color-cyan-ink)] bg-white px-5 py-5" id="content-preview">
         <p className="text-xs font-semibold uppercase text-[var(--color-cyan-ink)]">
-          {activeState === "published" ? "Published preview" : "Unpublished preview"}
+          {activeState === "published" && !dirtyLocales.has(activeLocale)
+            ? "Published preview"
+            : "Unpublished preview"}
         </p>
         <h2 className="mt-2 break-words text-2xl font-semibold text-[var(--color-text)]">
           {activeDraft.title || "Untitled translation"}

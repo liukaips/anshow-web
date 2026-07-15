@@ -6,6 +6,7 @@ type ListOperation = paths["/api/admin/content/{collection}"]["get"];
 type CreateOperation = paths["/api/admin/content/{collection}"]["post"];
 type DetailOperation = paths["/api/admin/content/{collection}/{id}"]["get"];
 type DraftOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}"]["put"];
+type PublishOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/publish"]["post"];
 type ScheduleOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/schedule"]["post"];
 
 export type AdminContentCollection =
@@ -22,6 +23,8 @@ export type CreateAdminContentInput =
   CreateOperation["requestBody"]["content"]["application/json"];
 export type AdminContentTranslationInput =
   DraftOperation["requestBody"]["content"]["application/json"];
+export type PublishAdminContentInput =
+  PublishOperation["requestBody"]["content"]["application/json"];
 export type ScheduleAdminContentInput =
   ScheduleOperation["requestBody"]["content"]["application/json"];
 
@@ -82,10 +85,11 @@ export function publishAdminContentTranslation(
   collection: AdminContentCollection,
   id: string,
   locale: AdminContentLocale,
+  input: PublishAdminContentInput,
 ): Promise<AdminContentItem> {
   return getEnvelope<AdminContentItem>(
     `/api/admin/content/${segment(collection)}/${segment(id)}/translations/${segment(locale)}/publish`,
-    commandInit("POST"),
+    commandInit("POST", input),
   );
 }
 

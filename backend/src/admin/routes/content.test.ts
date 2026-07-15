@@ -8,8 +8,9 @@ import {
   type ContentRepository,
 } from "../repositories/content-repository.js";
 
+const CONTENT_ID = "00000000-0000-4000-8000-000000000001";
 const ITEM: AdminContentItem = {
-  id: "content-1",
+  id: CONTENT_ID,
   code: "freight-service",
   sortOrder: 0,
   archivedAt: null,
@@ -117,7 +118,7 @@ describe("administration content routes", () => {
       (
         await app.request(
           jsonRequest(
-            "/api/admin/content/services/content-1/translations/en",
+            `/api/admin/content/services/${CONTENT_ID}/translations/en`,
             "PUT",
             translationInput,
           ),
@@ -127,9 +128,9 @@ describe("administration content routes", () => {
 
     const publishResponse = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/translations/en/publish",
+        `/api/admin/content/services/${CONTENT_ID}/translations/en/publish`,
         "POST",
-        {},
+        translationInput,
       ),
     );
     expect(publishResponse.status).toBe(403);
@@ -148,7 +149,7 @@ describe("administration content routes", () => {
     expect(await listResponse.json()).toMatchObject({ data: [ITEM], error: null });
 
     const detailResponse = await app.request(
-      "/api/admin/content/services/content-1",
+      `/api/admin/content/services/${CONTENT_ID}`,
     );
     expect(detailResponse.status).toBe(200);
 
@@ -166,7 +167,7 @@ describe("administration content routes", () => {
 
     const draftResponse = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/translations/ru",
+        `/api/admin/content/services/${CONTENT_ID}/translations/ru`,
         "PUT",
         translationInput,
       ),
@@ -174,7 +175,7 @@ describe("administration content routes", () => {
     expect(draftResponse.status).toBe(200);
     expect(repository.saveDraft).toHaveBeenCalledWith(
       "services",
-      "content-1",
+      CONTENT_ID,
       "ru",
       translationInput,
       "staff-1",
@@ -183,38 +184,39 @@ describe("administration content routes", () => {
     const scheduledAt = "2026-07-16T04:00:00.000Z";
     const scheduleResponse = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/translations/ru/schedule",
+        `/api/admin/content/services/${CONTENT_ID}/translations/ru/schedule`,
         "POST",
-        { scheduledAt },
+        { ...translationInput, scheduledAt },
       ),
     );
     expect(scheduleResponse.status).toBe(200);
     expect(repository.schedule).toHaveBeenCalledWith(
       "services",
-      "content-1",
+      CONTENT_ID,
       "ru",
-      scheduledAt,
+      { ...translationInput, scheduledAt },
       "staff-1",
     );
 
     const publishResponse = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/translations/ru/publish",
+        `/api/admin/content/services/${CONTENT_ID}/translations/ru/publish`,
         "POST",
-        {},
+        translationInput,
       ),
     );
     expect(publishResponse.status).toBe(200);
     expect(repository.publish).toHaveBeenCalledWith(
       "services",
-      "content-1",
+      CONTENT_ID,
       "ru",
+      translationInput,
       "staff-1",
     );
 
     const archiveResponse = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/archive",
+        `/api/admin/content/services/${CONTENT_ID}/archive`,
         "POST",
         {},
       ),
@@ -222,7 +224,7 @@ describe("administration content routes", () => {
     expect(archiveResponse.status).toBe(200);
     expect(repository.archive).toHaveBeenCalledWith(
       "services",
-      "content-1",
+      CONTENT_ID,
       "staff-1",
     );
   });
@@ -231,7 +233,7 @@ describe("administration content routes", () => {
     ["invalid collection", "/api/admin/content/not-a-collection"],
     [
       "invalid locale",
-      "/api/admin/content/services/content-1/translations/fr",
+      `/api/admin/content/services/${CONTENT_ID}/translations/fr`,
     ],
   ])("rejects an %s path parameter", async (_case, path) => {
     const repository = createFakeRepository();
@@ -251,13 +253,16 @@ describe("administration content routes", () => {
     const app = createAuthorizedApp(repository);
     const response = await app.request(
       jsonRequest(
-        "/api/admin/content/services/content-1/translations/en",
+        `/api/admin/content/services/${CONTENT_ID}/translations/en`,
         "PUT",
         { ...translationInput, slug: "Upper Case" },
       ),
     );
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { fields: { slug: expect.any(Array) } },
+    });
     expect(repository.saveDraft).not.toHaveBeenCalled();
   });
 
@@ -273,7 +278,7 @@ describe("administration content routes", () => {
     const app = createAuthorizedApp(repository);
 
     const response = await app.request(
-      "/api/admin/content/services/content-1",
+      `/api/admin/content/services/${CONTENT_ID}`,
     );
 
     expect(response.status).toBe(status);
@@ -296,9 +301,9 @@ describe("administration content routes", () => {
 
     const response = await app.request(
       jsonRequest(
-        "/api/admin/content/partners/content-1/translations/en/publish",
+        `/api/admin/content/partners/${CONTENT_ID}/translations/en/publish`,
         "POST",
-        {},
+        translationInput,
       ),
     );
 
@@ -308,5 +313,62 @@ describe("administration content routes", () => {
       error: { code: "PROOF_NOT_VERIFIED" },
       requestId: response.headers.get("x-request-id"),
     });
+  });
+
+  it("allows a content.publish-only actor to publish submitted content", async () => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository, ["content.publish"]);
+
+    const response = await app.request(
+      jsonRequest(
+        `/api/admin/content/services/${CONTENT_ID}/translations/en/publish`,
+        "POST",
+        translationInput,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(repository.publish).toHaveBeenCalledWith(
+      "services",
+      CONTENT_ID,
+      "en",
+      translationInput,
+      "staff-1",
+    );
+    expect(repository.saveDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["bad_id", "id"],
+    ["../content", "collection"],
+    ["Uppercase-ID", "id"],
+    ["space%20id", "id"],
+  ])("rejects malformed content id %s with a stable 400", async (id, field) => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository);
+
+    const response = await app.request(`/api/admin/content/services/${id}`);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      data: null,
+      error: {
+        code: "VALIDATION_ERROR",
+        fields: { [field]: expect.any(Array) },
+      },
+    });
+    expect(repository.get).not.toHaveBeenCalled();
+  });
+
+  it("accepts existing canonical code identifiers", async () => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository);
+
+    const response = await app.request(
+      "/api/admin/content/services/service-ocean",
+    );
+
+    expect(response.status).toBe(200);
+    expect(repository.get).toHaveBeenCalledWith("services", "service-ocean");
   });
 });

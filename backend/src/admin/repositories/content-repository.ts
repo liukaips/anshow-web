@@ -26,11 +26,14 @@ import {
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
 import {
-  canPublishTranslation,
+  publishableTranslationSchema,
+  scheduleTranslationInputSchema,
   translationInputSchema,
   type AdminContentCollection,
   type AdminContentLocale,
   type AdminPublicationState,
+  type PublishTranslationInput,
+  type ScheduleTranslationInput,
   type TranslationInput,
 } from "../content/content-schema.js";
 import { createAuditRepository } from "./audit-repository.js";
@@ -172,13 +175,14 @@ export interface ContentRepository {
     collection: AdminContentCollection,
     id: string,
     locale: AdminContentLocale,
+    input: PublishTranslationInput,
     actorId: string,
   ): Promise<AdminContentItem>;
   schedule(
     collection: AdminContentCollection,
     id: string,
     locale: AdminContentLocale,
-    scheduledAt: string,
+    input: ScheduleTranslationInput,
     actorId: string,
   ): Promise<AdminContentItem>;
   archive(
@@ -271,24 +275,6 @@ function assertMutable(row: BaseRow, collection: AdminContentCollection) {
   }
 }
 
-function readTranslation(
-  database: AppDatabase | ContentTransaction,
-  config: CollectionConfig,
-  id: string,
-  locale: AdminContentLocale,
-): TranslationRow | undefined {
-  return database
-    .select()
-    .from(config.translations)
-    .where(
-      and(
-        eq(config.translations.ownerId, id),
-        eq(config.translations.locale, locale),
-      ),
-    )
-    .get();
-}
-
 function assertSlugAvailable(
   transaction: ContentTransaction,
   config: CollectionConfig,
@@ -316,26 +302,10 @@ function assertSlugAvailable(
   }
 }
 
-function assertPublishable(
+function assertProofVerified(
   config: CollectionConfig,
   base: BaseRow,
-  translation: TranslationRow | undefined,
 ) {
-  const publishInput = translation && {
-    title: translation.title,
-    slug: translation.slug,
-    summary: translation.summary,
-    body: translation.body,
-    seoTitle: translation.seoTitle,
-    seoDescription: translation.seoDescription,
-    altText: translation.altText,
-  };
-  if (!publishInput || !canPublishTranslation(publishInput)) {
-    throw new ContentRepositoryError(
-      "INCOMPLETE_TRANSLATION",
-      "The translation is incomplete and cannot be published",
-    );
-  }
   if (
     config.requiresVerification &&
     (!base.verifiedAt || !base.verificationSource?.trim())
@@ -345,6 +315,35 @@ function assertPublishable(
       "Verified proof and a source note are required before publication",
     );
   }
+}
+
+function upsertTranslation(
+  transaction: ContentTransaction,
+  config: CollectionConfig,
+  ownerId: string,
+  locale: AdminContentLocale,
+  translation: PublishTranslationInput,
+  publication: {
+    status: "published" | "scheduled";
+    scheduledAt: Date | null;
+    publishedAt: Date | null;
+  },
+  updatedAt: Date,
+) {
+  transaction
+    .insert(config.translations)
+    .values({
+      ownerId,
+      locale,
+      ...translation,
+      ...publication,
+      updatedAt,
+    })
+    .onConflictDoUpdate({
+      target: [config.translations.ownerId, config.translations.locale],
+      set: { ...translation, ...publication, updatedAt },
+    })
+    .run();
 }
 
 export function createContentRepository(
@@ -478,33 +477,26 @@ export function createContentRepository(
       return get(collection, id);
     },
 
-    async publish(collection, id, locale, actorId) {
+    async publish(collection, id, locale, input, actorId) {
       const config = collectionConfig[collection];
       const timestamp = now();
 
       database.transaction((transaction) => {
+        const translation = publishableTranslationSchema.parse(input);
         const base = readBase(transaction, config, id);
         if (!base) throw notFound(collection, id);
         assertMutable(base, collection);
-        const translation = readTranslation(transaction, config, id, locale);
-        assertPublishable(config, base, translation);
-        assertSlugAvailable(transaction, config, id, locale, translation!.slug);
-
-        transaction
-          .update(config.translations)
-          .set({
-            status: "published",
-            scheduledAt: null,
-            publishedAt: timestamp,
-            updatedAt: timestamp,
-          })
-          .where(
-            and(
-              eq(config.translations.ownerId, id),
-              eq(config.translations.locale, locale),
-            ),
-          )
-          .run();
+        assertProofVerified(config, base);
+        assertSlugAvailable(transaction, config, id, locale, translation.slug);
+        upsertTranslation(
+          transaction,
+          config,
+          id,
+          locale,
+          translation,
+          { status: "published", scheduledAt: null, publishedAt: timestamp },
+          timestamp,
+        );
         audit(transaction).record({
           actorId,
           action: "content.translation.publish",
@@ -517,43 +509,34 @@ export function createContentRepository(
       return get(collection, id);
     },
 
-    async schedule(collection, id, locale, scheduledAt, actorId) {
+    async schedule(collection, id, locale, input, actorId) {
       const config = collectionConfig[collection];
       const timestamp = now();
-      const scheduledDate = new Date(scheduledAt);
-      if (
-        Number.isNaN(scheduledDate.getTime()) ||
-        scheduledDate.getTime() <= timestamp.getTime()
-      ) {
-        throw new ContentRepositoryError(
-          "SCHEDULE_NOT_FUTURE",
-          "The scheduled publication time must be in the future",
-        );
-      }
 
       database.transaction((transaction) => {
+        const { scheduledAt, ...translation } =
+          scheduleTranslationInputSchema.parse(input);
+        const scheduledDate = new Date(scheduledAt);
+        if (scheduledDate.getTime() <= timestamp.getTime()) {
+          throw new ContentRepositoryError(
+            "SCHEDULE_NOT_FUTURE",
+            "The scheduled publication time must be in the future",
+          );
+        }
         const base = readBase(transaction, config, id);
         if (!base) throw notFound(collection, id);
         assertMutable(base, collection);
-        const translation = readTranslation(transaction, config, id, locale);
-        assertPublishable(config, base, translation);
-        assertSlugAvailable(transaction, config, id, locale, translation!.slug);
-
-        transaction
-          .update(config.translations)
-          .set({
-            status: "scheduled",
-            scheduledAt: scheduledDate,
-            publishedAt: null,
-            updatedAt: timestamp,
-          })
-          .where(
-            and(
-              eq(config.translations.ownerId, id),
-              eq(config.translations.locale, locale),
-            ),
-          )
-          .run();
+        assertProofVerified(config, base);
+        assertSlugAvailable(transaction, config, id, locale, translation.slug);
+        upsertTranslation(
+          transaction,
+          config,
+          id,
+          locale,
+          translation,
+          { status: "scheduled", scheduledAt: scheduledDate, publishedAt: null },
+          timestamp,
+        );
         audit(transaction).record({
           actorId,
           action: "content.translation.schedule",

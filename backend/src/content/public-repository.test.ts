@@ -4,6 +4,8 @@ import { createTestDatabase } from "../db/test-db.js";
 import {
   certificates,
   certificateTranslations,
+  partners,
+  partnerTranslations,
   proofMetrics,
   proofMetricTranslations,
   services,
@@ -396,6 +398,69 @@ describe("public content repository", () => {
 
       expect(home.certificates).toHaveLength(1);
       expect(home.certificates[0]?.id).toBe("verified-certificate");
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("hides proof-bearing content whose verification source is whitespace", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      const base = {
+        sortOrder: 0,
+        verifiedAt: PUBLISHED_AT,
+        verificationSource: "   ",
+        createdAt: NOW,
+        updatedAt: NOW,
+      };
+      testDatabase.db.insert(partners).values({
+        ...base,
+        id: "whitespace-partner",
+        code: "whitespace-partner",
+      }).run();
+      testDatabase.db.insert(certificates).values({
+        ...base,
+        id: "whitespace-certificate",
+        code: "whitespace-certificate",
+      }).run();
+      testDatabase.db.insert(proofMetrics).values({
+        ...base,
+        id: "whitespace-proof",
+        code: "whitespace-proof",
+      }).run();
+
+      const translation = (ownerId: string) => ({
+        ownerId,
+        locale: "en" as const,
+        status: "published" as const,
+        publishedAt: PUBLISHED_AT,
+        slug: ownerId,
+        title: ownerId,
+        summary: `${ownerId} summary`,
+        body: `${ownerId} body`,
+        seoTitle: ownerId,
+        seoDescription: `${ownerId} description`,
+        altText: `${ownerId} alt text`,
+        updatedAt: NOW,
+      });
+      testDatabase.db
+        .insert(partnerTranslations)
+        .values(translation("whitespace-partner"))
+        .run();
+      testDatabase.db
+        .insert(certificateTranslations)
+        .values(translation("whitespace-certificate"))
+        .run();
+      testDatabase.db
+        .insert(proofMetricTranslations)
+        .values(translation("whitespace-proof"))
+        .run();
+
+      const home = await createRepository(testDatabase.db).getHome("en");
+      expect(home.verifiedTrust).toEqual([]);
+      expect(home.certificates).toEqual([]);
+      expect(home.proof).toEqual([]);
     } finally {
       testDatabase.close();
     }

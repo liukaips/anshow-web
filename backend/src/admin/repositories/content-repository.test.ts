@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../../db/test-db.js";
@@ -8,6 +9,7 @@ import {
 } from "./content-repository.js";
 
 const NOW = new Date("2026-07-15T04:00:00.000Z");
+const FIRST_CONTENT_ID = "00000000-0000-4000-8000-000000000001";
 const completeTranslation = {
   title: "Freight service",
   slug: "freight-service",
@@ -23,7 +25,8 @@ function createRepository() {
   let contentSequence = 0;
   let auditSequence = 0;
   const repository = createContentRepository(testDatabase.db, {
-    createId: () => `content-${++contentSequence}`,
+    createId: () =>
+      `00000000-0000-4000-8000-${String(++contentSequence).padStart(12, "0")}`,
     createAuditId: () => `audit-${++auditSequence}`,
     now: () => NOW,
   });
@@ -42,7 +45,7 @@ describe("administration content repository", () => {
         "staff-1",
       );
       expect(created).toMatchObject({
-        id: "content-1",
+        id: FIRST_CONTENT_ID,
         code: "freight-service",
         translations: {},
       });
@@ -73,13 +76,13 @@ describe("administration content repository", () => {
           actorId: "staff-1",
           action: "content.create",
           entityType: "services",
-          entityId: "content-1",
+          entityId: FIRST_CONTENT_ID,
         }),
         expect.objectContaining({
           actorId: "staff-1",
           action: "content.translation.save-draft",
           entityType: "services",
-          entityId: "content-1",
+          entityId: FIRST_CONTENT_ID,
         }),
       ]);
     } finally {
@@ -96,7 +99,7 @@ describe("administration content repository", () => {
         { code: "language-states" },
         "staff-1",
       );
-      for (const locale of ["en", "zh", "ru"] as const) {
+      for (const locale of ["en", "zh"] as const) {
         await context.repository.saveDraft(
           "articles",
           item.id,
@@ -110,12 +113,34 @@ describe("administration content repository", () => {
         "articles",
         item.id,
         "ru",
+        {
+          ...completeTranslation,
+          title: "Fresh Russian title",
+          slug: "ru-language-states",
+        },
         "staff-publisher",
       );
 
-      expect(published.translations.ru!.status).toBe("published");
+      expect(published.translations.ru).toMatchObject({
+        status: "published",
+        title: "Fresh Russian title",
+        slug: "ru-language-states",
+      });
       expect(published.translations.en!.status).toBe("draft");
       expect(published.translations.zh!.status).toBe("draft");
+      expect(context.db.select().from(auditLogs).all().at(-1)).toMatchObject({
+        actorId: "staff-publisher",
+        action: "content.translation.publish",
+        entityId: item.id,
+      });
+      expect(
+        context.db.select().from(auditLogs).all().map((entry) => entry.action),
+      ).toEqual([
+        "content.create",
+        "content.translation.save-draft",
+        "content.translation.save-draft",
+        "content.translation.publish",
+      ]);
     } finally {
       context.close();
     }
@@ -130,20 +155,12 @@ describe("administration content repository", () => {
         { code: "scheduled-page" },
         "staff-1",
       );
-      await context.repository.saveDraft(
-        "pages",
-        item.id,
-        "en",
-        completeTranslation,
-        "staff-1",
-      );
-
       await expect(
         context.repository.schedule(
           "pages",
           item.id,
           "en",
-          NOW.toISOString(),
+          { ...completeTranslation, scheduledAt: NOW.toISOString() },
           "staff-publisher",
         ),
       ).rejects.toMatchObject({ code: "SCHEDULE_NOT_FUTURE" });
@@ -153,11 +170,16 @@ describe("administration content repository", () => {
         "pages",
         item.id,
         "en",
-        future,
+        {
+          ...completeTranslation,
+          title: "Fresh scheduled title",
+          scheduledAt: future,
+        },
         "staff-publisher",
       );
       expect(scheduled.translations.en).toMatchObject({
         status: "scheduled",
+        title: "Fresh scheduled title",
         scheduledAt: future,
         publishedAt: null,
       });
@@ -190,6 +212,7 @@ describe("administration content repository", () => {
             collection,
             item.id,
             "en",
+            completeTranslation,
             "staff-publisher",
           ),
         ).rejects.toEqual(
@@ -310,4 +333,75 @@ describe("administration content repository", () => {
       context.close();
     }
   });
+
+  it("creates RFC UUID identifiers by default", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      const repository = createContentRepository(testDatabase.db, {
+        createAuditId: () => "audit-create-uuid",
+        now: () => NOW,
+      });
+      const item = await repository.create(
+        "services",
+        { code: "uuid-created" },
+        "staff-1",
+      );
+
+      expect(item.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it.each(["publish", "schedule"] as const)(
+    "rolls back the submitted translation when %s audit insertion fails",
+    async (command) => {
+      const context = createRepository();
+
+      try {
+        const item = await context.repository.create(
+          "services",
+          { code: `rollback-${command}` },
+          "staff-1",
+        );
+        context.db.run(sql.raw(`
+          CREATE TRIGGER reject_content_action_audit
+          BEFORE INSERT ON audit_logs
+          BEGIN
+            SELECT RAISE(ABORT, 'content audit rejected');
+          END
+        `));
+
+        const mutation =
+          command === "publish"
+            ? context.repository.publish(
+                "services",
+                item.id,
+                "en",
+                completeTranslation,
+                "staff-publisher",
+              )
+            : context.repository.schedule(
+                "services",
+                item.id,
+                "en",
+                {
+                  ...completeTranslation,
+                  scheduledAt: new Date(NOW.getTime() + 60_000).toISOString(),
+                },
+                "staff-publisher",
+              );
+
+        await expect(mutation).rejects.toThrow(/content audit rejected/);
+        await expect(
+          context.repository.get("services", item.id),
+        ).resolves.toMatchObject({ translations: {} });
+      } finally {
+        context.close();
+      }
+    },
+  );
 });

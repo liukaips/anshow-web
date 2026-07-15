@@ -74,12 +74,32 @@ export const OPENAPI_DOCUMENT_CONFIG = {
   },
 } as const;
 
-function errorEnvelope(requestId: string, code: string, message: string) {
+function errorEnvelope(
+  requestId: string,
+  code: string,
+  message: string,
+  fields?: Record<string, string[]>,
+) {
   return {
     data: null,
-    error: { code, message },
+    error: { code, message, ...(fields ? { fields } : {}) },
     requestId,
   };
+}
+
+function validationFields(error: z.ZodError): Record<string, string[]> {
+  const fieldErrors = error.flatten().fieldErrors as Record<
+    string,
+    string[] | undefined
+  >;
+  return Object.fromEntries(
+    Object.entries(fieldErrors).flatMap(([field, messages]) => {
+      const safeMessages = (messages ?? []).filter(
+        (message): message is string => typeof message === "string",
+      );
+      return safeMessages.length > 0 ? [[field, safeMessages]] : [];
+    }),
+  );
 }
 
 function errorDiagnostic(error: unknown) {
@@ -171,11 +191,13 @@ export function createApp(
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result, context) => {
       if (!result.success) {
+        const fields = validationFields(result.error);
         return context.json(
           errorEnvelope(
             context.get("requestId"),
             "VALIDATION_ERROR",
             "The request is invalid.",
+            Object.keys(fields).length > 0 ? fields : undefined,
           ),
           400,
         );

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
 import type { AppDatabase } from "../db/client.js";
@@ -173,6 +173,7 @@ export function createDrizzleContentStore(
       currentFilters.push(
         isNotNull(config.base.verifiedAt),
         isNotNull(config.base.verificationSource),
+        sql`trim(${config.base.verificationSource}) <> ''`,
       );
     }
 

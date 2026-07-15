@@ -846,7 +846,18 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[a-z0-9-]+$"
+              }
+            ]
           },
           "code": {
             "type": "string"
@@ -1139,6 +1150,57 @@
           "requestId"
         ]
       },
+      "PublishAdminContentInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100000
+          },
+          "seoTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "seoDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "altText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "title",
+          "slug",
+          "summary",
+          "body",
+          "seoTitle",
+          "seoDescription",
+          "altText"
+        ],
+        "additionalProperties": false
+      },
       "ScheduleAdminContentResponse": {
         "type": "object",
         "properties": {
@@ -1169,10 +1231,53 @@
           "scheduledAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100000
+          },
+          "seoTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "seoDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "altText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
         },
         "required": [
-          "scheduledAt"
+          "scheduledAt",
+          "title",
+          "slug",
+          "summary",
+          "body",
+          "seoTitle",
+          "seoDescription",
+          "altText"
         ],
         "additionalProperties": false
       },
@@ -2034,9 +2139,18 @@
           },
           {
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
             },
             "required": true,
             "name": "id",
@@ -2124,9 +2238,18 @@
           },
           {
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
             },
             "required": true,
             "name": "id",
@@ -2232,9 +2355,18 @@
           },
           {
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
             },
             "required": true,
             "name": "id",
@@ -2249,6 +2381,16 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishAdminContentInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Published one complete locale independently.",
@@ -2330,9 +2472,18 @@
           },
           {
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
             },
             "required": true,
             "name": "id",
@@ -2438,9 +2589,18 @@
           },
           {
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
             },
             "required": true,
             "name": "id",

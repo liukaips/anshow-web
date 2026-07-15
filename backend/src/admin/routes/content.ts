@@ -12,9 +12,11 @@ import {
 import type { AppEnv } from "../../http/context.js";
 import {
   adminContentCollectionSchema,
+  adminContentIdSchema,
   adminContentLocaleSchema,
   adminPublicationStateSchema,
   createContentInputSchema,
+  publishableTranslationSchema,
   scheduleTranslationInputSchema,
   translationInputSchema,
 } from "../content/content-schema.js";
@@ -36,6 +38,9 @@ const AdminPublicationStateSchema = adminPublicationStateSchema.openapi(
 const AdminTranslationInputSchema = translationInputSchema.openapi(
   "AdminContentTranslationInput",
 );
+const PublishAdminContentInputSchema = publishableTranslationSchema.openapi(
+  "PublishAdminContentInput",
+);
 const CreateAdminContentInputSchema = createContentInputSchema.openapi(
   "CreateAdminContentInput",
 );
@@ -52,7 +57,7 @@ const AdminContentTranslationSchema = AdminTranslationInputSchema.extend({
 
 const AdminContentItemSchema = z
   .object({
-    id: z.string(),
+    id: adminContentIdSchema,
     code: z.string(),
     sortOrder: z.number().int(),
     archivedAt: z.string().datetime().nullable(),
@@ -74,7 +79,7 @@ const CollectionParamsSchema = z.object({
   collection: AdminContentCollectionSchema,
 });
 const ContentParamsSchema = CollectionParamsSchema.extend({
-  id: z.string().trim().min(1).max(200),
+  id: adminContentIdSchema,
 });
 const TranslationParamsSchema = ContentParamsSchema.extend({
   locale: AdminContentLocaleSchema,
@@ -249,7 +254,15 @@ export function registerContentRoutes(
     operationId: "publishAdminContentTranslation",
     tags: ["Administration Content"],
     middleware: [requirePermission("content.publish", dependencies)],
-    request: { params: TranslationParamsSchema },
+    request: {
+      params: TranslationParamsSchema,
+      body: {
+        required: true,
+        content: {
+          "application/json": { schema: PublishAdminContentInputSchema },
+        },
+      },
+    },
     responses: {
       200: {
         description: "Published one complete locale independently.",
@@ -401,6 +414,7 @@ export function registerContentRoutes(
 
   app.openapi(publishRoute, async (context) => {
     const { collection, id, locale } = context.req.valid("param");
+    const input = context.req.valid("json");
     try {
       return context.json(
         successEnvelope(
@@ -409,6 +423,7 @@ export function registerContentRoutes(
             collection,
             id,
             locale,
+            input,
             actorId(context),
           ),
         ),
@@ -424,7 +439,7 @@ export function registerContentRoutes(
 
   app.openapi(scheduleRoute, async (context) => {
     const { collection, id, locale } = context.req.valid("param");
-    const { scheduledAt } = context.req.valid("json");
+    const input = context.req.valid("json");
     try {
       return context.json(
         successEnvelope(
@@ -433,7 +448,7 @@ export function registerContentRoutes(
             collection,
             id,
             locale,
-            scheduledAt,
+            input,
             actorId(context),
           ),
         ),

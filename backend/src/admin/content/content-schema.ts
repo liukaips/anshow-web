@@ -30,6 +30,10 @@ export type AdminPublicationState =
 export const adminContentCollectionSchema = z.enum(ADMIN_CONTENT_COLLECTIONS);
 export const adminContentLocaleSchema = z.enum(ADMIN_CONTENT_LOCALES);
 export const adminPublicationStateSchema = z.enum(ADMIN_PUBLICATION_STATES);
+export const adminContentIdSchema = z.union([
+  z.uuid(),
+  z.string().trim().min(1).max(200).regex(/^[a-z0-9-]+$/),
+]);
 
 const draftText = (maximum: number) => z.string().trim().max(maximum);
 const draftSlugSchema = draftText(200).refine(
@@ -84,7 +88,15 @@ export const scheduleTranslationInputSchema = z
   .object({
     scheduledAt: z.string().datetime({ offset: true }),
   })
+  .extend(publishableTranslationSchema.shape)
   .strict();
+
+export type PublishTranslationInput = z.infer<
+  typeof publishableTranslationSchema
+>;
+export type ScheduleTranslationInput = z.infer<
+  typeof scheduleTranslationInputSchema
+>;
 
 export function canPublishTranslation(input: unknown): boolean {
   return publishableTranslationSchema.safeParse(input).success;

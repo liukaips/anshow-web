@@ -186,6 +186,7 @@ describe("public content API", () => {
         data: null,
         error: {
           code: "VALIDATION_ERROR",
+          fields: { locale: [expect.any(String)] },
           message: "The request is invalid.",
         },
         requestId: response.headers.get("x-request-id"),

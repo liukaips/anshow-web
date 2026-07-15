@@ -67,6 +67,15 @@ describe("GET /api/health/live", () => {
     expect(document.components?.schemas).toMatchObject({
       ApiError: {
         required: ["code", "message"],
+        properties: {
+          fields: {
+            additionalProperties: {
+              items: { type: "string" },
+              type: "array",
+            },
+            type: "object",
+          },
+        },
       },
       ErrorEnvelope: {
         properties: {
@@ -115,6 +124,7 @@ describe("API error envelopes", () => {
       data: null,
       error: {
         code: "VALIDATION_ERROR",
+        fields: { count: [expect.any(String)] },
         message: "The request is invalid.",
       },
       requestId,

@@ -17,19 +17,38 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly requestId?: string;
+  readonly fields?: Readonly<Record<string, readonly string[]>>;
 
   constructor(options: {
     status: number;
     code: string;
     message: string;
     requestId?: string;
+    fields?: Readonly<Record<string, readonly string[]>>;
   }) {
     super(options.message);
     this.name = "ApiError";
     this.status = options.status;
     this.code = options.code;
     this.requestId = options.requestId;
+    this.fields = options.fields;
   }
+}
+
+function safeFields(
+  value: unknown,
+): Readonly<Record<string, readonly string[]>> | undefined {
+  if (!isRecord(value)) return undefined;
+  const fields = Object.fromEntries(
+    Object.entries(value).flatMap(([field, messages]) => {
+      if (!Array.isArray(messages)) return [];
+      const safeMessages = messages.filter(
+        (message): message is string => typeof message === "string",
+      );
+      return safeMessages.length > 0 ? [[field, safeMessages]] : [];
+    }),
+  );
+  return Object.keys(fields).length > 0 ? fields : undefined;
 }
 
 export async function getEnvelope<T>(
@@ -63,6 +82,7 @@ export async function getEnvelope<T>(
           ? error.message
           : "API request failed.",
       requestId,
+      fields: safeFields(error?.fields),
     });
   }
 
