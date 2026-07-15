@@ -161,11 +161,18 @@ describe("media repository", () => {
       entityId: "article-1",
       field: "leadImage",
     }).run();
+    context.db.insert(mediaUsage).values({
+      mediaId: asset.id,
+      entityType: "hero-slide",
+      entityId: "hero-2",
+      field: "mobileImage",
+    }).run();
 
     await expect(repo.deleteWithAudit(asset.id, "staff-1")).rejects.toMatchObject({
       code: "MEDIA_IN_USE",
       references: [
         { entityType: "article", entityId: "article-1", field: "leadImage" },
+        { entityType: "hero-slide", entityId: "hero-2", field: "mobileImage" },
       ],
     });
     expect(context.db.select().from(mediaAssets).all()).toHaveLength(1);
@@ -188,7 +195,36 @@ describe("media repository", () => {
       action: "media.delete",
       entityId: asset.id,
     });
-    expect(context.db.select().from(mediaCleanupJobs).all()).toHaveLength(3);
+    expect(context.db.select().from(mediaCleanupJobs).all().map(({ storageKey }) => storageKey).sort()).toEqual(
+      [...deleted.storageKeys].sort(),
+    );
+  });
+
+  it("does not let replacement interleave while delete captures its generation", async () => {
+    const repo = repository();
+    const asset = await repo.insert(mediaInput("generation-a"), "staff-1");
+
+    const deletion = repo.deleteWithAudit(asset.id, "staff-1");
+    const replacement = repo.replace(
+      asset.id,
+      { ...mediaInput("generation-b"), id: asset.id },
+      "staff-2",
+    );
+
+    await expect(deletion).resolves.toEqual({
+      storageKeys: [
+        "generation-a/master.jpg",
+        "generation-a/480.avif",
+        "generation-a/480.webp",
+      ],
+    });
+    await expect(replacement).rejects.toMatchObject({ code: "MEDIA_NOT_FOUND" });
+    expect(context.db.select().from(mediaAssets).all()).toHaveLength(0);
+    expect(context.db.select().from(mediaCleanupJobs).all().map(({ storageKey }) => storageKey).sort()).toEqual([
+      "generation-a/480.avif",
+      "generation-a/480.webp",
+      "generation-a/master.jpg",
+    ]);
   });
 
   it("rolls replacement back when its audit insert fails", async () => {

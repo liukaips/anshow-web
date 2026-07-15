@@ -451,31 +451,45 @@ export function createMediaRepository(
     },
 
     async deleteWithAudit(id, actorId) {
-      const asset = await get(id);
-      if (asset.references.length > 0) {
-        throw new MediaRepositoryError(
-          "MEDIA_IN_USE",
-          "Media is referenced and cannot be deleted",
-          asset.references,
-        );
-      }
+      const timestamp = now();
+      let storageKeys: string[] = [];
       database.transaction((transaction) => {
+        const asset = transaction
+          .select({ storageKey: mediaAssets.storageKey })
+          .from(mediaAssets)
+          .where(eq(mediaAssets.id, id))
+          .get();
+        if (!asset) throw notFound(id);
+        const derivativeKeys = transaction
+          .select({ url: mediaDerivatives.url })
+          .from(mediaDerivatives)
+          .where(eq(mediaDerivatives.mediaId, id))
+          .orderBy(asc(mediaDerivatives.width), asc(mediaDerivatives.format))
+          .all()
+          .map(({ url }) => storageKeyFromUrl(url));
         const currentReferences = transaction
-          .select({ entityId: mediaUsage.entityId })
+          .select({
+            entityType: mediaUsage.entityType,
+            entityId: mediaUsage.entityId,
+            field: mediaUsage.field,
+          })
           .from(mediaUsage)
           .where(eq(mediaUsage.mediaId, id))
+          .orderBy(asc(mediaUsage.entityType), asc(mediaUsage.entityId), asc(mediaUsage.field))
           .all();
         if (currentReferences.length > 0) {
           throw new MediaRepositoryError(
             "MEDIA_IN_USE",
-            "Media became referenced and cannot be deleted",
+            "Media is referenced and cannot be deleted",
+            currentReferences,
           );
         }
+        storageKeys = [asset.storageKey, ...derivativeKeys];
         enqueueCleanupJobs(
           transaction,
-          [asset.storageKey, ...asset.derivatives.map(({ storageKey }) => storageKey)],
+          storageKeys,
           "media deletion",
-          now(),
+          timestamp,
         );
         transaction.delete(mediaAssets).where(eq(mediaAssets.id, id)).run();
         audit(transaction).record({
@@ -486,12 +500,7 @@ export function createMediaRepository(
           detail: {},
         });
       });
-      return {
-        storageKeys: [
-          asset.storageKey,
-          ...asset.derivatives.map(({ storageKey }) => storageKey),
-        ],
-      };
+      return { storageKeys };
     },
   };
 }
