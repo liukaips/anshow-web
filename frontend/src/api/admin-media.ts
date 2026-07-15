@@ -7,6 +7,7 @@ type UploadOperation = paths["/api/admin/media"]["post"];
 type MetadataOperation = paths["/api/admin/media/{id}"]["put"];
 type DeleteOperation = paths["/api/admin/media/{id}"]["delete"];
 type ReplaceOperation = paths["/api/admin/media/{id}/replacement"]["post"];
+type RetryCleanupOperation = paths["/api/admin/media/cleanup/retry"]["post"];
 
 export type AdminMediaAsset = NonNullable<
   ListOperation["responses"][200]["content"]["application/json"]["data"]
@@ -117,6 +118,17 @@ export async function deleteAdminMedia(id: string): Promise<void> {
     NonNullable<DeleteOperation["responses"][200]["content"]["application/json"]["data"]>
   >(`/api/admin/media/${segment(id)}`, {
     method: "DELETE",
+    credentials: "same-origin",
+  });
+}
+
+export function retryAdminMediaCleanup(): Promise<
+  NonNullable<
+    RetryCleanupOperation["responses"][200]["content"]["application/json"]["data"]
+  >
+> {
+  return getEnvelope("/api/admin/media/cleanup/retry", {
+    method: "POST",
     credentials: "same-origin",
   });
 }

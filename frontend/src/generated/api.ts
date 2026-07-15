@@ -212,6 +212,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/media/cleanup/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retryAdminMediaCleanup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media/{id}": {
         parameters: {
             query?: never;
@@ -670,6 +686,16 @@ export interface components {
             entityType: string;
             entityId: string;
             field: string;
+        };
+        RetryAdminMediaCleanupResponse: {
+            data: {
+                attempted: number;
+                remaining: number;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
         };
         AdminMediaDetailResponse: {
             data: components["schemas"]["AdminMediaAsset"];
@@ -1737,6 +1763,44 @@ export interface operations {
             };
             /** @description Upload exceeds 20 MB. */
             413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    retryAdminMediaCleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retried due media cleanup jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryAdminMediaCleanupResponse"];
+                };
+            };
+            /** @description No staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing media.write. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -207,6 +207,7 @@ const defaultDependencies: AppDependencies = {
     delete: async () => {
       throw new Error("Media service is not configured");
     },
+    retryCleanup: async () => ({ attempted: 0, remaining: 0 }),
   },
 };
 

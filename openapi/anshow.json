@@ -1553,6 +1553,44 @@
           "field"
         ]
       },
+      "RetryAdminMediaCleanupResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "attempted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "remaining": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "attempted",
+              "remaining"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
       "AdminMediaDetailResponse": {
         "type": "object",
         "properties": {
@@ -3343,6 +3381,46 @@
           },
           "413": {
             "description": "Upload exceeds 20 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media/cleanup/retry": {
+      "post": {
+        "operationId": "retryAdminMediaCleanup",
+        "tags": [
+          "Administration Media"
+        ],
+        "responses": {
+          "200": {
+            "description": "Retried due media cleanup jobs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAdminMediaCleanupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing media.write.",
             "content": {
               "application/json": {
                 "schema": {

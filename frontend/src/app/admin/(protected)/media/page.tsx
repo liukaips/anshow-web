@@ -18,7 +18,7 @@ export default async function AdminMediaPage() {
         <h1 className="mt-1 text-2xl font-semibold text-[var(--color-text)] sm:text-3xl">
           Media Library
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+        <p className="mt-2 max-w-2xl text-base leading-6 text-neutral-600">
           Review optimized image variants, localized alternative text, focal
           points, and content references.
         </p>

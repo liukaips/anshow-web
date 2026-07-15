@@ -128,6 +128,16 @@ export const mediaUsage = sqliteTable(
   ],
 );
 
+export const mediaCleanupJobs = sqliteTable("media_cleanup_jobs", {
+  storageKey: text("storage_key").primaryKey(),
+  reason: text("reason").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  createdAt: requiredCreatedAt(),
+  updatedAt: requiredUpdatedAt(),
+  nextAttemptAt: timestamp("next_attempt_at").notNull(),
+});
+
 function localizedCollection(
   baseName: string,
   translationName: string,

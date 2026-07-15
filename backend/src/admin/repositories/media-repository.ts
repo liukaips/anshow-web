@@ -1,10 +1,11 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, count, eq, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { AppDatabase } from "../../db/client.js";
 import {
   mediaAssetTranslations,
   mediaAssets,
+  mediaCleanupJobs,
   mediaDerivatives,
   mediaUsage,
 } from "../../db/schema/content.js";
@@ -60,6 +61,12 @@ export type AdminMediaAsset = Readonly<
     referenceCount: number;
   }
 >;
+export type MediaCleanupJob = Readonly<{
+  storageKey: string;
+  reason: string;
+  attempts: number;
+  lastError: string | null;
+}>;
 
 export class MediaRepositoryError extends Error {
   constructor(
@@ -91,6 +98,15 @@ export interface MediaRepository {
     id: string,
     actorId: string,
   ): Promise<{ storageKeys: string[] }>;
+  enqueueCleanup(
+    storageKeys: readonly string[],
+    reason: string,
+    error?: unknown,
+  ): Promise<void>;
+  listPendingCleanup(limit: number): Promise<MediaCleanupJob[]>;
+  completeCleanup(storageKeys: readonly string[]): Promise<void>;
+  failCleanup(storageKeys: readonly string[], error: unknown): Promise<void>;
+  countPendingCleanup(): Promise<number>;
 }
 
 type MediaRepositoryOptions = Readonly<{
@@ -103,6 +119,38 @@ type MediaTransaction = Parameters<
 >[0];
 
 const LOCALES = ["en", "zh", "ru"] as const;
+
+function safeErrorName(error: unknown) {
+  return (error instanceof Error ? error.name : "NonErrorThrown").slice(0, 100);
+}
+
+function enqueueCleanupJobs(
+  transaction: MediaTransaction,
+  storageKeys: readonly string[],
+  reason: string,
+  timestamp: Date,
+  error?: unknown,
+) {
+  if (storageKeys.length === 0) return;
+  const attempts = error === undefined ? 0 : 1;
+  const lastError = error === undefined ? null : safeErrorName(error);
+  transaction
+    .insert(mediaCleanupJobs)
+    .values(storageKeys.map((storageKey) => ({
+      storageKey,
+      reason,
+      attempts,
+      lastError,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      nextAttemptAt: timestamp,
+    })))
+    .onConflictDoUpdate({
+      target: mediaCleanupJobs.storageKey,
+      set: { reason, attempts, lastError, updatedAt: timestamp, nextAttemptAt: timestamp },
+    })
+    .run();
+}
 
 function storageKeyFromUrl(url: string) {
   if (!url.startsWith("/media/")) {
@@ -236,6 +284,53 @@ export function createMediaRepository(
     get,
     references,
 
+    async enqueueCleanup(storageKeys, reason, error) {
+      const timestamp = now();
+      database.transaction((transaction) => {
+        enqueueCleanupJobs(transaction, storageKeys, reason, timestamp, error);
+      });
+    },
+
+    async listPendingCleanup(limit) {
+      return database
+        .select({
+          storageKey: mediaCleanupJobs.storageKey,
+          reason: mediaCleanupJobs.reason,
+          attempts: mediaCleanupJobs.attempts,
+          lastError: mediaCleanupJobs.lastError,
+        })
+        .from(mediaCleanupJobs)
+        .where(lte(mediaCleanupJobs.nextAttemptAt, now()))
+        .orderBy(asc(mediaCleanupJobs.nextAttemptAt), asc(mediaCleanupJobs.storageKey))
+        .limit(Math.max(1, Math.min(limit, 100)))
+        .all();
+    },
+
+    async completeCleanup(storageKeys) {
+      if (storageKeys.length === 0) return;
+      database.delete(mediaCleanupJobs).where(inArray(mediaCleanupJobs.storageKey, [...storageKeys])).run();
+    },
+
+    async failCleanup(storageKeys, error) {
+      if (storageKeys.length === 0) return;
+      const timestamp = now();
+      const nextAttemptAt = new Date(timestamp.getTime() + 60_000);
+      database
+        .update(mediaCleanupJobs)
+        .set({
+          attempts: sql`${mediaCleanupJobs.attempts} + 1`,
+          lastError: safeErrorName(error),
+          updatedAt: timestamp,
+          nextAttemptAt,
+        })
+        .where(inArray(mediaCleanupJobs.storageKey, [...storageKeys]))
+        .run();
+    },
+
+    async countPendingCleanup() {
+      return database.select({ value: count() }).from(mediaCleanupJobs).get()?.value ?? 0;
+    },
+
     async insert(input, actorId) {
       const parsedMetadata = mediaMetadataSchema.parse({
         alt: input.alt,
@@ -309,11 +404,23 @@ export function createMediaRepository(
       const timestamp = now();
       database.transaction((transaction) => {
         const asset = transaction
-          .select({ id: mediaAssets.id })
+          .select({ id: mediaAssets.id, storageKey: mediaAssets.storageKey })
           .from(mediaAssets)
           .where(eq(mediaAssets.id, id))
           .get();
         if (!asset) throw notFound(id);
+        const oldDerivativeKeys = transaction
+          .select({ url: mediaDerivatives.url })
+          .from(mediaDerivatives)
+          .where(eq(mediaDerivatives.mediaId, id))
+          .all()
+          .map(({ url }) => storageKeyFromUrl(url));
+        enqueueCleanupJobs(
+          transaction,
+          [asset.storageKey, ...oldDerivativeKeys],
+          "replacement retirement",
+          timestamp,
+        );
         transaction
           .update(mediaAssets)
           .set({
@@ -364,6 +471,12 @@ export function createMediaRepository(
             "Media became referenced and cannot be deleted",
           );
         }
+        enqueueCleanupJobs(
+          transaction,
+          [asset.storageKey, ...asset.derivatives.map(({ storageKey }) => storageKey)],
+          "media deletion",
+          now(),
+        );
         transaction.delete(mediaAssets).where(eq(mediaAssets.id, id)).run();
         audit(transaction).record({
           actorId,

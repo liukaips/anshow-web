@@ -129,7 +129,7 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
           {validationErrors.focalY ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id="upload-focal-y-error">{validationErrors.focalY}</span> : null}
         </label>
       </div>
-      <div aria-live="polite" className="mt-2 min-h-6 text-sm">
+      <div aria-live="polite" className="mt-2 min-h-6 text-base">
         {error ? <span className="font-medium text-[var(--color-danger)]" role="alert">{error}</span> : phaseLabel(phase, progress)}
       </div>
     </section>
@@ -213,7 +213,7 @@ function AssetEditor({ asset, canWrite, view, onChange, onDelete }: { asset: Adm
                 <label className="min-w-0 text-sm font-semibold" key={locale}>
                   Alt text ({locale.toUpperCase()})
                   <input aria-describedby={errors[locale] ? `${asset.id}-${locale}-error` : undefined} aria-invalid={Boolean(errors[locale])} className={inputClass} onChange={(event) => setMetadata((current) => ({ ...current, alt: { ...current.alt, [locale]: event.target.value } }))} ref={locale === "en" ? englishInput : undefined} value={metadata.alt[locale]} />
-                  {errors[locale] ? <span className="mt-1 block text-sm font-normal text-[var(--color-danger)]" id={`${asset.id}-${locale}-error`}>{errors[locale]}</span> : null}
+                  {errors[locale] ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id={`${asset.id}-${locale}-error`}>{errors[locale]}</span> : null}
                 </label>
               ))}
             </div>

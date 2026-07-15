@@ -46,6 +46,7 @@ function fakeService(overrides: Partial<MediaService> = {}) {
     updateMetadata: vi.fn(unavailable),
     replace: vi.fn(unavailable),
     delete: vi.fn(unavailable),
+    retryCleanup: vi.fn(async () => ({ attempted: 0, remaining: 0 })),
     ...overrides,
   } satisfies MediaService;
 }
@@ -296,5 +297,32 @@ describe("administration media routes", () => {
     expect(Object.keys(document.paths["/api/admin/media/{id}"]!.delete!.responses).sort()).toEqual(["200", "400", "401", "403", "404", "409"]);
     expect(Object.keys(document.paths["/api/admin/media"]!.post!.responses).sort()).toEqual(["201", "400", "401", "403", "413"]);
     expect(Object.keys(document.paths["/api/admin/media/{id}/replacement"]!.post!.responses).sort()).toEqual(["200", "400", "401", "403", "404", "413"]);
+  });
+
+  it("protects cleanup retry with media.write and returns safe counts only", async () => {
+    const mediaService = fakeService({
+      retryCleanup: vi.fn(async () => ({ attempted: 3, remaining: 1 })),
+    });
+    const forbidden = createApp({
+      mediaService,
+      getSession: session,
+      getPermissions: () => ["media.read"],
+    });
+    expect((await forbidden.request("/api/admin/media/cleanup/retry", { method: "POST" })).status).toBe(403);
+    expect(mediaService.retryCleanup).not.toHaveBeenCalled();
+
+    const app = createApp({
+      mediaService,
+      getSession: session,
+      getPermissions: () => ["media.write"],
+    });
+    const response = await app.request("/api/admin/media/cleanup/retry", { method: "POST" });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { attempted: 3, remaining: 1 },
+      error: null,
+      requestId: response.headers.get("x-request-id"),
+    });
   });
 });

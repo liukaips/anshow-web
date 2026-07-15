@@ -193,6 +193,31 @@ const deleteRoute = createRoute({
   },
 });
 
+const retryCleanupRoute = createRoute({
+  method: "post",
+  path: "/api/admin/media/cleanup/retry",
+  operationId: "retryAdminMediaCleanup",
+  tags: ["Administration Media"],
+  responses: {
+    200: {
+      description: "Retried due media cleanup jobs.",
+      content: {
+        "application/json": {
+          schema: envelope(
+            "RetryAdminMediaCleanupResponse",
+            z.object({
+              attempted: z.number().int().nonnegative(),
+              remaining: z.number().int().nonnegative(),
+            }),
+          ),
+        },
+      },
+    },
+    401: { description: "No staff session.", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    403: { description: "Missing media.write.", content: { "application/json": { schema: errorEnvelopeSchema } } },
+  },
+});
+
 export type MediaRouteDependencies = PermissionMiddlewareDependencies & {
   mediaService: MediaService;
 };
@@ -355,6 +380,13 @@ export function registerMediaRoutes(
   });
 
   app.openapi(listRoute, async (context) => context.json({ data: (await dependencies.mediaService.list()).map(toMediaResponse), error: null, requestId: context.get("requestId") }, 200));
+  app.openapi(retryCleanupRoute, async (context) =>
+    context.json({
+      data: await dependencies.mediaService.retryCleanup(),
+      error: null,
+      requestId: context.get("requestId"),
+    }, 200),
+  );
   app.openapi(detailRoute, async (context) => {
     try {
       return context.json({ data: toMediaResponse(await dependencies.mediaService.get(context.req.valid("param").id)), error: null, requestId: context.get("requestId") }, 200);

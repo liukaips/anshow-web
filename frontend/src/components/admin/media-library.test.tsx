@@ -106,6 +106,7 @@ describe("MediaLibrary", () => {
     fireEvent.click(screen.getByRole("button", { name: "Upload media" }));
 
     await waitFor(() => expect(screen.getByText("Uploading 45%")).toBeVisible());
+    expect(screen.getByText("Uploading 45%")).toHaveClass("text-base");
     expect(screen.getByRole("button", { name: "Upload media" })).toBeDisabled();
 
     resolveUpload(asset);

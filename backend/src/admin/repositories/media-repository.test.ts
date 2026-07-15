@@ -7,6 +7,7 @@ import {
   mediaAssetTranslations,
   mediaAssets,
   mediaDerivatives,
+  mediaCleanupJobs,
   mediaUsage,
 } from "../../db/schema/index.js";
 import {
@@ -144,6 +145,11 @@ describe("media repository", () => {
     ]);
     expect(context.db.select().from(mediaUsage).all()).toHaveLength(1);
     expect(context.db.select().from(mediaDerivatives).all()).toHaveLength(2);
+    expect(context.db.select().from(mediaCleanupJobs).all().map((job) => job.storageKey).sort()).toEqual([
+      "generation-a/480.avif",
+      "generation-a/480.webp",
+      "generation-a/master.jpg",
+    ]);
   });
 
   it("blocks deletion of referenced media with its reference list", async () => {
@@ -182,6 +188,7 @@ describe("media repository", () => {
       action: "media.delete",
       entityId: asset.id,
     });
+    expect(context.db.select().from(mediaCleanupJobs).all()).toHaveLength(3);
   });
 
   it("rolls replacement back when its audit insert fails", async () => {
@@ -208,6 +215,31 @@ describe("media repository", () => {
     ).toEqual([
       "/media/generation-a/480.avif",
       "/media/generation-a/480.webp",
+    ]);
+    expect(context.db.select().from(mediaCleanupJobs).all()).toHaveLength(0);
+  });
+
+  it("enqueues, reschedules, lists due, and completes compensation cleanup jobs", async () => {
+    const repo = repository();
+    await repo.enqueueCleanup(
+      ["failed/master.jpg", "failed/480.webp"],
+      "upload compensation",
+      new Error("storage credentials leaked-secret-that-must-not-survive"),
+    );
+
+    const due = await repo.listPendingCleanup(10);
+    expect(due.map((job) => job.storageKey).sort()).toEqual([
+      "failed/480.webp",
+      "failed/master.jpg",
+    ]);
+    expect(due[0]).toMatchObject({ attempts: 1, reason: "upload compensation" });
+    expect(due[0]?.lastError).not.toContain("leaked-secret-that-must-not-survive");
+
+    await repo.failCleanup(["failed/master.jpg"], new Error("still unavailable"));
+    await repo.completeCleanup(["failed/480.webp"]);
+
+    expect(context.db.select().from(mediaCleanupJobs).all()).toEqual([
+      expect.objectContaining({ storageKey: "failed/master.jpg", attempts: 2 }),
     ]);
   });
 });

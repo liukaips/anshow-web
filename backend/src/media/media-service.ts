@@ -49,11 +49,13 @@ export class MediaCleanupError extends AggregateError {
     readonly operation: string,
     failures: readonly Readonly<{ key: string; error: unknown }>[],
     primaryError?: unknown,
+    trackingErrors: readonly unknown[] = [],
   ) {
     super(
       [
         ...(primaryError === undefined ? [] : [primaryError]),
         ...failures.map(({ error }) => error),
+        ...trackingErrors,
       ],
       `${operation} failed to delete ${failures.length} media object(s)`,
       { cause: primaryError },
@@ -116,6 +118,7 @@ export interface MediaService {
     actorId: string,
   ): Promise<AdminMediaAsset>;
   delete(id: string, actorId: string): Promise<void>;
+  retryCleanup(limit?: number): Promise<{ attempted: number; remaining: number }>;
 }
 
 type MediaServiceDependencies = Readonly<{
@@ -320,17 +323,49 @@ export function createMediaService(
     keys: readonly string[],
     operation: string,
     primaryError?: unknown,
+    durable = false,
   ) {
     const failures: Array<{ key: string; error: unknown }> = [];
+    const completed: string[] = [];
     for (const key of [...keys].reverse()) {
       try {
         await dependencies.storage.delete(key);
+        completed.push(key);
       } catch (error) {
         failures.push({ key, error });
       }
     }
-    if (failures.length > 0) {
-      throw new MediaCleanupError(operation, failures, primaryError);
+
+    const trackingErrors: unknown[] = [];
+    try {
+      if (completed.length > 0 && durable) {
+        await dependencies.repository.completeCleanup(completed);
+      }
+      if (failures.length > 0) {
+        if (durable) {
+          await dependencies.repository.failCleanup(
+            failures.map(({ key }) => key),
+            failures[0]!.error,
+          );
+        } else {
+          await dependencies.repository.enqueueCleanup(
+            failures.map(({ key }) => key),
+            operation,
+            failures[0]!.error,
+          );
+        }
+      }
+    } catch (error) {
+      trackingErrors.push(error);
+    }
+
+    if (failures.length > 0 || trackingErrors.length > 0) {
+      throw new MediaCleanupError(
+        operation,
+        failures,
+        primaryError,
+        trackingErrors,
+      );
     }
   }
 
@@ -428,13 +463,40 @@ export function createMediaService(
       await cleanup([
         existing.storageKey,
         ...existing.derivatives.map(({ storageKey }) => storageKey),
-      ], "replacement retirement");
+      ], "replacement retirement", undefined, true);
       return saved;
     },
 
     async delete(id, actorId) {
       const deleted = await dependencies.repository.deleteWithAudit(id, actorId);
-      await cleanup(deleted.storageKeys, "media deletion");
+      await cleanup(deleted.storageKeys, "media deletion", undefined, true);
+    },
+
+    async retryCleanup(limit = 50) {
+      const jobs = await dependencies.repository.listPendingCleanup(limit);
+      const completed: string[] = [];
+      const failures: Array<{ key: string; error: unknown }> = [];
+      for (const job of jobs) {
+        try {
+          await dependencies.storage.delete(job.storageKey);
+          completed.push(job.storageKey);
+        } catch (error) {
+          failures.push({ key: job.storageKey, error });
+        }
+      }
+      if (completed.length > 0) {
+        await dependencies.repository.completeCleanup(completed);
+      }
+      if (failures.length > 0) {
+        await dependencies.repository.failCleanup(
+          failures.map(({ key }) => key),
+          failures[0]!.error,
+        );
+      }
+      return {
+        attempted: jobs.length,
+        remaining: await dependencies.repository.countPendingCleanup(),
+      };
     },
   };
 }

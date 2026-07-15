@@ -208,6 +208,11 @@ function fakeRepository(overrides: Partial<MediaRepository> = {}): MediaReposito
     replace: vi.fn(unavailable),
     references: vi.fn(async () => []),
     deleteWithAudit: vi.fn(unavailable),
+    enqueueCleanup: vi.fn(async () => undefined),
+    listPendingCleanup: vi.fn(async () => []),
+    completeCleanup: vi.fn(async () => undefined),
+    failCleanup: vi.fn(async () => undefined),
+    countPendingCleanup: vi.fn(async () => 0),
     ...overrides,
   };
 }
@@ -293,6 +298,15 @@ describe("media service orchestration", () => {
       cause: expect.objectContaining({ message: "database unavailable" }),
     });
     expect(attempted).toHaveLength(3);
+    expect(repository.enqueueCleanup).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        "11111111-1111-4111-8111-111111111111/generation-a/master.jpg",
+        "11111111-1111-4111-8111-111111111111/generation-a/480.avif",
+        "11111111-1111-4111-8111-111111111111/generation-a/480.webp",
+      ]),
+      "upload compensation",
+      expect.any(Error),
+    );
   });
 
   it("cleans earlier objects when a derivative write fails", async () => {
@@ -373,6 +387,11 @@ describe("media service orchestration", () => {
     expect(events.indexOf("repository:replace")).toBeLessThan(
       events.indexOf("delete:old/master.jpg"),
     );
+    expect(repository.completeCleanup).toHaveBeenCalledWith([
+      "old/480.avif",
+      "old/480.webp",
+      "old/master.jpg",
+    ]);
   });
 
   it("cleans only the new generation when replacement persistence rolls back", async () => {
@@ -435,6 +454,10 @@ describe("media service orchestration", () => {
       "staff-2",
     )).rejects.toMatchObject({ code: "MEDIA_CLEANUP_FAILED", operation: "replacement retirement" });
     expect(attempted).toEqual(expect.arrayContaining(["old/master.jpg", "old/480.webp"]));
+    expect(repository.failCleanup).toHaveBeenCalledWith(
+      expect.arrayContaining(["old/master.jpg", "old/480.webp"]),
+      expect.any(Error),
+    );
   });
 
   it("fails deletion visibly when committed object retirement fails", async () => {
@@ -451,6 +474,10 @@ describe("media service orchestration", () => {
     await expect(service.delete("11111111-1111-4111-8111-111111111111", "staff-1"))
       .rejects.toMatchObject({ code: "MEDIA_CLEANUP_FAILED", operation: "media deletion" });
     expect(attempted).toEqual(["old/480.webp", "old/master.jpg"]);
+    expect(repository.failCleanup).toHaveBeenCalledWith(
+      ["old/480.webp", "old/master.jpg"],
+      expect.any(Error),
+    );
   });
 
   it("does not write storage or repository records when processing cannot meet a derivative budget", async () => {
@@ -469,5 +496,24 @@ describe("media service orchestration", () => {
     )).rejects.toMatchObject({ code: "MEDIA_BUDGET_EXCEEDED" });
     expect(storage.keys.size).toBe(0);
     expect(repository.insert).not.toHaveBeenCalled();
+  });
+
+  it("retries due cleanup jobs, completes successes, and reschedules failures", async () => {
+    const repository = fakeRepository({
+      listPendingCleanup: vi.fn(async () => [
+        { storageKey: "pending/a.webp", reason: "media deletion", attempts: 0, lastError: null },
+        { storageKey: "pending/b.webp", reason: "media deletion", attempts: 1, lastError: "Error" },
+      ]),
+      countPendingCleanup: vi.fn(async () => 1),
+    });
+    const storage: MediaStorage = {
+      async put(key) { return `/media/${key}`; },
+      async delete(key) { if (key.endsWith("b.webp")) throw new Error("still unavailable"); },
+    };
+    const service = createMediaService({ storage, repository });
+
+    await expect(service.retryCleanup(20)).resolves.toEqual({ attempted: 2, remaining: 1 });
+    expect(repository.completeCleanup).toHaveBeenCalledWith(["pending/a.webp"]);
+    expect(repository.failCleanup).toHaveBeenCalledWith(["pending/b.webp"], expect.any(Error));
   });
 });
