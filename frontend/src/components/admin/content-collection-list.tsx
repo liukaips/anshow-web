@@ -20,17 +20,17 @@ type ContentCollectionListProps = {
 };
 
 export const collectionLabels: Record<AdminContentCollection, string> = {
-  pages: "Pages",
-  "hero-slides": "Hero slides",
-  services: "Services",
-  "trade-lanes": "Trade lanes",
-  "cargo-types": "Cargo types",
-  "case-studies": "Case studies",
-  articles: "Articles",
-  partners: "Partners",
-  certificates: "Certificates",
-  "proof-metrics": "Proof metrics",
-  "navigation-items": "Navigation items",
+  pages: "页面",
+  "hero-slides": "首屏轮播",
+  services: "服务",
+  "trade-lanes": "贸易航线",
+  "cargo-types": "特种货物",
+  "case-studies": "案例",
+  articles: "文章",
+  partners: "合作伙伴",
+  certificates: "资质证书",
+  "proof-metrics": "证明指标",
+  "navigation-items": "导航项目",
 };
 
 const localeLabels: Record<AdminContentLocale, string> = {
@@ -75,7 +75,7 @@ export function ContentCollectionList({
           <div className="flex flex-col gap-3 border-y border-neutral-200 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1">
               <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor="content-code">
-                Content code
+                内容编码
               </label>
               <input
                 className="mt-2 min-h-11 w-full max-w-md rounded-[var(--radius-control)] border border-neutral-300 px-3 text-base outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
@@ -93,7 +93,7 @@ export function ContentCollectionList({
               type="button"
             >
               {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
-              Create content
+              创建内容
             </button>
           </div>
           <div aria-live="polite" className="min-h-8 pt-2">
@@ -105,10 +105,10 @@ export function ContentCollectionList({
       {items.length === 0 ? (
         <div className="border-b border-neutral-200 py-12 text-center">
           <h2 className="text-lg font-semibold text-[var(--color-text)]">
-            No {collection} content yet.
+            暂无{collectionLabels[collection]}内容。
           </h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Create a draft shell to begin the first translation.
+            创建草稿后即可开始填写翻译内容。
           </p>
         </div>
       ) : (
@@ -123,7 +123,7 @@ export function ContentCollectionList({
               <div className="min-w-0">
                 <p className="break-words text-sm font-semibold text-[var(--color-text)]">{item.code}</p>
                 <p className="mt-1 text-xs text-neutral-500">
-                  {item.archivedAt ? "Archived" : `Order ${item.sortOrder}`}
+                  {item.archivedAt ? "已归档" : `排序 ${item.sortOrder}`}
                 </p>
               </div>
               <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
@@ -135,7 +135,7 @@ export function ContentCollectionList({
                       <p className="text-xs font-semibold text-neutral-500">{localeLabels[locale]}</p>
                       <p className="break-words text-sm capitalize text-[var(--color-text)]">{translation?.status ?? "draft"}</p>
                       <p className={`text-xs ${complete ? "text-[var(--color-teal-ink)]" : "text-[var(--color-danger)]"}`}>
-                        {complete ? "Complete" : "Incomplete"}
+                        {complete ? "已完成" : "未完成"}
                       </p>
                     </div>
                   );

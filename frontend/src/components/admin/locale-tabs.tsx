@@ -17,9 +17,9 @@ type LocaleTabsProps = {
 };
 
 const localeLabels: Record<AdminContentLocale, string> = {
-  en: "English",
-  zh: "Chinese",
-  ru: "Russian",
+  en: "英文",
+  zh: "中文",
+  ru: "俄文",
 };
 
 const requiredFields = [
@@ -52,7 +52,7 @@ export function LocaleTabs({
 }: LocaleTabsProps) {
   return (
     <div
-      aria-label="Translations"
+      aria-label="翻译版本"
       className="grid grid-cols-1 border-y border-neutral-200 sm:grid-cols-3"
       role="tablist"
     >
@@ -81,9 +81,9 @@ export function LocaleTabs({
             <span className="block text-sm font-semibold">{localeLabels[locale]}</span>
             <span className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
               <span className={complete ? "text-[var(--color-teal-ink)]" : "text-[var(--color-danger)]"}>
-                {complete ? "Complete" : "Needs attention"}
+                {complete ? "已完成" : "需要处理"}
               </span>
-              <span className="capitalize text-neutral-500">{status}</span>
+              <span className="text-neutral-500">{status === "published" ? "已发布" : status === "scheduled" ? "已定时" : "草稿"}</span>
             </span>
           </button>
         );

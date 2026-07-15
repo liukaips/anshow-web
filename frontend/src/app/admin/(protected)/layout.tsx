@@ -14,7 +14,7 @@ export default async function AdminLayout({
   if (!session) redirect("/admin/login");
 
   return (
-    <div className="grid min-h-dvh grid-cols-1 bg-[var(--color-light-surface)] text-[var(--color-text)] md:grid-cols-[14rem_minmax(0,1fr)]">
+    <div lang="zh-CN" className="grid min-h-dvh grid-cols-1 bg-[var(--color-light-surface)] text-[var(--color-text)] md:grid-cols-[14rem_minmax(0,1fr)]">
       <AdminSidebar permissions={session.permissions} />
       <div className="min-w-0">
         <AdminTopbar

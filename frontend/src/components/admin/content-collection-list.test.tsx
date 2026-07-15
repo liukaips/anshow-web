@@ -47,11 +47,11 @@ describe("ContentCollectionList", () => {
       />,
     );
 
-    expect(screen.getByText("No services content yet.")).toBeVisible();
-    fireEvent.change(screen.getByLabelText("Content code"), {
+    expect(screen.getByText("暂无服务内容。")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("内容编码"), {
       target: { value: "new-service" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Create content" }));
+    fireEvent.click(screen.getByRole("button", { name: "创建内容" }));
 
     await waitFor(() =>
       expect(createContent).toHaveBeenCalledWith("services", {
@@ -73,7 +73,7 @@ describe("ContentCollectionList", () => {
     expect(screen.getByRole("listitem")).toHaveTextContent("new-service");
     expect(screen.queryByLabelText("Content code")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Create content" }),
+      screen.queryByRole("button", { name: "创建内容" }),
     ).toBeNull();
   });
 });

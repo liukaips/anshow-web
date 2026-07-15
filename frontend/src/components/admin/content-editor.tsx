@@ -58,13 +58,13 @@ const blankTranslation: AdminContentTranslationInput = {
 };
 
 const fieldLabels: Record<TranslationField, string> = {
-  title: "Title",
-  slug: "Slug",
-  summary: "Summary",
-  body: "Body",
-  seoTitle: "SEO title",
-  seoDescription: "SEO description",
-  altText: "Alternative text",
+  title: "标题",
+  slug: "别名",
+  summary: "摘要",
+  body: "正文",
+  seoTitle: "SEO 标题",
+  seoDescription: "SEO 描述",
+  altText: "替代文本",
 };
 
 function itemDrafts(item: AdminContentItem) {
@@ -118,7 +118,7 @@ function publishErrors(input: AdminContentTranslationInput): FieldErrors {
   const errors: FieldErrors = {};
   for (const field of Object.keys(fieldLabels) as TranslationField[]) {
     if (!input[field].trim()) {
-      errors[field] = `${fieldLabels[field]} is required to publish.`;
+      errors[field] = `发布前必须填写${fieldLabels[field]}。`;
     }
   }
   if (input.slug && !/^[a-z0-9-]+$/.test(input.slug)) {
@@ -434,7 +434,7 @@ export function ContentEditor({
         activeDraft,
       );
       reconcileResponse(saved, "save", activeLocale);
-      setMessage({ kind: "success", text: "Draft saved." });
+      setMessage({ kind: "success", text: "草稿已保存。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -454,7 +454,7 @@ export function ContentEditor({
         activeDraft,
       );
       reconcileResponse(published, "publish", activeLocale);
-      setMessage({ kind: "success", text: "Translation published." });
+      setMessage({ kind: "success", text: "翻译已发布。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -486,7 +486,7 @@ export function ContentEditor({
         { ...activeDraft, scheduledAt: date.toISOString() },
       );
       reconcileResponse(scheduled, "schedule", activeLocale);
-      setMessage({ kind: "success", text: "Translation scheduled." });
+      setMessage({ kind: "success", text: "翻译已设置定时发布。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -504,7 +504,7 @@ export function ContentEditor({
     try {
       const archived = await archiveAdminContent(collection, item.id);
       reconcileResponse(archived, "archive");
-      setMessage({ kind: "success", text: "Content archived." });
+      setMessage({ kind: "success", text: "内容已归档。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -533,7 +533,7 @@ export function ContentEditor({
         },
       );
       reconcileResponse(updated, "verification");
-      setMessage({ kind: "success", text: "Verification saved." });
+      setMessage({ kind: "success", text: "核验信息已保存。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -565,7 +565,7 @@ export function ContentEditor({
               {activeLocale} translation
             </p>
             <p className="mt-1 text-sm text-neutral-600">
-              State: <span className="font-semibold capitalize text-[var(--color-text)]">{activeState}</span>
+              状态：<span className="font-semibold capitalize text-[var(--color-text)]">{activeState === "published" ? "已发布" : activeState === "scheduled" ? "已定时" : "草稿"}</span>
               {activeDirty ? " · Unsaved changes" : ""}
             </p>
           </div>
@@ -574,7 +574,7 @@ export function ContentEditor({
             href="#content-preview"
           >
             <Eye aria-hidden="true" className="size-4" />
-            Preview
+            预览
           </a>
         </div>
 
@@ -583,7 +583,7 @@ export function ContentEditor({
             disabled={fieldsDisabled}
             error={errors.title}
             field="title"
-            label="Title"
+            label="标题"
             onChange={updateField}
             value={activeDraft.title}
           />
@@ -591,7 +591,7 @@ export function ContentEditor({
             disabled={fieldsDisabled}
             error={errors.slug}
             field="slug"
-            label="Slug"
+            label="别名"
             onChange={updateField}
             value={activeDraft.slug}
           />
@@ -599,7 +599,7 @@ export function ContentEditor({
             disabled={fieldsDisabled}
             error={errors.summary}
             field="summary"
-            label="Summary"
+            label="摘要"
             multiline
             onChange={updateField}
             value={activeDraft.summary}
@@ -608,7 +608,7 @@ export function ContentEditor({
             disabled={fieldsDisabled}
             error={errors.altText}
             field="altText"
-            label="Alternative text"
+            label="替代文本"
             onChange={updateField}
             value={activeDraft.altText}
           />
@@ -617,7 +617,7 @@ export function ContentEditor({
               disabled={fieldsDisabled}
               error={errors.body}
               field="body"
-              label="Body"
+              label="正文"
               multiline
               onChange={updateField}
               rows={10}
@@ -627,13 +627,13 @@ export function ContentEditor({
         </div>
 
         <div className="mt-8 border-t border-neutral-200 pt-6">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">Search metadata</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">搜索元数据</h2>
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
             <Field
               disabled={fieldsDisabled}
               error={errors.seoTitle}
               field="seoTitle"
-              label="SEO title"
+              label="SEO 标题"
               maxLength={60}
               onChange={updateField}
               value={activeDraft.seoTitle}
@@ -642,7 +642,7 @@ export function ContentEditor({
               disabled={fieldsDisabled}
               error={errors.seoDescription}
               field="seoDescription"
-              label="SEO description"
+              label="SEO 描述"
               maxLength={160}
               multiline
               onChange={updateField}
@@ -653,7 +653,7 @@ export function ContentEditor({
 
         <div className="mt-8 border-t border-neutral-200 pt-6">
           <label className="block max-w-md text-sm font-semibold text-[var(--color-text)]" htmlFor="scheduled-at">
-            Publication date and time
+            发布时间
           </label>
           <input
             aria-describedby={errors.scheduledAt ? "scheduled-at-error" : undefined}
@@ -688,7 +688,7 @@ export function ContentEditor({
         {canWrite && isProofCollection(collection) ? (
           <div className="mt-8 border-t border-neutral-200 pt-6">
             <h2 className="text-lg font-semibold text-[var(--color-text)]">
-              Proof verification
+              证明核验
             </h2>
             <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-semibold text-[var(--color-text)]">
               <input
@@ -702,10 +702,10 @@ export function ContentEditor({
                 }}
                 type="checkbox"
               />
-              Verified proof
+              已核验证明
             </label>
             <label className="mt-4 block max-w-2xl text-sm font-semibold text-[var(--color-text)]" htmlFor="verification-source">
-              Official verification source
+              官方核验来源
             </label>
             <textarea
               className={`${fieldClass} max-w-2xl border-neutral-300`}
@@ -731,23 +731,23 @@ export function ContentEditor({
               ) : (
                 <Save aria-hidden="true" className="size-4" />
               )}
-              Save verification
+              保存核验信息
             </button>
           </div>
         ) : null}
 
         <div className="mt-6 flex flex-wrap gap-3 border-t border-neutral-200 pt-6">
           {canWrite ? (
-            <CommandButton disabled={pending !== null} icon={Save} label="Save draft" onClick={save} pending={pending === "save"} />
+            <CommandButton disabled={pending !== null} icon={Save} label="保存草稿" onClick={save} pending={pending === "save"} />
           ) : null}
-          <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="Schedule" onClick={schedule} pending={pending === "schedule"} />
-          <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="Publish" onClick={publish} pending={pending === "publish"} />
+          <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="定时发布" onClick={schedule} pending={pending === "schedule"} />
+          <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="发布" onClick={publish} pending={pending === "publish"} />
           {canWrite ? (
-            <CommandButton danger disabled={pending !== null} icon={Archive} label="Archive" onClick={archive} pending={pending === "archive"} />
+            <CommandButton danger disabled={pending !== null} icon={Archive} label="归档" onClick={archive} pending={pending === "archive"} />
           ) : null}
         </div>
         {!canPublish ? (
-          <p className="mt-3 text-sm text-neutral-600">Publishing requires the content.publish permission.</p>
+          <p className="mt-3 text-sm text-neutral-600">需要 content.publish 权限才能发布。</p>
         ) : null}
         <div aria-live="polite" className="min-h-7 pt-3">
           {message ? (
@@ -761,14 +761,14 @@ export function ContentEditor({
       <section className="border-l-4 border-[var(--color-cyan-ink)] bg-white px-5 py-5" id="content-preview">
         <p className="text-xs font-semibold uppercase text-[var(--color-cyan-ink)]">
           {activeState === "published" && !dirtyLocales.has(activeLocale)
-            ? "Published preview"
-            : "Unpublished preview"}
+            ? "已发布预览"
+            : "未发布预览"}
         </p>
         <h2 className="mt-2 break-words text-2xl font-semibold text-[var(--color-text)]">
-          {activeDraft.title || "Untitled translation"}
+          {activeDraft.title || "未命名翻译"}
         </h2>
         <p className="mt-3 max-w-3xl break-words text-base leading-7 text-neutral-700">
-          {activeDraft.summary || "No summary has been entered."}
+          {activeDraft.summary || "尚未填写摘要。"}
         </p>
       </section>
     </div>

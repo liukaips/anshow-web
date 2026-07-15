@@ -40,125 +40,126 @@ const navigationItems: readonly NavigationItem[] = [
   {
     href: "/admin",
     icon: Gauge,
-    label: "Dashboard",
+    label: "工作台",
     permission: "content.read",
     section: "Workspace",
   },
   {
     href: "/admin/content/pages",
     icon: FileText,
-    label: "Pages",
+    label: "页面",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/hero-slides",
     icon: Layers3,
-    label: "Hero Slides",
+    label: "首屏轮播",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/services",
     icon: Boxes,
-    label: "Services",
+    label: "服务",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/trade-lanes",
     icon: Route,
-    label: "Trade Lanes",
+    label: "贸易航线",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/cargo-types",
     icon: ShipWheel,
-    label: "Special Cargo",
+    label: "特种货物",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/case-studies",
     icon: BookOpenText,
-    label: "Case Studies",
+    label: "案例",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/articles",
     icon: Newspaper,
-    label: "Articles",
+    label: "文章",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/partners",
     icon: UsersRound,
-    label: "Partners",
+    label: "合作伙伴",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/certificates",
     icon: ShieldCheck,
-    label: "Certificates",
+    label: "资质证书",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/proof-metrics",
     icon: Gauge,
-    label: "Proof Metrics",
+    label: "证明指标",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/content/navigation-items",
     icon: Menu,
-    label: "Navigation Items",
+    label: "导航项目",
     permission: "content.read",
     section: "Content",
   },
   {
     href: "/admin/media",
     icon: ImageIcon,
-    label: "Media Library",
+    label: "媒体库",
     permission: "media.read",
     section: "Operations",
   },
   {
     href: "/admin/inquiries",
     icon: MessagesSquare,
-    label: "Enquiries",
+    label: "询盘",
     permission: "inquiry.read",
     section: "Operations",
   },
   {
     href: "/admin/staff",
     icon: UsersRound,
-    label: "Staff & Roles",
+    label: "员工与角色",
     permission: "staff.manage",
     section: "System",
   },
   {
     href: "/admin/settings",
     icon: Settings,
-    label: "Site Settings",
+    label: "站点设置",
     permission: "settings.manage",
     section: "System",
   },
   {
     href: "/admin/audit",
     icon: BookOpenText,
-    label: "Audit Log",
+    label: "审计日志",
     permission: "audit.read",
     section: "System",
   },
 ] as const;
 
 const sections = ["Workspace", "Content", "Operations", "System"] as const;
+const sectionLabels: Record<(typeof sections)[number], string> = { Workspace: "工作台", Content: "内容", Operations: "运营", System: "系统" };
 const focusableSelector =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -178,7 +179,7 @@ function NavigationLinks({
   );
 
   return (
-    <nav aria-label="Administration" className="flex flex-1 flex-col gap-5">
+    <nav aria-label="管理后台" className="flex flex-1 flex-col gap-5">
       {sections.map((section) => {
         const items = authorizedItems.filter((item) => item.section === section);
         if (items.length === 0) return null;
@@ -186,7 +187,7 @@ function NavigationLinks({
         return (
           <div key={section}>
             <p className="mb-1 px-3 text-xs font-semibold uppercase text-[var(--color-muted-inverse)]">
-              {section}
+              {sectionLabels[section]}
             </p>
             <div className="space-y-0.5">
               {items.map((item) => {
@@ -300,11 +301,11 @@ export function AdminMobileNavigation({ permissions }: AdminSidebarProps) {
     <div className="md:hidden">
       <button
         aria-expanded={open}
-        aria-label="Open navigation"
+        aria-label="打开导航"
         className="grid size-11 cursor-pointer place-items-center text-[var(--color-text)] transition-colors duration-[var(--motion-fast)] hover:bg-black/5"
         onClick={() => setOpen(true)}
         ref={triggerRef}
-        title="Open navigation"
+        title="打开导航"
         type="button"
       >
         <Menu aria-hidden="true" className="size-5" strokeWidth={1.8} />
@@ -320,7 +321,7 @@ export function AdminMobileNavigation({ permissions }: AdminSidebarProps) {
             type="button"
           />
           <div
-            aria-label="Administration navigation"
+            aria-label="管理后台导航"
             aria-modal="true"
             className="shell-drawer absolute inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-[var(--color-carbon)] text-[var(--color-text-inverse)] shadow-2xl shadow-black/40"
             ref={dialogRef}
@@ -329,11 +330,11 @@ export function AdminMobileNavigation({ permissions }: AdminSidebarProps) {
             <div className="flex min-h-16 items-center justify-between border-b border-[var(--color-border-inverse)] pl-5 pr-2">
               <AnShowLogo className="text-white" />
               <button
-                aria-label="Close navigation"
+                aria-label="关闭导航"
                 className="grid size-11 cursor-pointer place-items-center transition-colors duration-[var(--motion-fast)] hover:bg-white/10 hover:text-[var(--color-cyan)]"
                 onClick={() => setOpen(false)}
                 ref={closeRef}
-                title="Close navigation"
+                title="关闭导航"
                 type="button"
               >
                 <X aria-hidden="true" className="size-5" strokeWidth={1.8} />

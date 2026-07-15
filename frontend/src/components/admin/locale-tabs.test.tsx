@@ -39,10 +39,10 @@ describe("LocaleTabs", () => {
       />,
     );
 
-    expect(screen.getByRole("tablist", { name: "Translations" })).toBeVisible();
-    const english = screen.getByRole("tab", { name: /English.*Complete.*Draft/i });
+    expect(screen.getByRole("tablist", { name: "翻译版本" })).toBeVisible();
+    const english = screen.getByRole("tab", { name: /英文.*已完成.*草稿/i });
     const russian = screen.getByRole("tab", {
-      name: /Russian.*Needs attention.*Draft/i,
+      name: /俄文.*需要处理.*草稿/i,
     });
     expect(english).toHaveAttribute("aria-selected", "true");
     expect(russian).toHaveAttribute("aria-selected", "false");
@@ -51,7 +51,7 @@ describe("LocaleTabs", () => {
     expect(onSelect).toHaveBeenCalledWith("ru");
   });
 
-  it("allows long Russian status text to wrap without fixed-width tabs", () => {
+  it("allows long 俄文 status text to wrap without fixed-width tabs", () => {
     render(
       <LocaleTabs
         activeLocale="ru"
@@ -60,7 +60,7 @@ describe("LocaleTabs", () => {
       />,
     );
 
-    const russian = screen.getByRole("tab", { name: /Russian/i });
+    const russian = screen.getByRole("tab", { name: /俄文/i });
     expect(russian.className).toContain("min-w-0");
     expect(russian.className).toContain("break-words");
     expect(russian.className).not.toMatch(/w-\[/);

@@ -100,31 +100,31 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
   }
 
   return (
-    <section aria-label="Upload media" className="border-y border-neutral-200 bg-white px-4 py-5 sm:px-5">
+    <section aria-label="上传媒体" className="border-y border-neutral-200 bg-white px-4 py-5 sm:px-5">
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(12rem,1.1fr)_repeat(3,minmax(9rem,1fr))_auto] lg:items-end">
         <label className="min-w-0 text-sm font-semibold text-[var(--color-text)]">
-          Image file
+          图片文件
           <input accept="image/jpeg,image/png,image/webp,image/avif" className={`${inputClass} py-2 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-semibold`} disabled={pending} onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" />
         </label>
         {(["en", "zh", "ru"] as const).map((locale, index) => (
           <label className="min-w-0 text-sm font-semibold text-[var(--color-text)]" key={locale}>
-            Upload alt text ({locale.toUpperCase()})
+            替代文本（{locale.toUpperCase()}）
             <input className={inputClass} disabled={pending} onChange={(event) => setAlt((current) => ({ ...current, [locale]: event.target.value }))} ref={index === 0 ? firstInput : undefined} value={alt[locale]} />
           </label>
         ))}
         <button className={`${buttonClass} bg-[var(--color-action)] text-white hover:-translate-y-px hover:brightness-95`} disabled={pending} onClick={submit} type="button">
           {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Upload aria-hidden="true" className="size-4" />}
-          Upload media
+          上传媒体
         </button>
       </div>
       <div className="mt-3 grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="text-sm font-semibold text-[var(--color-text)]">
-          Upload focal X
+          上传焦点 X
           <input aria-describedby={validationErrors.focalX ? "upload-focal-x-error" : undefined} aria-invalid={Boolean(validationErrors.focalX)} className={inputClass} disabled={pending} max="1" min="0" onChange={(event) => setFocal((current) => ({ ...current, x: Number(event.target.value) }))} ref={focalXInput} step="0.01" type="number" value={focal.x} />
           {validationErrors.focalX ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id="upload-focal-x-error">{validationErrors.focalX}</span> : null}
         </label>
         <label className="text-sm font-semibold text-[var(--color-text)]">
-          Upload focal Y
+          上传焦点 Y
           <input aria-describedby={validationErrors.focalY ? "upload-focal-y-error" : undefined} aria-invalid={Boolean(validationErrors.focalY)} className={inputClass} disabled={pending} max="1" min="0" onChange={(event) => setFocal((current) => ({ ...current, y: Number(event.target.value) }))} ref={focalYInput} step="0.01" type="number" value={focal.y} />
           {validationErrors.focalY ? <span className="mt-1 block text-base font-normal text-[var(--color-danger)]" id="upload-focal-y-error">{validationErrors.focalY}</span> : null}
         </label>
@@ -248,13 +248,13 @@ export function MediaLibrary({ canWrite, initialItems }: MediaLibraryProps) {
     <div className="min-w-0">
       {canWrite ? <UploadForm onSaved={(saved) => setItems((current) => [saved, ...current])} /> : null}
       <div className="flex min-w-0 flex-col gap-3 border-b border-neutral-200 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
-        <label className="min-w-0 flex-1 text-sm font-semibold"><span className="inline-flex items-center gap-2"><Search aria-hidden="true" className="size-4" />Search media</span><input className={`${inputClass} max-w-xl`} onChange={(event) => setSearch(event.target.value)} type="search" value={search} /></label>
-        <div aria-label="Media view" className="inline-flex self-start border border-neutral-300" role="group">
-          <button aria-label="Grid view" aria-pressed={view === "grid"} className="flex size-11 items-center justify-center border-r border-neutral-300 aria-pressed:bg-neutral-200" onClick={() => setView("grid")} title="Grid view" type="button"><Grid2X2 aria-hidden="true" className="size-5" /></button>
-          <button aria-label="List view" aria-pressed={view === "list"} className="flex size-11 items-center justify-center aria-pressed:bg-neutral-200" onClick={() => setView("list")} title="List view" type="button"><List aria-hidden="true" className="size-5" /></button>
+        <label className="min-w-0 flex-1 text-sm font-semibold"><span className="inline-flex items-center gap-2"><Search aria-hidden="true" className="size-4" />搜索媒体</span><input className={`${inputClass} max-w-xl`} onChange={(event) => setSearch(event.target.value)} type="search" value={search} /></label>
+        <div aria-label="媒体视图" className="inline-flex self-start border border-neutral-300" role="group">
+          <button aria-label="网格视图" aria-pressed={view === "grid"} className="flex size-11 items-center justify-center border-r border-neutral-300 aria-pressed:bg-neutral-200" onClick={() => setView("grid")} title="网格视图" type="button"><Grid2X2 aria-hidden="true" className="size-5" /></button>
+          <button aria-label="列表视图" aria-pressed={view === "list"} className="flex size-11 items-center justify-center aria-pressed:bg-neutral-200" onClick={() => setView("list")} title="列表视图" type="button"><List aria-hidden="true" className="size-5" /></button>
         </div>
       </div>
-      {items.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><ImagePlus aria-hidden="true" className="mx-auto size-8 text-neutral-400" /><h2 className="mt-3 text-lg font-semibold">No media assets yet</h2><p className="mt-1 text-base text-neutral-600">Use the upload controls to add the first staff media asset.</p></div> : filtered.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><h2 className="text-lg font-semibold">No media matches this search</h2></div> : <div className={view === "grid" ? "grid min-w-0 grid-cols-1 border-t border-neutral-200 xl:grid-cols-2" : "border-t border-neutral-200"}>{filtered.map((item) => <AssetEditor asset={item} canWrite={canWrite} key={item.id} onChange={change} onDelete={(id) => setItems((current) => current.filter((item) => item.id !== id))} view={view} />)}</div>}
+      {items.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><ImagePlus aria-hidden="true" className="mx-auto size-8 text-neutral-400" /><h2 className="mt-3 text-lg font-semibold">暂无媒体资产</h2><p className="mt-1 text-base text-neutral-600">使用上传控件添加第一份媒体资产。</p></div> : filtered.length === 0 ? <div className="border-b border-neutral-200 px-4 py-12 text-center"><h2 className="text-lg font-semibold">没有匹配的媒体</h2></div> : <div className={view === "grid" ? "grid min-w-0 grid-cols-1 border-t border-neutral-200 xl:grid-cols-2" : "border-t border-neutral-200"}>{filtered.map((item) => <AssetEditor asset={item} canWrite={canWrite} key={item.id} onChange={change} onDelete={(id) => setItems((current) => current.filter((item) => item.id !== id))} view={view} />)}</div>}
     </div>
   );
 }

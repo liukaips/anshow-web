@@ -37,9 +37,9 @@ describe("AdminSidebar", () => {
   it("hides staff management from a content-only role", () => {
     render(<AdminSidebar permissions={contentPermissions} />);
 
-    expect(screen.getByRole("link", { name: "Pages" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Staff & Roles" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Pages" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "页面" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "员工与角色" })).toBeNull();
+    expect(screen.getByRole("link", { name: "页面" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -60,23 +60,7 @@ describe("AdminSidebar", () => {
     );
 
     for (const label of [
-      "Dashboard",
-      "Pages",
-      "Hero Slides",
-      "Services",
-      "Trade Lanes",
-      "Special Cargo",
-      "Case Studies",
-      "Articles",
-      "Partners",
-      "Certificates",
-      "Proof Metrics",
-      "Navigation Items",
-      "Media Library",
-      "Enquiries",
-      "Staff & Roles",
-      "Site Settings",
-      "Audit Log",
+      "工作台", "页面", "首屏轮播", "服务", "贸易航线", "特种货物", "案例", "文章", "合作伙伴", "资质证书", "证明指标", "导航项目", "媒体库", "询盘", "员工与角色", "站点设置", "审计日志",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeVisible();
     }
@@ -87,21 +71,21 @@ describe("AdminMobileNavigation", () => {
   it("manages focus, body scrolling, Escape, and 44px controls", () => {
     document.body.style.overflow = "clip";
     render(<AdminMobileNavigation permissions={contentPermissions} />);
-    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    const trigger = screen.getByRole("button", { name: "打开导航" });
 
     expect(trigger).toHaveClass("size-11");
     fireEvent.click(trigger);
 
     const dialog = screen.getByRole("dialog", {
-      name: "Administration navigation",
+      name: "管理后台导航",
     });
-    const close = screen.getByRole("button", { name: "Close navigation" });
+    const close = screen.getByRole("button", { name: "关闭导航" });
     expect(close).toHaveClass("size-11");
     expect(close).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
 
     fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
-    expect(screen.getByRole("link", { name: "Navigation Items" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "导航项目" })).toHaveFocus();
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -116,12 +100,12 @@ describe("AdminTopbar", () => {
     window.addEventListener(ADMIN_NAVIGATION_REQUEST, cancelNavigation);
     render(<AdminTopbar email="editor@anshow.example" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     await waitFor(() => expect(signOut).not.toHaveBeenCalled());
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
     window.removeEventListener(
       ADMIN_NAVIGATION_REQUEST,
       cancelNavigation,
@@ -132,7 +116,7 @@ describe("AdminTopbar", () => {
     render(<AdminTopbar email="editor@anshow.example" />);
 
     expect(screen.getByText("editor@anshow.example")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
     expect(replace).toHaveBeenCalledWith("/admin/login");
@@ -146,27 +130,27 @@ describe("AdminTopbar", () => {
     });
     render(<AdminTopbar email="editor@anshow.example" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Session service unavailable",
     );
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
   });
 
   it("keeps the shell open and reports a rejected sign-out request", async () => {
     signOut.mockRejectedValueOnce(new Error("network unavailable"));
     render(<AdminTopbar email="editor@anshow.example" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Unable to sign out. Try again.",
+      "退出失败，请重试。",
     );
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
   });
 });

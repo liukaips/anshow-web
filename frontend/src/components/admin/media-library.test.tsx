@@ -70,17 +70,17 @@ describe("MediaLibrary", () => {
 
   it("offers upload from the empty state and filters without changing view controls", () => {
     const { unmount } = render(<MediaLibrary canWrite initialItems={[]} />);
-    expect(screen.getByText("No media assets yet")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Upload media" })).toBeVisible();
+    expect(screen.getByText("暂无媒体资产")).toBeVisible();
+    expect(screen.getByRole("button", { name: "上传媒体" })).toBeVisible();
 
     unmount();
     render(<MediaLibrary canWrite initialItems={[asset]} />);
-    fireEvent.change(screen.getByLabelText("Search media"), {
+    fireEvent.change(screen.getByLabelText("搜索媒体"), {
       target: { value: "no-match" },
     });
-    expect(screen.getByText("No media matches this search")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "List view" }));
-    expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute(
+    expect(screen.getByText("没有匹配的媒体")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "列表视图" }));
+    expect(screen.getByRole("button", { name: "列表视图" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -97,17 +97,17 @@ describe("MediaLibrary", () => {
     );
     render(<MediaLibrary canWrite initialItems={[]} />);
 
-    fireEvent.change(screen.getByLabelText("Image file"), {
+    fireEvent.change(screen.getByLabelText("图片文件"), {
       target: { files: [new File(["image"], "yard.jpg", { type: "image/jpeg" })] },
     });
-    fireEvent.change(screen.getByLabelText("Upload alt text (EN)"), { target: { value: "Truck" } });
-    fireEvent.change(screen.getByLabelText("Upload alt text (ZH)"), { target: { value: "卡车" } });
-    fireEvent.change(screen.getByLabelText("Upload alt text (RU)"), { target: { value: "Грузовик" } });
-    fireEvent.click(screen.getByRole("button", { name: "Upload media" }));
+    fireEvent.change(screen.getByLabelText("替代文本（EN）"), { target: { value: "Truck" } });
+    fireEvent.change(screen.getByLabelText("替代文本（ZH）"), { target: { value: "卡车" } });
+    fireEvent.change(screen.getByLabelText("替代文本（RU）"), { target: { value: "Грузовик" } });
+    fireEvent.click(screen.getByRole("button", { name: "上传媒体" }));
 
     await waitFor(() => expect(screen.getByText("Uploading 45%")).toBeVisible());
     expect(screen.getByText("Uploading 45%")).toHaveClass("text-base");
-    expect(screen.getByRole("button", { name: "Upload media" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "上传媒体" })).toBeDisabled();
 
     resolveUpload(asset);
     await waitFor(() => expect(screen.getByText("Saved")).toBeVisible());
@@ -119,16 +119,16 @@ describe("MediaLibrary", () => {
   it("submits visible upload focal coordinates instead of hardcoded defaults", async () => {
     mediaApi.upload.mockResolvedValue(asset);
     render(<MediaLibrary canWrite initialItems={[]} />);
-    fireEvent.change(screen.getByLabelText("Image file"), {
+    fireEvent.change(screen.getByLabelText("图片文件"), {
       target: { files: [new File(["image"], "yard.jpg", { type: "image/jpeg" })] },
     });
-    fireEvent.change(screen.getByLabelText("Upload alt text (EN)"), { target: { value: "Truck" } });
-    fireEvent.change(screen.getByLabelText("Upload alt text (ZH)"), { target: { value: "卡车" } });
-    fireEvent.change(screen.getByLabelText("Upload alt text (RU)"), { target: { value: "Грузовик" } });
-    fireEvent.change(screen.getByLabelText("Upload focal X"), { target: { value: "0.2" } });
-    fireEvent.change(screen.getByLabelText("Upload focal Y"), { target: { value: "0.8" } });
+    fireEvent.change(screen.getByLabelText("替代文本（EN）"), { target: { value: "Truck" } });
+    fireEvent.change(screen.getByLabelText("替代文本（ZH）"), { target: { value: "卡车" } });
+    fireEvent.change(screen.getByLabelText("替代文本（RU）"), { target: { value: "Грузовик" } });
+    fireEvent.change(screen.getByLabelText("上传焦点 X"), { target: { value: "0.2" } });
+    fireEvent.change(screen.getByLabelText("上传焦点 Y"), { target: { value: "0.8" } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Upload media" }));
+    fireEvent.click(screen.getByRole("button", { name: "上传媒体" }));
 
     await waitFor(() => expect(mediaApi.upload).toHaveBeenCalledWith(
       expect.objectContaining({ focalX: 0.2, focalY: 0.8 }),

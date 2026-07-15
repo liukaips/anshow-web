@@ -31,14 +31,14 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
     try {
       const result = await authClient.signOut();
       if (result.error) {
-        setError(result.error.message ?? "Unable to sign out. Try again.");
+        setError(result.error.message ?? "退出失败，请重试。");
         return;
       }
 
       router.replace("/admin/login");
       router.refresh();
     } catch {
-      setError("Unable to sign out. Try again.");
+      setError("退出失败，请重试。");
     } finally {
       setPending(false);
     }
@@ -55,11 +55,11 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
           {email}
         </span>
         <button
-          aria-label="Sign out"
+          aria-label="退出登录"
           className="grid size-11 shrink-0 cursor-pointer place-items-center text-neutral-600 transition-colors duration-[var(--motion-fast)] hover:bg-neutral-100 hover:text-[var(--color-danger)] disabled:cursor-wait disabled:opacity-50"
           disabled={pending}
           onClick={signOut}
-          title="Sign out"
+          title="退出登录"
           type="button"
         >
           {pending ? (

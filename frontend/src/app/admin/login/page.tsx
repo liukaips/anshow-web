@@ -27,21 +27,21 @@ export default function AdminLoginPage() {
       });
 
       if (result.error) {
-        setError(result.error.message ?? "Unable to sign in");
+        setError(result.error.message ?? "登录失败，请检查账号和密码");
         return;
       }
 
       router.replace("/admin");
       router.refresh();
     } catch {
-      setError("Unable to sign in");
+      setError("登录失败，请检查账号和密码");
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen bg-[var(--color-carbon)] text-[var(--color-text-inverse)]">
+    <main lang="zh-CN" className="flex min-h-screen bg-[var(--color-carbon)] text-[var(--color-text-inverse)]">
       <div className="mx-auto flex w-full max-w-6xl flex-col px-5 py-6 sm:px-8 sm:py-10">
         <header className="flex min-h-12 items-center border-b border-white/10 pb-5">
           <AnShowLogo className="text-white" />
@@ -54,9 +54,9 @@ export default function AdminLoginPage() {
                 <LockKeyhole aria-hidden="true" className="size-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-semibold">Staff sign in</h1>
+                <h1 className="text-2xl font-semibold">管理员登录</h1>
                 <p className="mt-1 text-sm text-[var(--color-muted-inverse)]">
-                  AnShow administration
+                  AnShow 管理后台
                 </p>
               </div>
             </div>
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
             <form action={submit} className="space-y-5">
               <div className="space-y-2">
                 <label className="block text-sm font-medium" htmlFor="email">
-                  Email
+                  邮箱
                 </label>
                 <input
                   autoComplete="username"
@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
                   className="block text-sm font-medium"
                   htmlFor="password"
                 >
-                  Password
+                  密码
                 </label>
                 <input
                   autoComplete="current-password"
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
                 type="submit"
               >
                 <LogIn aria-hidden="true" className="size-5" />
-                {pending ? "Signing in" : "Sign in"}
+                {pending ? "登录中" : "登录"}
               </button>
             </form>
           </section>
