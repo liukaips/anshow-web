@@ -6,6 +6,9 @@ x-backend-environment: &backend-environment
   BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
   RATE_LIMIT_SECRET: ${RATE_LIMIT_SECRET:?Set RATE_LIMIT_SECRET in .env}
   MEDIA_DRIVER: local
+  BACKUP_DIR: /data/backups
+  BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+  BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
   PORT: 4000
 
 services:
@@ -20,6 +23,7 @@ services:
     environment: *backend-environment
     volumes:
       - app-data:/data
+      - backups:/data/backups
 
   backend:
     build:
@@ -35,6 +39,7 @@ services:
     volumes:
       - app-data:/data
       - media:/media
+      - backups:/data/backups
     healthcheck:
       test:
         [
@@ -107,3 +112,5 @@ volumes:
     name: anshow-caddy-data
   caddy-config:
     name: anshow-caddy-config
+  backups:
+    name: anshow-backups

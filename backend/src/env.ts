@@ -9,6 +9,9 @@ const RuntimeEnvSchema = z
     BETTER_AUTH_SECRET: z.string().min(32),
     RATE_LIMIT_SECRET: z.string().min(32),
     MEDIA_DRIVER: z.enum(["local", "cos"]).default("local"),
+    BACKUP_DIR: z.string().trim().min(1).optional(),
+    BACKUP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
+    BACKUP_INTERVAL_HOURS: z.coerce.number().int().min(1).max(168).optional(),
     PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   })
   .superRefine((environment, context) => {

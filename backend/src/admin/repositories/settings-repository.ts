@@ -74,6 +74,11 @@ export const siteSettingsSchema = z
         insightsEnabled: z.boolean(),
       })
       .strict(),
+    backup: z.object({
+      enabled: z.boolean(), intervalHours: z.number().int().min(1).max(168),
+      retentionDays: z.number().int().min(1).max(3650), target: z.enum(["local", "cos"]),
+      cosBucket: z.string().trim().max(200), cosRegion: z.string().trim().max(100), encryptionConfigured: z.boolean(),
+    }).strict().optional(),
   })
   .strict();
 
@@ -109,6 +114,7 @@ const SITE_SETTING_KEYS = [
   "localeDefaults",
   "mediaMode",
   "featureFlags",
+  "backup",
 ] as const satisfies readonly (keyof SiteSettings)[];
 
 export interface SettingsRepository {
@@ -165,7 +171,7 @@ export function createSettingsRepository(
         transaction
           .insert(siteSettings)
           .values(
-            SITE_SETTING_KEYS.map((key) => ({
+            SITE_SETTING_KEYS.filter((key) => validatedSettings[key] !== undefined).map((key) => ({
               key,
               value: JSON.stringify(validatedSettings[key]),
               updatedAt,
