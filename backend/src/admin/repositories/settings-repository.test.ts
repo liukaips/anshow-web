@@ -2,7 +2,11 @@ import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../../db/test-db.js";
-import { auditLogs, siteSettings } from "../../db/schema/index.js";
+import {
+  auditLogs,
+  contactChannels,
+  siteSettings,
+} from "../../db/schema/index.js";
 import {
   DEFAULT_SITE_SETTINGS,
   createSettingsRepository,
@@ -193,6 +197,51 @@ describe("createSettingsRepository", () => {
         repository.saveSettings(SETTINGS, "actor-settings"),
       ).rejects.toThrow(/audit rejected/);
       expect(testDatabase.db.select().from(siteSettings).all()).toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("preserves existing contact channels when the audit row cannot be written", async () => {
+    const testDatabase = createTestDatabase();
+    const existingChannel = {
+      id: "existing-channel",
+      kind: "phone" as const,
+      label: "Existing phone",
+      value: "+1 555 0100",
+      enabled: false,
+      sortOrder: 4,
+    };
+
+    try {
+      testDatabase.db.insert(contactChannels).values(existingChannel).run();
+      testDatabase.db.run(sql.raw(`
+        CREATE TRIGGER reject_channel_audit
+        BEFORE INSERT ON audit_logs
+        BEGIN
+          SELECT RAISE(ABORT, 'audit rejected');
+        END
+      `));
+      const repository = createSettingsRepository(testDatabase.db);
+
+      await expect(
+        repository.saveContactChannels(
+          [
+            {
+              id: "replacement-channel",
+              kind: "email",
+              label: "Replacement email",
+              value: "replacement@example.test",
+              enabled: true,
+              sortOrder: 1,
+            },
+          ],
+          "actor-channels",
+        ),
+      ).rejects.toThrow(/audit rejected/);
+      await expect(repository.listContactChannels()).resolves.toEqual([
+        existingChannel,
+      ]);
     } finally {
       testDatabase.close();
     }
