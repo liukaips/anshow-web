@@ -52,6 +52,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminSettings"];
+        put: operations["updateAdminSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/contact-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminContactChannels"];
+        put: operations["replaceAdminContactChannels"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -194,6 +226,110 @@ export interface components {
                 message: string;
             };
             requestId: string;
+        };
+        AdminSettingsResponse: {
+            data: components["schemas"]["SiteSettings"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        SiteSettings: {
+            companyIdentity: {
+                displayName: string;
+                legalName: string;
+                registrationNumber: string;
+                address: string;
+            };
+            publicContacts: {
+                email: "" | string;
+                phone: string;
+            };
+            privacyController: {
+                name: string;
+                email: "" | string;
+            };
+            smtpRecipient: {
+                name: string;
+                email: "" | string;
+            };
+            localeDefaults: {
+                /** @enum {string} */
+                defaultLocale: "en" | "zh" | "ru";
+                enabledLocales: ("en" | "zh" | "ru")[];
+            };
+            /** @enum {string} */
+            mediaMode: "local" | "cos";
+            featureFlags: {
+                enquiriesEnabled: boolean;
+                caseStudiesEnabled: boolean;
+                insightsEnabled: boolean;
+            };
+        };
+        SaveAdminSettingsResponse: {
+            data: components["schemas"]["SiteSettings"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        SaveSiteSettingsInput: {
+            companyIdentity: {
+                displayName: string;
+                legalName: string;
+                registrationNumber: string;
+                address: string;
+            };
+            publicContacts: {
+                email: "" | string;
+                phone: string;
+            };
+            privacyController: {
+                name: string;
+                email: "" | string;
+            };
+            smtpRecipient: {
+                name: string;
+                email: "" | string;
+            };
+            localeDefaults: {
+                /** @enum {string} */
+                defaultLocale: "en" | "zh" | "ru";
+                enabledLocales: ("en" | "zh" | "ru")[];
+            };
+            /** @enum {string} */
+            mediaMode: "local" | "cos";
+            featureFlags: {
+                enquiriesEnabled: boolean;
+                caseStudiesEnabled: boolean;
+                insightsEnabled: boolean;
+            };
+        };
+        AdminContactChannelsResponse: {
+            data: components["schemas"]["AdminContactChannel"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContactChannel: {
+            id: string;
+            /** @enum {string} */
+            kind: "whatsapp" | "wechat" | "telegram" | "phone" | "email";
+            label: string;
+            value: string;
+            enabled: boolean;
+            sortOrder: number;
+        };
+        SaveAdminContactChannelsResponse: {
+            data: components["schemas"]["AdminContactChannel"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        SaveContactChannelsInput: {
+            channels: components["schemas"]["AdminContactChannel"][];
         };
         PublicHomeEnvelope: {
             data: components["schemas"]["PublicHome"];
@@ -384,6 +520,184 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenResponse"];
+                };
+            };
+        };
+    };
+    getAdminSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Allowlisted public site configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSettingsResponse"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member cannot manage settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateAdminSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSiteSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved allowlisted public site configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveAdminSettingsResponse"];
+                };
+            };
+            /** @description The settings input is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member cannot manage settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminContactChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All configured contact channels, including disabled ones. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContactChannelsResponse"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member cannot manage settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceAdminContactChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveContactChannelsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved contact channels. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveAdminContactChannelsResponse"];
+                };
+            };
+            /** @description The contact channel input is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member cannot manage settings. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

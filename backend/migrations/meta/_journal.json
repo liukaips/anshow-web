@@ -15,6 +15,13 @@
       "when": 1784044924020,
       "tag": "0001_lowly_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784082413431,
+      "tag": "0002_simple_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

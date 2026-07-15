@@ -1,6 +1,11 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 import {
+  registerSettingsRoutes,
+  type SettingsRouteDependencies,
+} from "./admin/routes/settings.js";
+import { DEFAULT_SITE_SETTINGS } from "./admin/repositories/settings-repository.js";
+import {
   errorEnvelopeSchema,
   requestIdSchema,
 } from "./content/public-contract.js";
@@ -88,11 +93,12 @@ function errorDiagnostic(error: unknown) {
   };
 }
 
-export type AppDependencies = AdminSessionDependencies & {
-  checkReadiness: ReadinessCheck;
-  handleAuthRequest: (request: Request) => Promise<Response>;
-  publicContentRepository: PublicContentRepository;
-};
+export type AppDependencies = AdminSessionDependencies &
+  SettingsRouteDependencies & {
+    checkReadiness: ReadinessCheck;
+    handleAuthRequest: (request: Request) => Promise<Response>;
+    publicContentRepository: PublicContentRepository;
+  };
 
 const defaultDependencies: AppDependencies = {
   checkReadiness: () => {
@@ -123,6 +129,12 @@ const defaultDependencies: AppDependencies = {
     listCollection: async () => [],
     getBySlug: async () => null,
     listSitemap: async () => [],
+  },
+  settingsRepository: {
+    getSettings: async () => structuredClone(DEFAULT_SITE_SETTINGS),
+    saveSettings: async (settings) => settings,
+    listContactChannels: async () => [],
+    saveContactChannels: async (channels) => [...channels],
   },
 };
 
@@ -171,6 +183,7 @@ export function createApp(
     resolvedDependencies.handleAuthRequest(context.req.raw),
   );
   registerAdminSessionRoute(app, resolvedDependencies);
+  registerSettingsRoutes(app, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {

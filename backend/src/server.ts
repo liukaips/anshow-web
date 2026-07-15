@@ -5,6 +5,7 @@ import { initializeRuntime } from "./runtime-bootstrap.js";
 await initializeRuntime(process.env, async (environment) => {
   const [
     { createApp },
+    { createSettingsRepository },
     { permissionsForUser },
     { createAuthRuntime },
     { db },
@@ -13,6 +14,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createPublicRepository },
   ] = await Promise.all([
     import("./app.js"),
+    import("./admin/repositories/settings-repository.js"),
     import("./auth/permission-repository.js"),
     import("./auth/runtime.js"),
     import("./db/client.js"),
@@ -29,6 +31,7 @@ await initializeRuntime(process.env, async (environment) => {
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),
+    settingsRepository: createSettingsRepository(db),
   });
   const server = serve(
     {

@@ -282,6 +282,539 @@
           "requestId"
         ]
       },
+      "AdminSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SiteSettings"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "SiteSettings": {
+        "type": "object",
+        "properties": {
+          "companyIdentity": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "legalName": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "registrationNumber": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "address": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "displayName",
+              "legalName",
+              "registrationNumber",
+              "address"
+            ],
+            "additionalProperties": false
+          },
+          "publicContacts": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              },
+              "phone": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "email",
+              "phone"
+            ],
+            "additionalProperties": false
+          },
+          "privacyController": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "smtpRecipient": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "localeDefaults": {
+            "type": "object",
+            "properties": {
+              "defaultLocale": {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "zh",
+                  "ru"
+                ]
+              },
+              "enabledLocales": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "en",
+                    "zh",
+                    "ru"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "defaultLocale",
+              "enabledLocales"
+            ],
+            "additionalProperties": false
+          },
+          "mediaMode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "cos"
+            ]
+          },
+          "featureFlags": {
+            "type": "object",
+            "properties": {
+              "enquiriesEnabled": {
+                "type": "boolean"
+              },
+              "caseStudiesEnabled": {
+                "type": "boolean"
+              },
+              "insightsEnabled": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enquiriesEnabled",
+              "caseStudiesEnabled",
+              "insightsEnabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "companyIdentity",
+          "publicContacts",
+          "privacyController",
+          "smtpRecipient",
+          "localeDefaults",
+          "mediaMode",
+          "featureFlags"
+        ],
+        "additionalProperties": false
+      },
+      "SaveAdminSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SiteSettings"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "SaveSiteSettingsInput": {
+        "type": "object",
+        "properties": {
+          "companyIdentity": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "legalName": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "registrationNumber": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "address": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "displayName",
+              "legalName",
+              "registrationNumber",
+              "address"
+            ],
+            "additionalProperties": false
+          },
+          "publicContacts": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              },
+              "phone": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "email",
+              "phone"
+            ],
+            "additionalProperties": false
+          },
+          "privacyController": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "smtpRecipient": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "format": "email"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ],
+            "additionalProperties": false
+          },
+          "localeDefaults": {
+            "type": "object",
+            "properties": {
+              "defaultLocale": {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "zh",
+                  "ru"
+                ]
+              },
+              "enabledLocales": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "en",
+                    "zh",
+                    "ru"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 3
+              }
+            },
+            "required": [
+              "defaultLocale",
+              "enabledLocales"
+            ],
+            "additionalProperties": false
+          },
+          "mediaMode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "cos"
+            ]
+          },
+          "featureFlags": {
+            "type": "object",
+            "properties": {
+              "enquiriesEnabled": {
+                "type": "boolean"
+              },
+              "caseStudiesEnabled": {
+                "type": "boolean"
+              },
+              "insightsEnabled": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enquiriesEnabled",
+              "caseStudiesEnabled",
+              "insightsEnabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "companyIdentity",
+          "publicContacts",
+          "privacyController",
+          "smtpRecipient",
+          "localeDefaults",
+          "mediaMode",
+          "featureFlags"
+        ],
+        "additionalProperties": false
+      },
+      "AdminContactChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminContactChannel"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminContactChannel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "wechat",
+              "telegram",
+              "phone",
+              "email"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "value",
+          "enabled",
+          "sortOrder"
+        ],
+        "additionalProperties": false
+      },
+      "SaveAdminContactChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminContactChannel"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "SaveContactChannelsInput": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminContactChannel"
+            },
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "channels"
+        ],
+        "additionalProperties": false
+      },
       "PublicHomeEnvelope": {
         "type": "object",
         "properties": {
@@ -748,6 +1281,202 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings": {
+      "get": {
+        "operationId": "getAdminSettings",
+        "tags": [
+          "Administration"
+        ],
+        "responses": {
+          "200": {
+            "description": "Allowlisted public site configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member cannot manage settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAdminSettings",
+        "tags": [
+          "Administration"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSiteSettingsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved allowlisted public site configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveAdminSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The settings input is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member cannot manage settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/contact-channels": {
+      "get": {
+        "operationId": "listAdminContactChannels",
+        "tags": [
+          "Administration"
+        ],
+        "responses": {
+          "200": {
+            "description": "All configured contact channels, including disabled ones.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminContactChannelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member cannot manage settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceAdminContactChannels",
+        "tags": [
+          "Administration"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveContactChannelsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved contact channels.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveAdminContactChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The contact channel input is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member cannot manage settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
