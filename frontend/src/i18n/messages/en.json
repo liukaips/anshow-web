@@ -60,7 +60,14 @@
     "process": "From route design to final delivery",
     "cases": "Selected logistics work",
     "insights": "Practical intelligence for global shipping",
-    "contact": "Bring us your next shipping challenge"
+    "contact": "Bring us your next shipping challenge",
+    "routeOrigin": "Origin / route",
+    "routeDestination": "Destination / control",
+    "stage": "Stage",
+    "lane": "Lane",
+    "proof": "Verified facts",
+    "trust": "Verified credentials and operating relationships",
+    "nextMove": "Next move"
   },
   "Process": {
     "route": {

@@ -1,0 +1,16 @@
+{
+  "score": 94,
+  "threshold": 90,
+  "passed": true,
+  "reasoning": "The revised page passes three-locale desktop and 375px mobile visual checks, with zero Axe violations, no overflow, localized telemetry, a nonblank desktop Canvas, and no Three.js on mobile.",
+  "suggestions": [
+    "Keep the current visual system and interaction hierarchy.",
+    "Replace only responsive media sources after generated masters pass validation.",
+    "Do not reintroduce opacity animation on readable process text."
+  ],
+  "next_actions": [
+    "Run full repository verification.",
+    "Commit the public homepage and process experience.",
+    "Integrate generated imagery only after source validation."
+  ]
+}

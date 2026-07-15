@@ -27,7 +27,9 @@
     transparent
   );
   --color-cyan: #38bdf8;
+  --color-cyan-ink: #036986;
   --color-teal: #14b8a6;
+  --color-teal-ink: #0f766e;
   --color-action: #f97316;
   --color-danger: #dc2626;
   --motion-fast: 180ms;

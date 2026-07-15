@@ -60,7 +60,14 @@
     "process": "从路径设计到最终交付",
     "cases": "精选物流实践",
     "insights": "面向全球运输的专业洞察",
-    "contact": "告诉我们您的下一项运输需求"
+    "contact": "告诉我们您的下一项运输需求",
+    "routeOrigin": "起点 / 路线",
+    "routeDestination": "终点 / 管控",
+    "stage": "阶段",
+    "lane": "航线",
+    "proof": "已验证信息",
+    "trust": "已验证资质与运营合作关系",
+    "nextMove": "下一步"
   },
   "Process": {
     "route": {

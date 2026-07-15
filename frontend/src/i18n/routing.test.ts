@@ -66,6 +66,13 @@ const requiredMessagePaths = [
     "cases",
     "insights",
     "contact",
+    "routeOrigin",
+    "routeDestination",
+    "stage",
+    "lane",
+    "proof",
+    "trust",
+    "nextMove",
   ].map((key) => `Home.${key}`),
   ...["route", "pickup", "customs", "transit", "delivery"].flatMap(
     (step) => [
