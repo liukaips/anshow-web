@@ -178,6 +178,9 @@ const defaultDependencies: AppDependencies = {
     schedule: async () => {
       throw new Error("Content repository is not configured");
     },
+    updateVerification: async () => {
+      throw new Error("Content repository is not configured");
+    },
     archive: async () => {
       throw new Error("Content repository is not configured");
     },

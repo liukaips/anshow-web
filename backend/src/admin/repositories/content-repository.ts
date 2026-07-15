@@ -26,15 +26,19 @@ import {
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
 import {
+  createContentInputSchema,
   publishableTranslationSchema,
   scheduleTranslationInputSchema,
   translationInputSchema,
+  verificationInputSchema,
   type AdminContentCollection,
   type AdminContentLocale,
   type AdminPublicationState,
   type PublishTranslationInput,
+  type ProofContentCollection,
   type ScheduleTranslationInput,
   type TranslationInput,
+  type VerificationInput,
 } from "../content/content-schema.js";
 import { createAuditRepository } from "./audit-repository.js";
 
@@ -185,6 +189,12 @@ export interface ContentRepository {
     input: ScheduleTranslationInput,
     actorId: string,
   ): Promise<AdminContentItem>;
+  updateVerification(
+    collection: ProofContentCollection,
+    id: string,
+    input: VerificationInput,
+    actorId: string,
+  ): Promise<AdminContentItem>;
   archive(
     collection: AdminContentCollection,
     id: string,
@@ -252,6 +262,44 @@ function notFound(collection: AdminContentCollection, id: string) {
     "CONTENT_NOT_FOUND",
     `${collection} content ${id} was not found`,
   );
+}
+
+function isUniqueConstraintFor(
+  error: unknown,
+  columns: readonly string[],
+): boolean {
+  if (
+    !(error instanceof Error) ||
+    !("code" in error) ||
+    error.code !== "SQLITE_CONSTRAINT_UNIQUE"
+  ) {
+    return false;
+  }
+  return columns.every((column) => error.message.includes(`.${column}`));
+}
+
+function mapContentConstraint(error: unknown, code: string): never {
+  if (isUniqueConstraintFor(error, ["code"])) {
+    throw new ContentRepositoryError(
+      "CONTENT_CONFLICT",
+      `Code ${code} is already used`,
+    );
+  }
+  throw error;
+}
+
+function mapSlugConstraint(
+  error: unknown,
+  locale: AdminContentLocale,
+  slug: string,
+): never {
+  if (isUniqueConstraintFor(error, ["locale", "slug"])) {
+    throw new ContentRepositoryError(
+      "SLUG_CONFLICT",
+      `Slug ${slug} is already used for ${locale}`,
+    );
+  }
+  throw error;
 }
 
 function readBase(
@@ -384,50 +432,72 @@ export function createContentRepository(
         .from(config.base)
         .orderBy(asc(config.base.sortOrder), asc(config.base.id))
         .all();
-      return Promise.all(rows.map((row) => get(collection, row.id)));
+      const translations = database
+        .select()
+        .from(config.translations)
+        .orderBy(
+          asc(config.translations.ownerId),
+          asc(config.translations.locale),
+        )
+        .all();
+      const translationsByOwner = new Map<string, TranslationRow[]>();
+      for (const translation of translations) {
+        const grouped = translationsByOwner.get(translation.ownerId) ?? [];
+        grouped.push(translation);
+        translationsByOwner.set(translation.ownerId, grouped);
+      }
+      return rows.map((row) =>
+        toItem(row, translationsByOwner.get(row.id) ?? []),
+      );
     },
 
     get,
 
     async create(collection, input, actorId) {
       const config = collectionConfig[collection];
+      const parsedInput = createContentInputSchema.parse(input);
       const id = createId();
       const timestamp = now();
-      const verificationSource = input.verificationSource?.trim() || null;
+      const verificationSource =
+        parsedInput.verificationSource?.trim() || null;
 
-      database.transaction((transaction) => {
-        const codeCollision = transaction
-          .select({ id: config.base.id })
-          .from(config.base)
-          .where(eq(config.base.code, input.code))
-          .get();
-        if (codeCollision) {
-          throw new ContentRepositoryError(
-            "CONTENT_CONFLICT",
-            `Code ${input.code} is already used`,
-          );
-        }
+      try {
+        database.transaction((transaction) => {
+          const codeCollision = transaction
+            .select({ id: config.base.id })
+            .from(config.base)
+            .where(eq(config.base.code, parsedInput.code))
+            .get();
+          if (codeCollision) {
+            throw new ContentRepositoryError(
+              "CONTENT_CONFLICT",
+              `Code ${parsedInput.code} is already used`,
+            );
+          }
 
-        transaction
-          .insert(config.base)
-          .values({
-            id,
-            code: input.code,
-            sortOrder: input.sortOrder ?? 0,
-            verifiedAt: input.verified ? timestamp : null,
-            verificationSource,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          })
-          .run();
-        audit(transaction).record({
-          actorId,
-          action: "content.create",
-          entityType: collection,
-          entityId: id,
-          detail: { code: input.code },
+          transaction
+            .insert(config.base)
+            .values({
+              id,
+              code: parsedInput.code,
+              sortOrder: parsedInput.sortOrder ?? 0,
+              verifiedAt: parsedInput.verified ? timestamp : null,
+              verificationSource,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            })
+            .run();
+          audit(transaction).record({
+            actorId,
+            action: "content.create",
+            entityType: collection,
+            entityId: id,
+            detail: { code: parsedInput.code },
+          });
         });
-      });
+      } catch (error) {
+        mapContentConstraint(error, parsedInput.code);
+      }
 
       return get(collection, id);
     },
@@ -437,42 +507,46 @@ export function createContentRepository(
       const translation = translationInputSchema.parse(input);
       const timestamp = now();
 
-      database.transaction((transaction) => {
-        const base = readBase(transaction, config, id);
-        if (!base) throw notFound(collection, id);
-        assertMutable(base, collection);
-        assertSlugAvailable(transaction, config, id, locale, translation.slug);
+      try {
+        database.transaction((transaction) => {
+          const base = readBase(transaction, config, id);
+          if (!base) throw notFound(collection, id);
+          assertMutable(base, collection);
+          assertSlugAvailable(transaction, config, id, locale, translation.slug);
 
-        transaction
-          .insert(config.translations)
-          .values({
-            ownerId: id,
-            locale,
-            status: "draft",
-            scheduledAt: null,
-            publishedAt: null,
-            ...translation,
-            updatedAt: timestamp,
-          })
-          .onConflictDoUpdate({
-            target: [config.translations.ownerId, config.translations.locale],
-            set: {
+          transaction
+            .insert(config.translations)
+            .values({
+              ownerId: id,
+              locale,
               status: "draft",
               scheduledAt: null,
               publishedAt: null,
               ...translation,
               updatedAt: timestamp,
-            },
-          })
-          .run();
-        audit(transaction).record({
-          actorId,
-          action: "content.translation.save-draft",
-          entityType: collection,
-          entityId: id,
-          detail: { locale },
+            })
+            .onConflictDoUpdate({
+              target: [config.translations.ownerId, config.translations.locale],
+              set: {
+                status: "draft",
+                scheduledAt: null,
+                publishedAt: null,
+                ...translation,
+                updatedAt: timestamp,
+              },
+            })
+            .run();
+          audit(transaction).record({
+            actorId,
+            action: "content.translation.save-draft",
+            entityType: collection,
+            entityId: id,
+            detail: { locale },
+          });
         });
-      });
+      } catch (error) {
+        mapSlugConstraint(error, locale, translation.slug);
+      }
 
       return get(collection, id);
     },
@@ -481,30 +555,34 @@ export function createContentRepository(
       const config = collectionConfig[collection];
       const timestamp = now();
 
-      database.transaction((transaction) => {
-        const translation = publishableTranslationSchema.parse(input);
-        const base = readBase(transaction, config, id);
-        if (!base) throw notFound(collection, id);
-        assertMutable(base, collection);
-        assertProofVerified(config, base);
-        assertSlugAvailable(transaction, config, id, locale, translation.slug);
-        upsertTranslation(
-          transaction,
-          config,
-          id,
-          locale,
-          translation,
-          { status: "published", scheduledAt: null, publishedAt: timestamp },
-          timestamp,
-        );
-        audit(transaction).record({
-          actorId,
-          action: "content.translation.publish",
-          entityType: collection,
-          entityId: id,
-          detail: { locale },
+      const translation = publishableTranslationSchema.parse(input);
+      try {
+        database.transaction((transaction) => {
+          const base = readBase(transaction, config, id);
+          if (!base) throw notFound(collection, id);
+          assertMutable(base, collection);
+          assertProofVerified(config, base);
+          assertSlugAvailable(transaction, config, id, locale, translation.slug);
+          upsertTranslation(
+            transaction,
+            config,
+            id,
+            locale,
+            translation,
+            { status: "published", scheduledAt: null, publishedAt: timestamp },
+            timestamp,
+          );
+          audit(transaction).record({
+            actorId,
+            action: "content.translation.publish",
+            entityType: collection,
+            entityId: id,
+            detail: { locale },
+          });
         });
-      });
+      } catch (error) {
+        mapSlugConstraint(error, locale, translation.slug);
+      }
 
       return get(collection, id);
     },
@@ -513,36 +591,75 @@ export function createContentRepository(
       const config = collectionConfig[collection];
       const timestamp = now();
 
-      database.transaction((transaction) => {
-        const { scheduledAt, ...translation } =
-          scheduleTranslationInputSchema.parse(input);
-        const scheduledDate = new Date(scheduledAt);
-        if (scheduledDate.getTime() <= timestamp.getTime()) {
-          throw new ContentRepositoryError(
-            "SCHEDULE_NOT_FUTURE",
-            "The scheduled publication time must be in the future",
+      const { scheduledAt, ...translation } =
+        scheduleTranslationInputSchema.parse(input);
+      const scheduledDate = new Date(scheduledAt);
+      if (scheduledDate.getTime() <= timestamp.getTime()) {
+        throw new ContentRepositoryError(
+          "SCHEDULE_NOT_FUTURE",
+          "The scheduled publication time must be in the future",
+        );
+      }
+      try {
+        database.transaction((transaction) => {
+          const base = readBase(transaction, config, id);
+          if (!base) throw notFound(collection, id);
+          assertMutable(base, collection);
+          assertProofVerified(config, base);
+          assertSlugAvailable(transaction, config, id, locale, translation.slug);
+          upsertTranslation(
+            transaction,
+            config,
+            id,
+            locale,
+            translation,
+            { status: "scheduled", scheduledAt: scheduledDate, publishedAt: null },
+            timestamp,
           );
-        }
+          audit(transaction).record({
+            actorId,
+            action: "content.translation.schedule",
+            entityType: collection,
+            entityId: id,
+            detail: { locale, scheduledAt: scheduledDate.toISOString() },
+          });
+        });
+      } catch (error) {
+        mapSlugConstraint(error, locale, translation.slug);
+      }
+
+      return get(collection, id);
+    },
+
+    async updateVerification(collection, id, input, actorId) {
+      const config = collectionConfig[collection];
+      const verification = verificationInputSchema.parse(input);
+      const timestamp = now();
+      const verificationSource =
+        verification.verificationSource?.trim() || null;
+
+      database.transaction((transaction) => {
         const base = readBase(transaction, config, id);
         if (!base) throw notFound(collection, id);
         assertMutable(base, collection);
-        assertProofVerified(config, base);
-        assertSlugAvailable(transaction, config, id, locale, translation.slug);
-        upsertTranslation(
-          transaction,
-          config,
-          id,
-          locale,
-          translation,
-          { status: "scheduled", scheduledAt: scheduledDate, publishedAt: null },
-          timestamp,
-        );
+        transaction
+          .update(config.base)
+          .set({
+            verifiedAt: verification.verified ? timestamp : null,
+            verificationSource,
+            updatedAt: timestamp,
+          })
+          .where(eq(config.base.id, id))
+          .run();
         audit(transaction).record({
           actorId,
-          action: "content.translation.schedule",
+          action: "content.verification.update",
           entityType: collection,
           entityId: id,
-          detail: { locale, scheduledAt: scheduledDate.toISOString() },
+          detail: {
+            verified: verification.verified,
+            verificationSource,
+          },
         });
       });
 
@@ -556,6 +673,7 @@ export function createContentRepository(
       database.transaction((transaction) => {
         const base = readBase(transaction, config, id);
         if (!base) throw notFound(collection, id);
+        if (base.archivedAt) return;
         transaction
           .update(config.base)
           .set({ archivedAt: timestamp, updatedAt: timestamp })

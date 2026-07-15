@@ -11,6 +11,7 @@ import {
   saveAdminContentDraft,
   scheduleAdminContentTranslation,
 } from "./admin-content";
+import * as adminContent from "./admin-content";
 import { listAdminContent } from "./admin-content.server";
 
 const item = {
@@ -105,6 +106,36 @@ describe("administration content API", () => {
         scheduledAt: "2026-07-16T04:00:00.000Z",
       }),
     });
+  });
+
+  it("updates proof verification through the generated operation", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(item));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(adminContent).toHaveProperty("updateAdminContentVerification");
+    const updateVerification = Reflect.get(
+      adminContent,
+      "updateAdminContentVerification",
+    ) as (
+      collection: "partners",
+      id: string,
+      input: { verified: boolean; verificationSource: string | null },
+    ) => Promise<unknown>;
+
+    await updateVerification("partners", "content-1", {
+      verified: true,
+      verificationSource: "Official registry record",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/content/partners/content-1/verification",
+      expect.objectContaining({
+        body: JSON.stringify({
+          verified: true,
+          verificationSource: "Official registry record",
+        }),
+        method: "PUT",
+      }),
+    );
   });
 
   it("retains safe validation fields from an API error envelope", async () => {

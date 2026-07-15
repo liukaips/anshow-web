@@ -10,11 +10,13 @@ const {
   publishTranslation,
   saveDraft,
   scheduleTranslation,
+  updateVerification,
 } = vi.hoisted(() => ({
   archiveContent: vi.fn(),
   publishTranslation: vi.fn(),
   saveDraft: vi.fn(),
   scheduleTranslation: vi.fn(),
+  updateVerification: vi.fn(),
 }));
 
 vi.mock("../../api/admin-content", async (importOriginal) => {
@@ -25,6 +27,7 @@ vi.mock("../../api/admin-content", async (importOriginal) => {
     publishAdminContentTranslation: publishTranslation,
     saveAdminContentDraft: saveDraft,
     scheduleAdminContentTranslation: scheduleTranslation,
+    updateAdminContentVerification: updateVerification,
   };
 });
 
@@ -65,6 +68,7 @@ beforeEach(() => {
   publishTranslation.mockResolvedValue(ITEM);
   scheduleTranslation.mockResolvedValue(ITEM);
   archiveContent.mockResolvedValue(ITEM);
+  updateVerification.mockResolvedValue(ITEM);
 });
 
 afterEach(() => {
@@ -75,7 +79,7 @@ afterEach(() => {
 describe("ContentEditor", () => {
   it("warns on unload and locale changes while dirty, then clears dirty state after save", async () => {
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
 
     fireEvent.change(screen.getByLabelText("Title"), {
@@ -110,7 +114,7 @@ describe("ContentEditor", () => {
       }),
     );
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
@@ -123,9 +127,48 @@ describe("ContentEditor", () => {
     await screen.findByText("Draft saved.");
   });
 
+  it("locks editable controls and applies the persisted response while saving", async () => {
+    let resolveSave: ((item: AdminContentItem) => void) | undefined;
+    saveDraft.mockReturnValueOnce(
+      new Promise<AdminContentItem>((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+    const persisted = {
+      ...ITEM,
+      translations: {
+        ...ITEM.translations,
+        en: { ...ITEM.translations.en!, title: "Canonical title" },
+      },
+    };
+    render(
+      <ContentEditor
+        canPublish
+        canWrite
+        collection="services"
+        initialItem={ITEM}
+      />,
+    );
+    const title = screen.getByLabelText("Title");
+    fireEvent.change(title, { target: { value: " Submitted title " } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledOnce());
+
+    expect(title).toBeDisabled();
+    expect(screen.getByLabelText("Publication date and time")).toBeDisabled();
+    expect(screen.getByRole("tab", { name: /Russian/i })).toBeDisabled();
+    fireEvent.change(title, { target: { value: "Newer local title" } });
+    expect(title).toHaveValue(" Submitted title ");
+
+    resolveSave?.(persisted);
+    await screen.findByText("Draft saved.");
+    expect(title).toHaveValue("Canonical title");
+  });
+
   it("renders publish errors inline and focuses the first invalid field", async () => {
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     const title = screen.getByLabelText("Title");
     fireEvent.change(title, { target: { value: "" } });
@@ -148,7 +191,7 @@ describe("ContentEditor", () => {
     };
     publishTranslation.mockResolvedValueOnce(published);
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Atomic published title" },
@@ -175,7 +218,7 @@ describe("ContentEditor", () => {
   it("keeps dirty state when the atomic publish command fails", async () => {
     publishTranslation.mockRejectedValueOnce(new Error("Publish failed."));
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Saved before publish" },
@@ -198,7 +241,7 @@ describe("ContentEditor", () => {
       <>
         <Link href="/admin/content/pages">Back to pages</Link>
         <a href="#content-preview">Jump to preview</a>
-        <ContentEditor canPublish collection="services" initialItem={ITEM} />
+        <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />
       </>,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
@@ -240,7 +283,7 @@ describe("ContentEditor", () => {
     );
     const downstreamPopstate = vi.fn();
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Dirty before back" },
@@ -274,7 +317,7 @@ describe("ContentEditor", () => {
     confirm.mockReturnValue(true);
     const downstreamPopstate = vi.fn();
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Dirty before back" },
@@ -298,7 +341,7 @@ describe("ContentEditor", () => {
 
   it("keeps an edited schedule time dirty after saving the translation", async () => {
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Publication date and time"), {
       target: { value: "2099-07-16T12:00" },
@@ -312,9 +355,140 @@ describe("ContentEditor", () => {
     expect(afterSave.defaultPrevented).toBe(true);
   });
 
+  it("clears a clean persisted schedule and applies canonical draft values on save", async () => {
+    const scheduledAt = "2099-07-16T12:00:00.000Z";
+    const scheduledItem: AdminContentItem = {
+      ...ITEM,
+      translations: {
+        ...ITEM.translations,
+        en: {
+          ...ITEM.translations.en!,
+          scheduledAt,
+          status: "scheduled",
+        },
+      },
+    };
+    const savedItem: AdminContentItem = {
+      ...scheduledItem,
+      translations: {
+        ...scheduledItem.translations,
+        en: {
+          ...scheduledItem.translations.en!,
+          scheduledAt: null,
+          status: "draft",
+          title: "Server-trimmed title",
+        },
+      },
+    };
+    saveDraft.mockResolvedValueOnce(savedItem);
+    render(
+      <ContentEditor
+        canPublish
+        canWrite
+        collection="services"
+        initialItem={scheduledItem}
+      />,
+    );
+    expect(screen.getByLabelText("Publication date and time")).not.toHaveValue(
+      "",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Draft saved.");
+
+    expect(screen.getByLabelText("Title")).toHaveValue("Server-trimmed title");
+    expect(screen.getByLabelText("Publication date and time")).toHaveValue("");
+  });
+
+  it("preserves an independently dirty schedule while reconciling a save", async () => {
+    const persisted: AdminContentItem = {
+      ...ITEM,
+      translations: {
+        ...ITEM.translations,
+        en: { ...ITEM.translations.en!, title: "Canonical save", scheduledAt: null },
+      },
+    };
+    saveDraft.mockResolvedValueOnce(persisted);
+    render(
+      <ContentEditor
+        canPublish
+        canWrite
+        collection="services"
+        initialItem={ITEM}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: " Canonical save " },
+    });
+    fireEvent.change(screen.getByLabelText("Publication date and time"), {
+      target: { value: "2099-07-16T12:00" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Draft saved.");
+
+    expect(screen.getByLabelText("Title")).toHaveValue("Canonical save");
+    expect(screen.getByLabelText("Publication date and time")).toHaveValue(
+      "2099-07-16T12:00",
+    );
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+  });
+
+  it("clears persisted and dirty schedule state when publishing", async () => {
+    const scheduledItem: AdminContentItem = {
+      ...ITEM,
+      translations: {
+        ...ITEM.translations,
+        en: {
+          ...ITEM.translations.en!,
+          scheduledAt: "2099-07-16T12:00:00.000Z",
+          status: "scheduled",
+        },
+      },
+    };
+    const publishedItem: AdminContentItem = {
+      ...scheduledItem,
+      translations: {
+        ...scheduledItem.translations,
+        en: {
+          ...scheduledItem.translations.en!,
+          scheduledAt: null,
+          status: "published",
+          title: "Canonical publish",
+        },
+      },
+    };
+    publishTranslation.mockResolvedValueOnce(publishedItem);
+    render(
+      <ContentEditor
+        canPublish
+        canWrite
+        collection="services"
+        initialItem={scheduledItem}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: " Canonical publish " },
+    });
+    fireEvent.change(screen.getByLabelText("Publication date and time"), {
+      target: { value: "2099-08-17T13:30" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    await screen.findByText("Translation published.");
+
+    expect(screen.getByLabelText("Title")).toHaveValue("Canonical publish");
+    expect(screen.getByLabelText("Publication date and time")).toHaveValue("");
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(false);
+  });
+
   it("clears translation and schedule dirtiness only after schedule succeeds", async () => {
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Scheduled title" },
@@ -334,7 +508,7 @@ describe("ContentEditor", () => {
   it("keeps the schedule time dirty when scheduling fails", async () => {
     scheduleTranslation.mockRejectedValueOnce(new Error("Schedule failed."));
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     fireEvent.change(screen.getByLabelText("Publication date and time"), {
       target: { value: "2099-07-16T12:00" },
@@ -353,7 +527,7 @@ describe("ContentEditor", () => {
   it("prompts for dirty schedule times and keeps a draft per locale", () => {
     confirm.mockReturnValue(true);
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
     const scheduledAt = screen.getByLabelText("Publication date and time");
     fireEvent.change(scheduledAt, {
@@ -382,7 +556,7 @@ describe("ContentEditor", () => {
       }),
     );
     render(
-      <ContentEditor canPublish collection="services" initialItem={ITEM} />,
+      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
@@ -406,6 +580,7 @@ describe("ContentEditor", () => {
     render(
       <ContentEditor
         canPublish
+        canWrite
         collection="services"
         initialItem={publishedItem}
       />,
@@ -417,5 +592,74 @@ describe("ContentEditor", () => {
     });
 
     expect(screen.getByText("Unpublished preview")).toBeVisible();
+  });
+
+  it("renders translation controls read-only for a viewer", () => {
+    render(
+      <ContentEditor
+        canPublish={false}
+        canWrite={false}
+        collection="services"
+        initialItem={ITEM}
+      />,
+    );
+
+    expect(screen.getByLabelText("Title")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Schedule" })).toBeDisabled();
+  });
+
+  it("lets a publish-only actor edit atomic commands without draft actions", () => {
+    render(
+      <ContentEditor
+        canPublish
+        canWrite={false}
+        collection="services"
+        initialItem={ITEM}
+      />,
+    );
+
+    expect(screen.getByLabelText("Title")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Schedule" })).toBeEnabled();
+  });
+
+  it("updates official proof verification for writers", async () => {
+    const verifiedItem = {
+      ...ITEM,
+      verified: true,
+      verificationSource: "Official registry record",
+    };
+    updateVerification.mockResolvedValueOnce(verifiedItem);
+    render(
+      <ContentEditor
+        canPublish={false}
+        canWrite
+        collection="partners"
+        initialItem={ITEM}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Verified proof"));
+    fireEvent.change(screen.getByLabelText("Official verification source"), {
+      target: { value: "Official registry record" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save verification" }));
+
+    await waitFor(() =>
+      expect(updateVerification).toHaveBeenCalledWith(
+        "partners",
+        ITEM.id,
+        {
+          verified: true,
+          verificationSource: "Official registry record",
+        },
+      ),
+    );
+    expect(await screen.findByText("Verification saved.")).toBeVisible();
   });
 });

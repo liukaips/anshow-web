@@ -34,7 +34,11 @@ export default async function AdminContentCollectionPage({
           Review publication state and translation completeness for each locale.
         </p>
         <div className="mt-6">
-          <ContentCollectionList collection={collection} initialItems={items} />
+          <ContentCollectionList
+            canWrite={session.permissions.includes("content.write")}
+            collection={collection}
+            initialItems={items}
+          />
         </div>
       </div>
     </main>

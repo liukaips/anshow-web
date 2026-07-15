@@ -8,6 +8,7 @@ type DetailOperation = paths["/api/admin/content/{collection}/{id}"]["get"];
 type DraftOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}"]["put"];
 type PublishOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/publish"]["post"];
 type ScheduleOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/schedule"]["post"];
+type VerificationOperation = paths["/api/admin/content/{collection}/{id}/verification"]["put"];
 
 export type AdminContentCollection =
   ListOperation["parameters"]["path"]["collection"];
@@ -27,6 +28,10 @@ export type PublishAdminContentInput =
   PublishOperation["requestBody"]["content"]["application/json"];
 export type ScheduleAdminContentInput =
   ScheduleOperation["requestBody"]["content"]["application/json"];
+export type AdminContentVerificationInput =
+  VerificationOperation["requestBody"]["content"]["application/json"];
+export type ProofContentCollection =
+  VerificationOperation["parameters"]["path"]["collection"];
 
 export const ADMIN_CONTENT_COLLECTIONS = [
   "pages",
@@ -112,5 +117,16 @@ export function archiveAdminContent(
   return getEnvelope<AdminContentItem>(
     `/api/admin/content/${segment(collection)}/${segment(id)}/archive`,
     commandInit("POST"),
+  );
+}
+
+export function updateAdminContentVerification(
+  collection: ProofContentCollection,
+  id: string,
+  input: AdminContentVerificationInput,
+): Promise<AdminContentItem> {
+  return getEnvelope<AdminContentItem>(
+    `/api/admin/content/${segment(collection)}/${segment(id)}/verification`,
+    commandInit("PUT", input),
   );
 }

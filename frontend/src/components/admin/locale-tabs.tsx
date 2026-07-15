@@ -11,6 +11,7 @@ type TranslationTabValue = Partial<AdminContentTranslationInput> & {
 
 type LocaleTabsProps = {
   activeLocale: AdminContentLocale;
+  disabled?: boolean;
   onSelect: (locale: AdminContentLocale) => void;
   translations: Partial<Record<AdminContentLocale, TranslationTabValue>>;
 };
@@ -45,6 +46,7 @@ export function isTranslationComplete(
 
 export function LocaleTabs({
   activeLocale,
+  disabled = false,
   onSelect,
   translations,
 }: LocaleTabsProps) {
@@ -71,6 +73,7 @@ export function LocaleTabs({
             }`}
             id={`translation-tab-${locale}`}
             key={locale}
+            disabled={disabled}
             onClick={() => onSelect(locale)}
             role="tab"
             type="button"

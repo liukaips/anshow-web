@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase } from "../../db/test-db.js";
 import { auditLogs } from "../../db/schema/index.js";
 import {
   ContentRepositoryError,
   createContentRepository,
+  type AdminContentItem,
+  type ContentRepository,
 } from "./content-repository.js";
 
 const NOW = new Date("2026-07-15T04:00:00.000Z");
@@ -19,6 +21,22 @@ const completeTranslation = {
   seoDescription: "A complete search description.",
   altText: "Cargo being handled at a terminal",
 };
+
+type RepositoryWithVerification = ContentRepository & {
+  updateVerification(
+    collection: "partners" | "certificates" | "proof-metrics",
+    id: string,
+    input: { verified: boolean; verificationSource: string | null },
+    actorId: string,
+  ): Promise<AdminContentItem>;
+};
+
+function withVerification(
+  repository: ContentRepository,
+): RepositoryWithVerification {
+  expect("updateVerification" in repository).toBe(true);
+  return repository as RepositoryWithVerification;
+}
 
 function createRepository() {
   const testDatabase = createTestDatabase();
@@ -85,6 +103,62 @@ describe("administration content repository", () => {
           entityId: FIRST_CONTENT_ID,
         }),
       ]);
+    } finally {
+      context.close();
+    }
+  });
+
+  it("validates create input at the repository boundary", async () => {
+    const context = createRepository();
+
+    try {
+      await expect(
+        context.repository.create(
+          "services",
+          { code: "Upper Case" },
+          "staff-1",
+        ),
+      ).rejects.toMatchObject({ name: "ZodError" });
+      await expect(context.repository.list("services")).resolves.toEqual([]);
+    } finally {
+      context.close();
+    }
+  });
+
+  it("lists every base and translation using two select queries", async () => {
+    const context = createRepository();
+
+    try {
+      const first = await context.repository.create(
+        "services",
+        { code: "list-first" },
+        "staff-1",
+      );
+      const second = await context.repository.create(
+        "services",
+        { code: "list-second" },
+        "staff-1",
+      );
+      await context.repository.saveDraft(
+        "services",
+        first.id,
+        "en",
+        { ...completeTranslation, slug: "list-first" },
+        "staff-1",
+      );
+      await context.repository.saveDraft(
+        "services",
+        second.id,
+        "ru",
+        { ...completeTranslation, slug: "list-second" },
+        "staff-1",
+      );
+      const select = vi.spyOn(context.db, "select");
+
+      const listed = await context.repository.list("services");
+
+      expect(listed).toHaveLength(2);
+      expect(select).toHaveBeenCalledTimes(2);
     } finally {
       context.close();
     }
@@ -227,6 +301,131 @@ describe("administration content repository", () => {
     },
   );
 
+  it.each(["partners", "certificates", "proof-metrics"] as const)(
+    "verifies an unverified %s with a source before publication",
+    async (collection) => {
+      const context = createRepository();
+
+      try {
+        const item = await context.repository.create(
+          collection,
+          { code: `verified-${collection}` },
+          "staff-1",
+        );
+        const verified = await withVerification(
+          context.repository,
+        ).updateVerification(
+          collection,
+          item.id,
+          {
+            verified: true,
+            verificationSource: "  Official registry record  ",
+          },
+          "staff-editor",
+        );
+        const published = await context.repository.publish(
+          collection,
+          item.id,
+          "en",
+          { ...completeTranslation, slug: `verified-${collection}` },
+          "staff-publisher",
+        );
+
+        expect(verified).toMatchObject({
+          verified: true,
+          verificationSource: "Official registry record",
+        });
+        expect(published.translations.en?.status).toBe("published");
+        expect(
+          context.db.select().from(auditLogs).all().map((entry) => entry.action),
+        ).toEqual([
+          "content.create",
+          "content.verification.update",
+          "content.translation.publish",
+        ]);
+      } finally {
+        context.close();
+      }
+    },
+  );
+
+  it("unverifies proof content and clears its source", async () => {
+    const context = createRepository();
+
+    try {
+      const item = await context.repository.create(
+        "partners",
+        {
+          code: "unverify-partner",
+          verified: true,
+          verificationSource: "Official registry record",
+        },
+        "staff-1",
+      );
+      const unverified = await withVerification(
+        context.repository,
+      ).updateVerification(
+        "partners",
+        item.id,
+        { verified: false, verificationSource: null },
+        "staff-editor",
+      );
+
+      expect(unverified).toMatchObject({
+        verified: false,
+        verificationSource: null,
+      });
+      await expect(
+        context.repository.publish(
+          "partners",
+          item.id,
+          "en",
+          completeTranslation,
+          "staff-publisher",
+        ),
+      ).rejects.toMatchObject({ code: "PROOF_NOT_VERIFIED" });
+    } finally {
+      context.close();
+    }
+  });
+
+  it("rolls back verification metadata when its audit insert fails", async () => {
+    const context = createRepository();
+
+    try {
+      const item = await context.repository.create(
+        "certificates",
+        { code: "verification-rollback" },
+        "staff-1",
+      );
+      context.db.run(sql.raw(`
+        CREATE TRIGGER reject_verification_audit
+        BEFORE INSERT ON audit_logs
+        WHEN NEW.action = 'content.verification.update'
+        BEGIN
+          SELECT RAISE(ABORT, 'verification audit rejected');
+        END
+      `));
+
+      await expect(
+        withVerification(context.repository).updateVerification(
+          "certificates",
+          item.id,
+          { verified: true, verificationSource: "Official register" },
+          "staff-editor",
+        ),
+      ).rejects.toThrow(/verification audit rejected/);
+      await expect(
+        context.repository.get("certificates", item.id),
+      ).resolves.toMatchObject({
+        verified: false,
+        verificationSource: null,
+      });
+    } finally {
+      context.close();
+    }
+  });
+
   it("maps duplicate locale slugs to a stable conflict error", async () => {
     const context = createRepository();
 
@@ -262,6 +461,100 @@ describe("administration content repository", () => {
       context.close();
     }
   });
+
+  it("maps a create unique-constraint race to CONTENT_CONFLICT", async () => {
+    const context = createRepository();
+
+    try {
+      context.db.run(sql.raw(`
+        CREATE TRIGGER race_service_code
+        BEFORE INSERT ON services
+        WHEN NEW.code = 'race-code' AND NEW.id <> 'race-winner'
+        BEGIN
+          INSERT INTO services (id, code, sort_order, created_at, updated_at)
+          VALUES ('race-winner', NEW.code, 0, 0, 0);
+        END
+      `));
+
+      await expect(
+        context.repository.create(
+          "services",
+          { code: "race-code" },
+          "staff-1",
+        ),
+      ).rejects.toMatchObject({ code: "CONTENT_CONFLICT" });
+    } finally {
+      context.close();
+    }
+  });
+
+  it.each(["save", "publish", "schedule"] as const)(
+    "maps a translation unique-constraint race during %s to SLUG_CONFLICT",
+    async (command) => {
+      const context = createRepository();
+
+      try {
+        const first = await context.repository.create(
+          "services",
+          { code: `race-first-${command}` },
+          "staff-1",
+        );
+        const second = await context.repository.create(
+          "services",
+          { code: `race-second-${command}` },
+          "staff-1",
+        );
+        context.db.run(sql.raw(`
+          CREATE TRIGGER race_service_slug
+          BEFORE INSERT ON service_translations
+          WHEN NEW.slug = 'race-slug' AND NEW.service_id <> '${first.id}'
+          BEGIN
+            INSERT INTO service_translations (
+              service_id, locale, status, slug, title, summary, body,
+              seo_title, seo_description, alt_text, updated_at
+            ) VALUES (
+              '${first.id}', NEW.locale, 'draft', NEW.slug, 'Race', 'Race',
+              'Race', 'Race', 'Race', 'Race', 0
+            );
+          END
+        `));
+        const translation = { ...completeTranslation, slug: "race-slug" };
+        const mutation =
+          command === "save"
+            ? context.repository.saveDraft(
+                "services",
+                second.id,
+                "en",
+                translation,
+                "staff-1",
+              )
+            : command === "publish"
+              ? context.repository.publish(
+                  "services",
+                  second.id,
+                  "en",
+                  translation,
+                  "staff-1",
+                )
+              : context.repository.schedule(
+                  "services",
+                  second.id,
+                  "en",
+                  {
+                    ...translation,
+                    scheduledAt: new Date(
+                      NOW.getTime() + 60_000,
+                    ).toISOString(),
+                  },
+                  "staff-1",
+                );
+
+        await expect(mutation).rejects.toMatchObject({ code: "SLUG_CONFLICT" });
+      } finally {
+        context.close();
+      }
+    },
+  );
 
   it("preserves blank slugs for multiple same-locale incomplete drafts", async () => {
     const context = createRepository();
@@ -331,6 +624,46 @@ describe("administration content repository", () => {
       ).rejects.toMatchObject({ code: "CONTENT_NOT_FOUND" });
     } finally {
       context.close();
+    }
+  });
+
+  it("keeps repeat archive idempotent without changing time or audit", async () => {
+    const testDatabase = createTestDatabase();
+    let clockTick = 0;
+    let auditSequence = 0;
+    const repository = createContentRepository(testDatabase.db, {
+      createId: () => FIRST_CONTENT_ID,
+      createAuditId: () => `archive-audit-${++auditSequence}`,
+      now: () => new Date(NOW.getTime() + clockTick++ * 60_000),
+    });
+
+    try {
+      const item = await repository.create(
+        "hero-slides",
+        { code: "archive-once" },
+        "staff-1",
+      );
+      const first = await repository.archive(
+        "hero-slides",
+        item.id,
+        "staff-1",
+      );
+      const second = await repository.archive(
+        "hero-slides",
+        item.id,
+        "staff-1",
+      );
+
+      expect(second.archivedAt).toBe(first.archivedAt);
+      expect(
+        testDatabase.db
+          .select()
+          .from(auditLogs)
+          .all()
+          .filter((entry) => entry.action === "content.archive"),
+      ).toHaveLength(1);
+    } finally {
+      testDatabase.close();
     }
   });
 

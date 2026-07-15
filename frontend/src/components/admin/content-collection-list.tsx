@@ -14,6 +14,7 @@ import {
 import { isTranslationComplete } from "./locale-tabs";
 
 type ContentCollectionListProps = {
+  canWrite: boolean;
   collection: AdminContentCollection;
   initialItems: AdminContentItem[];
 };
@@ -40,6 +41,7 @@ const localeLabels: Record<AdminContentLocale, string> = {
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 
 export function ContentCollectionList({
+  canWrite,
   collection,
   initialItems,
 }: ContentCollectionListProps) {
@@ -68,33 +70,37 @@ export function ContentCollectionList({
 
   return (
     <div className="min-w-0">
-      <div className="flex flex-col gap-3 border-y border-neutral-200 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor="content-code">
-            Content code
-          </label>
-          <input
-            className="mt-2 min-h-11 w-full max-w-md rounded-[var(--radius-control)] border border-neutral-300 px-3 text-base outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
-            id="content-code"
-            onChange={(event) => setCode(event.target.value)}
-            pattern="[a-z0-9-]+"
-            placeholder="lowercase-content-code"
-            value={code}
-          />
-        </div>
-        <button
-          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white transition-[filter,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-          disabled={pending}
-          onClick={create}
-          type="button"
-        >
-          {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
-          Create content
-        </button>
-      </div>
-      <div aria-live="polite" className="min-h-8 pt-2">
-        {error ? <p className="text-sm font-medium text-[var(--color-danger)]" role="alert">{error}</p> : null}
-      </div>
+      {canWrite ? (
+        <>
+          <div className="flex flex-col gap-3 border-y border-neutral-200 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor="content-code">
+                Content code
+              </label>
+              <input
+                className="mt-2 min-h-11 w-full max-w-md rounded-[var(--radius-control)] border border-neutral-300 px-3 text-base outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
+                id="content-code"
+                onChange={(event) => setCode(event.target.value)}
+                pattern="[a-z0-9-]+"
+                placeholder="lowercase-content-code"
+                value={code}
+              />
+            </div>
+            <button
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white transition-[filter,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              disabled={pending}
+              onClick={create}
+              type="button"
+            >
+              {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
+              Create content
+            </button>
+          </div>
+          <div aria-live="polite" className="min-h-8 pt-2">
+            {error ? <p className="text-sm font-medium text-[var(--color-danger)]" role="alert">{error}</p> : null}
+          </div>
+        </>
+      ) : null}
 
       {items.length === 0 ? (
         <div className="border-b border-neutral-200 py-12 text-center">

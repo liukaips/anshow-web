@@ -15,6 +15,11 @@ export const ADMIN_CONTENT_COLLECTIONS = [
 ] as const;
 
 export const ADMIN_CONTENT_LOCALES = ["en", "zh", "ru"] as const;
+export const PROOF_CONTENT_COLLECTIONS = [
+  "partners",
+  "certificates",
+  "proof-metrics",
+] as const;
 export const ADMIN_PUBLICATION_STATES = [
   "draft",
   "scheduled",
@@ -24,11 +29,14 @@ export const ADMIN_PUBLICATION_STATES = [
 export type AdminContentCollection =
   (typeof ADMIN_CONTENT_COLLECTIONS)[number];
 export type AdminContentLocale = (typeof ADMIN_CONTENT_LOCALES)[number];
+export type ProofContentCollection =
+  (typeof PROOF_CONTENT_COLLECTIONS)[number];
 export type AdminPublicationState =
   (typeof ADMIN_PUBLICATION_STATES)[number];
 
 export const adminContentCollectionSchema = z.enum(ADMIN_CONTENT_COLLECTIONS);
 export const adminContentLocaleSchema = z.enum(ADMIN_CONTENT_LOCALES);
+export const proofContentCollectionSchema = z.enum(PROOF_CONTENT_COLLECTIONS);
 export const adminPublicationStateSchema = z.enum(ADMIN_PUBLICATION_STATES);
 export const adminContentIdSchema = z.union([
   z.uuid(),
@@ -91,12 +99,29 @@ export const scheduleTranslationInputSchema = z
   .extend(publishableTranslationSchema.shape)
   .strict();
 
+export const verificationInputSchema = z
+  .object({
+    verified: z.boolean(),
+    verificationSource: z.string().trim().max(2_000).nullable(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.verified && !input.verificationSource?.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Verification source is required when proof is verified",
+        path: ["verificationSource"],
+      });
+    }
+  });
+
 export type PublishTranslationInput = z.infer<
   typeof publishableTranslationSchema
 >;
 export type ScheduleTranslationInput = z.infer<
   typeof scheduleTranslationInputSchema
 >;
+export type VerificationInput = z.infer<typeof verificationInputSchema>;
 
 export function canPublishTranslation(input: unknown): boolean {
   return publishableTranslationSchema.safeParse(input).success;

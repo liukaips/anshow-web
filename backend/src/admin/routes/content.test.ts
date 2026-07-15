@@ -59,6 +59,9 @@ function createFakeRepository(): ContentRepository & {
     publish: vi.fn(async () => ITEM),
     schedule: vi.fn(async () => ITEM),
     archive: vi.fn(async () => ITEM),
+    updateVerification: vi.fn<ContentRepository["updateVerification"]>(
+      async () => ITEM,
+    ),
   };
 }
 
@@ -336,6 +339,66 @@ describe("administration content routes", () => {
       "staff-1",
     );
     expect(repository.saveDraft).not.toHaveBeenCalled();
+  });
+
+  it("updates proof verification with content.write and the actor", async () => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository, ["content.write"]);
+    const input = {
+      verified: true,
+      verificationSource: "Official registry record",
+    };
+
+    const response = await app.request(
+      jsonRequest(
+        `/api/admin/content/partners/${CONTENT_ID}/verification`,
+        "PUT",
+        input,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(repository.updateVerification).toHaveBeenCalledWith(
+      "partners",
+      CONTENT_ID,
+      input,
+      "staff-1",
+    );
+  });
+
+  it("blocks verification without content.write before repository access", async () => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository, ["content.publish"]);
+
+    const response = await app.request(
+      jsonRequest(
+        `/api/admin/content/certificates/${CONTENT_ID}/verification`,
+        "PUT",
+        { verified: true, verificationSource: "Official register" },
+      ),
+    );
+
+    expect(response.status).toBe(403);
+    expect(repository.updateVerification).not.toHaveBeenCalled();
+  });
+
+  it("rejects verified proof without a source before repository access", async () => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository, ["content.write"]);
+
+    const response = await app.request(
+      jsonRequest(
+        `/api/admin/content/proof-metrics/${CONTENT_ID}/verification`,
+        "PUT",
+        { verified: true, verificationSource: "   " },
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { fields: { verificationSource: expect.any(Array) } },
+    });
+    expect(repository.updateVerification).not.toHaveBeenCalled();
   });
 
   it.each([

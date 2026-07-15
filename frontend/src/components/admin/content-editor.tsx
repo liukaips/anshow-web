@@ -15,10 +15,12 @@ import {
   publishAdminContentTranslation,
   saveAdminContentDraft,
   scheduleAdminContentTranslation,
+  updateAdminContentVerification,
   type AdminContentCollection,
   type AdminContentItem,
   type AdminContentLocale,
   type AdminContentTranslationInput,
+  type ProofContentCollection,
 } from "../../api/admin-content";
 import { ApiError } from "../../api/http";
 import {
@@ -29,6 +31,7 @@ import { LocaleTabs } from "./locale-tabs";
 
 type ContentEditorProps = {
   canPublish: boolean;
+  canWrite: boolean;
   collection: AdminContentCollection;
   initialItem: AdminContentItem;
 };
@@ -36,9 +39,14 @@ type ContentEditorProps = {
 type TranslationField = keyof AdminContentTranslationInput;
 type EditorField = TranslationField | "scheduledAt";
 type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "publish" | "save" | "schedule";
+type Command = "archive" | "publish" | "save" | "schedule" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
+const proofCollections: readonly ProofContentCollection[] = [
+  "partners",
+  "certificates",
+  "proof-metrics",
+];
 const blankTranslation: AdminContentTranslationInput = {
   title: "",
   slug: "",
@@ -79,6 +87,14 @@ function itemDrafts(item: AdminContentItem) {
       ];
     }),
   ) as Record<AdminContentLocale, AdminContentTranslationInput>;
+}
+
+function isProofCollection(
+  collection: AdminContentCollection,
+): collection is ProofContentCollection {
+  return (proofCollections as readonly AdminContentCollection[]).includes(
+    collection,
+  );
 }
 
 function toLocalDateTime(value: string | null | undefined): string {
@@ -129,6 +145,7 @@ function commandMessage(error: unknown): string {
 
 export function ContentEditor({
   canPublish,
+  canWrite,
   collection,
   initialItem,
 }: ContentEditorProps) {
@@ -144,6 +161,11 @@ export function ContentEditor({
   const [scheduleDirtyLocales, setScheduleDirtyLocales] = useState<
     Set<AdminContentLocale>
   >(() => new Set());
+  const [verified, setVerified] = useState(initialItem.verified);
+  const [verificationSource, setVerificationSource] = useState(
+    initialItem.verificationSource ?? "",
+  );
+  const [verificationDirty, setVerificationDirty] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState<Command | null>(null);
   const editorHistoryEntry = useRef<{ state: unknown; url: string } | null>(
@@ -154,7 +176,12 @@ export function ContentEditor({
     text: string;
   } | null>(null);
 
-  const dirty = dirtyLocales.size > 0 || scheduleDirtyLocales.size > 0;
+  const dirty =
+    dirtyLocales.size > 0 ||
+    scheduleDirtyLocales.size > 0 ||
+    verificationDirty;
+  const canEdit = canWrite || canPublish;
+  const fieldsDisabled = pending !== null || !canEdit;
   const activeDraft = drafts[activeLocale];
   const activeScheduledAt = scheduleDrafts[activeLocale];
   const activeDirty =
@@ -173,6 +200,19 @@ export function ContentEditor({
       ),
     [drafts, item.translations],
   );
+
+  useEffect(() => {
+    if (pending !== null) return;
+    const first =
+      firstErrorField(errors) ??
+      (errors.scheduledAt ? "scheduledAt" : undefined);
+    if (!first) return;
+    document
+      .getElementById(
+        first === "scheduledAt" ? "scheduled-at" : `translation-${first}`,
+      )
+      ?.focus();
+  }, [errors, pending]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -270,30 +310,72 @@ export function ContentEditor({
     };
   }, [dirty]);
 
-  function markTranslationSaved(locale: AdminContentLocale) {
+  function reconcileResponse(
+    nextItem: AdminContentItem,
+    command: Command,
+    locale?: AdminContentLocale,
+  ) {
+    setItem(nextItem);
+    if (command === "archive") {
+      setDrafts(itemDrafts(nextItem));
+      setScheduleDrafts(itemScheduleDrafts(nextItem));
+      setDirtyLocales(new Set());
+      setScheduleDirtyLocales(new Set());
+      setVerified(nextItem.verified);
+      setVerificationSource(nextItem.verificationSource ?? "");
+      setVerificationDirty(false);
+      return;
+    }
+    if (command === "verification") {
+      setVerified(nextItem.verified);
+      setVerificationSource(nextItem.verificationSource ?? "");
+      setVerificationDirty(false);
+      return;
+    }
+    if (!locale) return;
+
+    const persistedTranslation = nextItem.translations[locale];
+    setDrafts((current) => ({
+      ...current,
+      [locale]: persistedTranslation
+        ? {
+            title: persistedTranslation.title,
+            slug: persistedTranslation.slug,
+            summary: persistedTranslation.summary,
+            body: persistedTranslation.body,
+            seoTitle: persistedTranslation.seoTitle,
+            seoDescription: persistedTranslation.seoDescription,
+            altText: persistedTranslation.altText,
+          }
+        : { ...blankTranslation },
+    }));
     setDirtyLocales((current) => {
       const next = new Set(current);
       next.delete(locale);
       return next;
     });
-  }
 
-  function markScheduleSaved(
-    locale: AdminContentLocale,
-    persistedValue: string | null | undefined,
-  ) {
-    setScheduleDrafts((current) => ({
-      ...current,
-      [locale]: toLocalDateTime(persistedValue),
-    }));
-    setScheduleDirtyLocales((current) => {
-      const next = new Set(current);
-      next.delete(locale);
-      return next;
-    });
+    const preserveDirtySchedule =
+      command === "save" && scheduleDirtyLocales.has(locale);
+    if (!preserveDirtySchedule) {
+      setScheduleDrafts((current) => ({
+        ...current,
+        [locale]: toLocalDateTime(persistedTranslation?.scheduledAt),
+      }));
+      setScheduleDirtyLocales((current) => {
+        const next = new Set(current);
+        next.delete(locale);
+        return next;
+      });
+    }
+    if (!verificationDirty) {
+      setVerified(nextItem.verified);
+      setVerificationSource(nextItem.verificationSource ?? "");
+    }
   }
 
   function updateField(field: TranslationField, value: string) {
+    if (pending !== null || !canEdit) return;
     setDrafts((current) => ({
       ...current,
       [activeLocale]: { ...current[activeLocale], [field]: value },
@@ -304,6 +386,7 @@ export function ContentEditor({
   }
 
   function selectLocale(locale: AdminContentLocale) {
+    if (pending !== null) return;
     if (
       locale !== activeLocale &&
       activeDirty &&
@@ -314,20 +397,6 @@ export function ContentEditor({
     setErrors({});
     setMessage(null);
     setActiveLocale(locale);
-  }
-
-  function focusFirstError(nextErrors: FieldErrors) {
-    const first =
-      firstErrorField(nextErrors) ??
-      (nextErrors.scheduledAt ? "scheduledAt" : undefined);
-    if (!first) return;
-    queueMicrotask(() => {
-      document
-        .getElementById(
-          first === "scheduledAt" ? "scheduled-at" : `translation-${first}`,
-        )
-        ?.focus();
-    });
   }
 
   function handleCommandError(error: unknown) {
@@ -343,7 +412,6 @@ export function ContentEditor({
       }
       if (Object.keys(nextErrors).length > 0) {
         setErrors(nextErrors);
-        focusFirstError(nextErrors);
       }
     }
     setMessage({ kind: "error", text: commandMessage(error) });
@@ -352,7 +420,6 @@ export function ContentEditor({
   function validatePublish(): boolean {
     const nextErrors = publishErrors(activeDraft);
     setErrors(nextErrors);
-    focusFirstError(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
@@ -366,8 +433,7 @@ export function ContentEditor({
         activeLocale,
         activeDraft,
       );
-      setItem(saved);
-      markTranslationSaved(activeLocale);
+      reconcileResponse(saved, "save", activeLocale);
       setMessage({ kind: "success", text: "Draft saved." });
     } catch (error) {
       handleCommandError(error);
@@ -387,8 +453,7 @@ export function ContentEditor({
         activeLocale,
         activeDraft,
       );
-      setItem(published);
-      markTranslationSaved(activeLocale);
+      reconcileResponse(published, "publish", activeLocale);
       setMessage({ kind: "success", text: "Translation published." });
     } catch (error) {
       handleCommandError(error);
@@ -420,12 +485,7 @@ export function ContentEditor({
         activeLocale,
         { ...activeDraft, scheduledAt: date.toISOString() },
       );
-      setItem(scheduled);
-      markTranslationSaved(activeLocale);
-      markScheduleSaved(
-        activeLocale,
-        scheduled.translations[activeLocale]?.scheduledAt,
-      );
+      reconcileResponse(scheduled, "schedule", activeLocale);
       setMessage({ kind: "success", text: "Translation scheduled." });
     } catch (error) {
       handleCommandError(error);
@@ -443,10 +503,37 @@ export function ContentEditor({
     setMessage(null);
     try {
       const archived = await archiveAdminContent(collection, item.id);
-      setItem(archived);
-      setDirtyLocales(new Set());
-      setScheduleDirtyLocales(new Set());
+      reconcileResponse(archived, "archive");
       setMessage({ kind: "success", text: "Content archived." });
+    } catch (error) {
+      handleCommandError(error);
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function saveVerification() {
+    if (!isProofCollection(collection)) return;
+    if (verified && !verificationSource.trim()) {
+      setMessage({
+        kind: "error",
+        text: "Enter an official verification source.",
+      });
+      return;
+    }
+    setPending("verification");
+    setMessage(null);
+    try {
+      const updated = await updateAdminContentVerification(
+        collection,
+        item.id,
+        {
+          verified,
+          verificationSource: verified ? verificationSource : null,
+        },
+      );
+      reconcileResponse(updated, "verification");
+      setMessage({ kind: "success", text: "Verification saved." });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -461,6 +548,7 @@ export function ContentEditor({
     <div className="min-w-0">
       <LocaleTabs
         activeLocale={activeLocale}
+        disabled={pending !== null}
         onSelect={selectLocale}
         translations={tabTranslations}
       />
@@ -492,6 +580,7 @@ export function ContentEditor({
 
         <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
           <Field
+            disabled={fieldsDisabled}
             error={errors.title}
             field="title"
             label="Title"
@@ -499,6 +588,7 @@ export function ContentEditor({
             value={activeDraft.title}
           />
           <Field
+            disabled={fieldsDisabled}
             error={errors.slug}
             field="slug"
             label="Slug"
@@ -506,6 +596,7 @@ export function ContentEditor({
             value={activeDraft.slug}
           />
           <Field
+            disabled={fieldsDisabled}
             error={errors.summary}
             field="summary"
             label="Summary"
@@ -514,6 +605,7 @@ export function ContentEditor({
             value={activeDraft.summary}
           />
           <Field
+            disabled={fieldsDisabled}
             error={errors.altText}
             field="altText"
             label="Alternative text"
@@ -522,6 +614,7 @@ export function ContentEditor({
           />
           <div className="min-w-0 lg:col-span-2">
             <Field
+              disabled={fieldsDisabled}
               error={errors.body}
               field="body"
               label="Body"
@@ -537,6 +630,7 @@ export function ContentEditor({
           <h2 className="text-lg font-semibold text-[var(--color-text)]">Search metadata</h2>
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
             <Field
+              disabled={fieldsDisabled}
               error={errors.seoTitle}
               field="seoTitle"
               label="SEO title"
@@ -545,6 +639,7 @@ export function ContentEditor({
               value={activeDraft.seoTitle}
             />
             <Field
+              disabled={fieldsDisabled}
               error={errors.seoDescription}
               field="seoDescription"
               label="SEO description"
@@ -567,6 +662,7 @@ export function ContentEditor({
             disabled={pending !== null || !canPublish}
             id="scheduled-at"
             onChange={(event) => {
+              if (pending !== null || !canPublish) return;
               setScheduleDrafts((current) => ({
                 ...current,
                 [activeLocale]: event.target.value,
@@ -589,11 +685,66 @@ export function ContentEditor({
           ) : null}
         </div>
 
+        {canWrite && isProofCollection(collection) ? (
+          <div className="mt-8 border-t border-neutral-200 pt-6">
+            <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              Proof verification
+            </h2>
+            <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-semibold text-[var(--color-text)]">
+              <input
+                checked={verified}
+                disabled={pending !== null}
+                onChange={(event) => {
+                  if (pending !== null) return;
+                  setVerified(event.target.checked);
+                  setVerificationDirty(true);
+                  setMessage(null);
+                }}
+                type="checkbox"
+              />
+              Verified proof
+            </label>
+            <label className="mt-4 block max-w-2xl text-sm font-semibold text-[var(--color-text)]" htmlFor="verification-source">
+              Official verification source
+            </label>
+            <textarea
+              className={`${fieldClass} max-w-2xl border-neutral-300`}
+              disabled={pending !== null}
+              id="verification-source"
+              onChange={(event) => {
+                if (pending !== null) return;
+                setVerificationSource(event.target.value);
+                setVerificationDirty(true);
+                setMessage(null);
+              }}
+              rows={3}
+              value={verificationSource}
+            />
+            <button
+              className="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-neutral-300 bg-white px-4 text-sm font-semibold text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pending !== null}
+              onClick={saveVerification}
+              type="button"
+            >
+              {pending === "verification" ? (
+                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+              ) : (
+                <Save aria-hidden="true" className="size-4" />
+              )}
+              Save verification
+            </button>
+          </div>
+        ) : null}
+
         <div className="mt-6 flex flex-wrap gap-3 border-t border-neutral-200 pt-6">
-          <CommandButton disabled={pending !== null} icon={Save} label="Save draft" onClick={save} pending={pending === "save"} />
+          {canWrite ? (
+            <CommandButton disabled={pending !== null} icon={Save} label="Save draft" onClick={save} pending={pending === "save"} />
+          ) : null}
           <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="Schedule" onClick={schedule} pending={pending === "schedule"} />
           <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="Publish" onClick={publish} pending={pending === "publish"} />
-          <CommandButton danger disabled={pending !== null} icon={Archive} label="Archive" onClick={archive} pending={pending === "archive"} />
+          {canWrite ? (
+            <CommandButton danger disabled={pending !== null} icon={Archive} label="Archive" onClick={archive} pending={pending === "archive"} />
+          ) : null}
         </div>
         {!canPublish ? (
           <p className="mt-3 text-sm text-neutral-600">Publishing requires the content.publish permission.</p>
@@ -625,6 +776,7 @@ export function ContentEditor({
 }
 
 function Field({
+  disabled,
   error,
   field,
   label,
@@ -634,6 +786,7 @@ function Field({
   rows = 3,
   value,
 }: {
+  disabled: boolean;
   error?: string;
   field: TranslationField;
   label: string;
@@ -654,6 +807,7 @@ function Field({
     "aria-describedby": error ? errorId : undefined,
     "aria-invalid": error ? (true as const) : undefined,
     className,
+    disabled,
     id: inputId,
     maxLength,
     onChange: (

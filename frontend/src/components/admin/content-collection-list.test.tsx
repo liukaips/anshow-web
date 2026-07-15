@@ -39,7 +39,13 @@ afterEach(() => {
 describe("ContentCollectionList", () => {
   it("shows a real empty state and creates a draft shell through the browser API", async () => {
     createContent.mockResolvedValue(created);
-    render(<ContentCollectionList collection="services" initialItems={[]} />);
+    render(
+      <ContentCollectionList
+        canWrite
+        collection="services"
+        initialItems={[]}
+      />,
+    );
 
     expect(screen.getByText("No services content yet.")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Content code"), {
@@ -53,5 +59,21 @@ describe("ContentCollectionList", () => {
       }),
     );
     expect(push).toHaveBeenCalledWith("/admin/content/services/content-1");
+  });
+
+  it("keeps content readable without offering creation to read-only staff", () => {
+    render(
+      <ContentCollectionList
+        canWrite={false}
+        collection="services"
+        initialItems={[created]}
+      />,
+    );
+
+    expect(screen.getByRole("listitem")).toHaveTextContent("new-service");
+    expect(screen.queryByLabelText("Content code")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Create content" }),
+    ).toBeNull();
   });
 });

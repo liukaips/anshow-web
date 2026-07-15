@@ -16,9 +16,11 @@ import {
   adminContentLocaleSchema,
   adminPublicationStateSchema,
   createContentInputSchema,
+  proofContentCollectionSchema,
   publishableTranslationSchema,
   scheduleTranslationInputSchema,
   translationInputSchema,
+  verificationInputSchema,
 } from "../content/content-schema.js";
 import {
   ContentRepositoryError,
@@ -31,6 +33,9 @@ const AdminContentCollectionSchema = adminContentCollectionSchema.openapi(
 );
 const AdminContentLocaleSchema = adminContentLocaleSchema.openapi(
   "AdminContentLocale",
+);
+const ProofContentCollectionSchema = proofContentCollectionSchema.openapi(
+  "ProofContentCollection",
 );
 const AdminPublicationStateSchema = adminPublicationStateSchema.openapi(
   "AdminPublicationState",
@@ -46,6 +51,8 @@ const CreateAdminContentInputSchema = createContentInputSchema.openapi(
 );
 const ScheduleAdminContentInputSchema =
   scheduleTranslationInputSchema.openapi("ScheduleAdminContentInput");
+const UpdateAdminContentVerificationInputSchema =
+  verificationInputSchema.openapi("UpdateAdminContentVerificationInput");
 
 const AdminContentTranslationSchema = AdminTranslationInputSchema.extend({
   locale: AdminContentLocaleSchema,
@@ -83,6 +90,10 @@ const ContentParamsSchema = CollectionParamsSchema.extend({
 });
 const TranslationParamsSchema = ContentParamsSchema.extend({
   locale: AdminContentLocaleSchema,
+});
+const VerificationParamsSchema = z.object({
+  collection: ProofContentCollectionSchema,
+  id: adminContentIdSchema,
 });
 
 const errorResponses = {
@@ -333,6 +344,42 @@ export function registerContentRoutes(
       409: errorResponses[409],
     },
   });
+  const verificationRoute = createRoute({
+    method: "put",
+    path: "/api/admin/content/{collection}/{id}/verification",
+    operationId: "updateAdminContentVerification",
+    tags: ["Administration Content"],
+    middleware: [requirePermission("content.write", dependencies)],
+    request: {
+      params: VerificationParamsSchema,
+      body: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: UpdateAdminContentVerificationInputSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Updated proof verification metadata atomically.",
+        content: {
+          "application/json": {
+            schema: envelope(
+              "UpdateAdminContentVerificationResponse",
+              AdminContentItemSchema,
+            ),
+          },
+        },
+      },
+      400: errorResponses[400],
+      401: errorResponses[401],
+      403: errorResponses[403],
+      404: errorResponses[404],
+      409: errorResponses[409],
+    },
+  });
 
   app.openapi(listRoute, async (context) => {
     const { collection } = context.req.valid("param");
@@ -448,6 +495,30 @@ export function registerContentRoutes(
             collection,
             id,
             locale,
+            input,
+            actorId(context),
+          ),
+        ),
+        200,
+      );
+    } catch (error) {
+      if (!(error instanceof ContentRepositoryError)) throw error;
+      return error.code === "CONTENT_NOT_FOUND"
+        ? context.json(contentErrorEnvelope(context, error), 404)
+        : context.json(contentErrorEnvelope(context, error), 409);
+    }
+  });
+
+  app.openapi(verificationRoute, async (context) => {
+    const { collection, id } = context.req.valid("param");
+    const input = context.req.valid("json");
+    try {
+      return context.json(
+        successEnvelope(
+          context,
+          await dependencies.contentRepository.updateVerification(
+            collection,
+            id,
             input,
             actorId(context),
           ),

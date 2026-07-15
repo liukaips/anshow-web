@@ -164,6 +164,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/{collection}/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateAdminContentVerification"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/content/{collection}/{id}/archive": {
         parameters: {
             query?: never;
@@ -537,6 +553,19 @@ export interface components {
             seoTitle: string;
             seoDescription: string;
             altText: string;
+        };
+        UpdateAdminContentVerificationResponse: {
+            data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        /** @enum {string} */
+        ProofContentCollection: "partners" | "certificates" | "proof-metrics";
+        UpdateAdminContentVerificationInput: {
+            verified: boolean;
+            verificationSource: string | null;
         };
         ArchiveAdminContentResponse: {
             data: components["schemas"]["AdminContentItem"];
@@ -1274,6 +1303,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScheduleAdminContentResponse"];
+                };
+            };
+            /** @description The request path or body is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No authenticated staff session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The staff member lacks the required content permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content item does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested content state conflicts with publishing rules. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateAdminContentVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: components["schemas"]["ProofContentCollection"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminContentVerificationInput"];
+            };
+        };
+        responses: {
+            /** @description Updated proof verification metadata atomically. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminContentVerificationResponse"];
                 };
             };
             /** @description The request path or body is invalid. */

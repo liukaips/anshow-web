@@ -1281,6 +1281,56 @@
         ],
         "additionalProperties": false
       },
+      "UpdateAdminContentVerificationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentItem"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "ProofContentCollection": {
+        "type": "string",
+        "enum": [
+          "partners",
+          "certificates",
+          "proof-metrics"
+        ]
+      },
+      "UpdateAdminContentVerificationInput": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          },
+          "verificationSource": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "verified",
+          "verificationSource"
+        ],
+        "additionalProperties": false
+      },
       "ArchiveAdminContentResponse": {
         "type": "object",
         "properties": {
@@ -2515,6 +2565,115 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ScheduleAdminContentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request path or body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No authenticated staff session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The staff member lacks the required content permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested content item does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/verification": {
+      "put": {
+        "operationId": "updateAdminContentVerification",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ProofContentCollection"
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminContentVerificationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated proof verification metadata atomically.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateAdminContentVerificationResponse"
                 }
               }
             }

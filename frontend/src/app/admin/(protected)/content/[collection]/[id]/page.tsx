@@ -47,6 +47,7 @@ export default async function AdminContentEditorPage({
         </div>
         <ContentEditor
           canPublish={Boolean(session?.permissions.includes("content.publish"))}
+          canWrite={session.permissions.includes("content.write")}
           collection={collection}
           initialItem={item}
         />
