@@ -10,12 +10,12 @@ import {
   Send,
   ClipboardCheck,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   archiveAdminContent,
   generateAdminContentTranslations,
-  publishAdminContentTranslation,
   saveAdminContentDraft,
   scheduleAdminContentTranslation,
   updateAdminContentVerification,
@@ -49,7 +49,7 @@ type ContentEditorProps = {
 
 type EditorField = TranslationField | "scheduledAt";
 type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "publish" | "save" | "schedule" | "submit" | "translate" | "verification";
+type Command = "archive" | "save" | "schedule" | "submit" | "translate" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 const proofCollections: readonly ProofContentCollection[] = [
@@ -484,26 +484,6 @@ export function ContentEditor({
     }
   }
 
-  async function publish() {
-    if (!validatePublish()) return;
-    setPending("publish");
-    setMessage(null);
-    try {
-      const published = await publishAdminContentTranslation(
-        collection,
-        item.id,
-        activeLocale,
-        activeDraft,
-      );
-      reconcileResponse(published, "publish", activeLocale);
-      setMessage({ kind: "success", text: "翻译已发布。" });
-    } catch (error) {
-      handleCommandError(error);
-    } finally {
-      setPending(null);
-    }
-  }
-
   async function schedule() {
     if (!validatePublish()) return;
     const date = new Date(activeScheduledAt);
@@ -730,7 +710,15 @@ export function ContentEditor({
             <CommandButton disabled={pending !== null} icon={Save} label="保存草稿" onClick={save} pending={pending === "save"} />
           ) : null}
           <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="定时发布" onClick={schedule} pending={pending === "schedule"} />
-          <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="发布" onClick={publish} pending={pending === "publish"} />
+          {canPublish ? (
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-cyan-ink)]"
+              href="/admin/publish"
+            >
+              <Send aria-hidden="true" className="size-4" />
+              前往预览发布
+            </Link>
+          ) : null}
           {canWrite ? <CommandButton disabled={pending !== null || dirty || item.workflow.state === "review_pending"} icon={ClipboardCheck} label="提交审核" onClick={submitForReview} pending={pending === "submit"} /> : null}
           {canWrite ? (
             <CommandButton danger disabled={pending !== null} icon={Archive} label="归档" onClick={archive} pending={pending === "archive"} />
@@ -766,7 +754,6 @@ export function ContentEditor({
 }
 
 function CommandButton({
-  action = false,
   danger = false,
   disabled,
   icon: Icon,
@@ -774,7 +761,6 @@ function CommandButton({
   onClick,
   pending,
 }: {
-  action?: boolean;
   danger?: boolean;
   disabled: boolean;
   icon: typeof Save;
@@ -782,11 +768,9 @@ function CommandButton({
   onClick: () => void;
   pending: boolean;
 }) {
-  const colors = action
-    ? "border-[var(--color-action)] bg-[var(--color-action)] text-white hover:brightness-95"
-    : danger
-      ? "border-red-200 bg-white text-[var(--color-danger)] hover:bg-red-50"
-      : "border-neutral-300 bg-white text-[var(--color-text)] hover:bg-neutral-50";
+  const colors = danger
+    ? "border-red-200 bg-white text-[var(--color-danger)] hover:bg-red-50"
+    : "border-neutral-300 bg-white text-[var(--color-text)] hover:bg-neutral-50";
   return (
     <button
       className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-4 text-sm font-semibold transition-[background-color,transform,filter] duration-[var(--motion-fast)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${colors}`}
