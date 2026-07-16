@@ -276,6 +276,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/previews/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publishAdminPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/reviews/queue": {
         parameters: {
             query?: never;
@@ -1256,6 +1272,19 @@ export interface components {
             data: {
                 /** @enum {boolean} */
                 revoked: true;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        PublishAdminPreviewResponse: {
+            data: {
+                snapshotId: string;
+                contentHash: string;
+                /** Format: date-time */
+                publishedAt: string | null;
+                publishedChanges: number;
             };
             /** @enum {object|null} */
             error: never | null;
@@ -2624,6 +2653,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevokeAdminPreviewResponse"];
+                };
+            };
+        };
+    };
+    publishAdminPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedHash: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已按确认的快照版本原子发布 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishAdminPreviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content publish permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Snapshot is stale, expired, or not publishable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

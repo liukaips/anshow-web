@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { homeSchema, publicItemSchema, sitemapItemSchema } from "../content/public-contract.js";
@@ -8,6 +8,7 @@ import type { PublicContentRepository } from "../content/public-repository.js";
 import { LOCALES, PUBLIC_COLLECTIONS } from "../content/types.js";
 import type { AppDatabase } from "../db/client.js";
 import { contentWorkflow, previewSnapshots, previewTokens } from "../db/schema/workflow.js";
+import { createSnapshotPublisher } from "./snapshot-publisher.js";
 
 const localeCollectionsSchema = z.object({
   en: z.array(publicItemSchema),
@@ -35,6 +36,7 @@ export function createPreviewService(database: AppDatabase, content: PublicConte
   const createId = options.createId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
   const createToken = options.token ?? (() => randomBytes(32).toString("base64url"));
+  const publisher = createSnapshotPublisher(database, { createId, now });
 
   async function buildPayload(): Promise<PreviewPayload> {
     const homes = Object.fromEntries(await Promise.all(LOCALES.map(async (locale) => [locale, await content.getHome(locale)]))) as PreviewPayload["homes"];
@@ -55,7 +57,12 @@ export function createPreviewService(database: AppDatabase, content: PublicConte
       const snapshotId = createId();
       const tokenId = createId();
       const rawToken = createToken();
-      const sourceVersions = database.select({ entityType: contentWorkflow.entityType, entityId: contentWorkflow.entityId, version: contentWorkflow.version }).from(contentWorkflow).all();
+      const sourceVersions = database
+        .select({ entityType: contentWorkflow.entityType, entityId: contentWorkflow.entityId, version: contentWorkflow.version })
+        .from(contentWorkflow)
+        .where(eq(contentWorkflow.state, "approved"))
+        .orderBy(asc(contentWorkflow.entityType), asc(contentWorkflow.entityId))
+        .all();
       database.transaction((transaction) => {
         transaction.insert(previewSnapshots).values({
           id: snapshotId,
@@ -90,6 +97,9 @@ export function createPreviewService(database: AppDatabase, content: PublicConte
     },
     revoke(tokenId: string) {
       database.update(previewTokens).set({ revokedAt: now() }).where(eq(previewTokens.id, tokenId)).run();
+    },
+    publishSnapshot(input: { snapshotId: string; expectedHash: string; actorId: string }) {
+      return publisher.publish(input);
     },
     list() {
       return database.select().from(previewSnapshots).orderBy(desc(previewSnapshots.createdAt)).all();

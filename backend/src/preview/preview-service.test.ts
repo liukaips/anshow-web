@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { PublicContentRepository } from "../content/public-repository.js";
 import { createTestDatabase } from "../db/test-db.js";
-import { previewTokens } from "../db/schema/workflow.js";
+import { contentWorkflow, previewTokens } from "../db/schema/workflow.js";
 import { createPreviewService } from "./preview-service.js";
 
 function repository(): PublicContentRepository {
@@ -18,6 +18,30 @@ function repository(): PublicContentRepository {
 }
 
 describe("preview service", () => {
+  it("captures only approved versions in the publishable change set", async () => {
+    const context = createTestDatabase();
+    try {
+      const updatedAt = new Date("2026-07-15T04:00:00Z");
+      context.db.insert(contentWorkflow).values([
+        { entityType: "services", entityId: "approved-1", state: "approved", version: 3, updatedAt },
+        { entityType: "services", entityId: "draft-1", state: "draft", version: 4, updatedAt },
+        { entityType: "articles", entityId: "published-1", state: "published", version: 2, updatedAt },
+      ]).run();
+      const service = createPreviewService(context.db, repository(), {
+        now: () => updatedAt,
+        token: () => "approved-change-token",
+      });
+
+      const created = await service.createSnapshot({ createdBy: "staff-1", expiresInHours: 24 });
+
+      expect(created.sourceVersions).toEqual([
+        { entityType: "services", entityId: "approved-1", version: 3 },
+      ]);
+    } finally {
+      context.close();
+    }
+  });
+
   it("keeps snapshots immutable and stores only a token hash", async () => {
     const context = createTestDatabase();
     try {

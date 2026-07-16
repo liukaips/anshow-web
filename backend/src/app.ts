@@ -159,6 +159,7 @@ const defaultDependencies: AppDependencies = {
     createSnapshot: async () => { throw new Error("Preview service is not configured"); },
     readSnapshot: () => null,
     revoke: () => undefined,
+    publishSnapshot: () => { throw new Error("Preview service is not configured"); },
     list: () => [],
   },
   reviewRepository: {

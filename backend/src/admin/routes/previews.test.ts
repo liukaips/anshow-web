@@ -10,6 +10,7 @@ function service(): PreviewService {
     createSnapshot: vi.fn(async () => ({ snapshotId: "snapshot-1", tokenId: "token-1", rawToken: "raw-token", contentHash: "a".repeat(64), sourceVersions: [], createdAt: new Date(), expiresAt: new Date(Date.now() + 3_600_000) })),
     readSnapshot: vi.fn(() => ({ id: "snapshot-1", payload, contentHash: "a".repeat(64), sourceVersions: [], createdBy: "staff-1", createdAt: new Date(), expiresAt: new Date(Date.now() + 3_600_000), publishedAt: null })),
     revoke: vi.fn(),
+    publishSnapshot: vi.fn(() => ({ snapshotId: "snapshot-1", contentHash: "a".repeat(64), publishedAt: new Date(), publishedChanges: 1 })),
     list: vi.fn(() => []),
   };
 }
@@ -27,5 +28,34 @@ describe("preview routes", () => {
     expect(publicResponse.headers.get("cache-control")).toBe("private, no-store");
     expect(publicResponse.headers.get("x-robots-tag")).toBe("noindex, noarchive");
     expect(await publicResponse.json()).toMatchObject({ data: { home: { headline: "预览" } } });
+  });
+
+  it("publishes only the confirmed snapshot hash with content.publish permission", async () => {
+    const previewService = service();
+    const blocked = createApp({
+      previewService,
+      getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
+      getPermissions: () => ["preview.create"],
+    });
+    const request = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedHash: "a".repeat(64) }),
+    };
+    expect((await blocked.request("/api/admin/previews/snapshot-1/publish", request)).status).toBe(403);
+    expect(previewService.publishSnapshot).not.toHaveBeenCalled();
+
+    const allowed = createApp({
+      previewService,
+      getSession: async () => ({ user: { id: "publisher-1", email: "publisher@example.test" } }),
+      getPermissions: () => ["content.publish"],
+    });
+    const response = await allowed.request("/api/admin/previews/snapshot-1/publish", request);
+    expect(response.status).toBe(200);
+    expect(previewService.publishSnapshot).toHaveBeenCalledWith({
+      snapshotId: "snapshot-1",
+      expectedHash: "a".repeat(64),
+      actorId: "publisher-1",
+    });
   });
 });

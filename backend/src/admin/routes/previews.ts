@@ -37,6 +37,42 @@ const revokeRoute = createRoute({
   responses: { 200: { description: "Preview token revoked.", content: { "application/json": { schema: envelope("RevokeAdminPreviewResponse", z.object({ revoked: z.literal(true) })) } } } },
 });
 
+const publishRoute = createRoute({
+  method: "post",
+  path: "/api/admin/previews/{id}/publish",
+  operationId: "publishAdminPreview",
+  tags: ["Administration Preview"],
+  request: {
+    params: z.object({ id: z.string().min(1) }),
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({ expectedHash: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "已按确认的快照版本原子发布",
+      content: {
+        "application/json": {
+          schema: envelope("PublishAdminPreviewResponse", z.object({
+            snapshotId: z.string(),
+            contentHash: z.string(),
+            publishedAt: z.coerce.date(),
+            publishedChanges: z.number().int().positive(),
+          })),
+        },
+      },
+    },
+    401: { description: "Authentication required.", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    403: { description: "Content publish permission required.", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    409: { description: "Snapshot is stale, expired, or not publishable.", content: { "application/json": { schema: errorEnvelopeSchema } } },
+  },
+});
+
 export type PreviewRouteDependencies = PermissionMiddlewareDependencies & { previewService: PreviewService };
 
 export function registerPreviewRoutes(app: OpenAPIHono<AppEnv>, dependencies: PreviewRouteDependencies): void {
@@ -45,6 +81,7 @@ export function registerPreviewRoutes(app: OpenAPIHono<AppEnv>, dependencies: Pr
     return requirePermission("preview.share", dependencies)(context, next);
   });
   app.use("/api/admin/previews/tokens/*", requirePermission("preview.revoke", dependencies));
+  app.use("/api/admin/previews/:id/publish", requirePermission("content.publish", dependencies));
   app.openapi(createRouteDefinition, async (context) => {
     const actor = context.get("actor");
     if (!actor) throw new Error("Permission middleware did not provide an actor");
@@ -55,5 +92,15 @@ export function registerPreviewRoutes(app: OpenAPIHono<AppEnv>, dependencies: Pr
   app.openapi(revokeRoute, (context) => {
     dependencies.previewService.revoke(context.req.valid("param").id);
     return context.json({ data: { revoked: true as const }, error: null, requestId: context.get("requestId") }, 200);
+  });
+  app.openapi(publishRoute, (context) => {
+    const actor = context.get("actor");
+    if (!actor) throw new Error("Permission middleware did not provide an actor");
+    const data = dependencies.previewService.publishSnapshot({
+      snapshotId: context.req.valid("param").id,
+      expectedHash: context.req.valid("json").expectedHash,
+      actorId: actor.user.id,
+    });
+    return context.json({ data, error: null, requestId: context.get("requestId") }, 200);
   });
 }
