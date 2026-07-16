@@ -20,6 +20,7 @@ import { registerTranslationRoutes, type TranslationRouteDependencies } from "./
 import { registerPreviewRoutes, type PreviewRouteDependencies } from "./admin/routes/previews.js";
 import { registerReviewRoutes, type ReviewRouteDependencies } from "./admin/routes/reviews.js";
 import { registerInquiryRoutes, type InquiryRouteDependencies } from "./admin/routes/inquiries.js";
+import { registerDashboardRoutes, type DashboardRouteDependencies } from "./admin/routes/dashboard.js";
 import { registerPublicPreviewRoutes } from "./public/preview-routes.js";
 import {
   errorEnvelopeSchema,
@@ -137,6 +138,7 @@ export type AppDependencies = AdminSessionDependencies &
     previewService: PreviewRouteDependencies["previewService"];
     reviewRepository: ReviewRouteDependencies["reviewRepository"];
     inquiryRepository: InquiryRouteDependencies["inquiryRepository"];
+    dashboardRepository: DashboardRouteDependencies["dashboardRepository"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -175,6 +177,18 @@ const defaultDependencies: AppDependencies = {
     addNote: () => { throw new Error("Inquiry repository is not configured"); },
     retryNotification: () => { throw new Error("Inquiry repository is not configured"); },
     exportCsv: () => "",
+  },
+  dashboardRepository: {
+    summary: () => ({
+      newInquiries: 0,
+      highPriorityInquiries: 0,
+      reviewPending: 0,
+      translationPending: 0,
+      publishedThisWeek: 0,
+      tasks: { inquiries: [], reviews: [] },
+      recentAuditEvents: [],
+      systemHealth: "unavailable",
+    }),
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -317,6 +331,7 @@ export function createApp(
     resolvedDependencies.handleAuthRequest(context.req.raw),
   );
   registerAdminSessionRoute(app, resolvedDependencies);
+  registerDashboardRoutes(app, resolvedDependencies);
   registerSettingsRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
   registerTranslationRoutes(app, resolvedDependencies);

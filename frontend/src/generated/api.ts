@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/settings": {
         parameters: {
             query?: never;
@@ -821,6 +837,55 @@ export interface components {
                 message: string;
             };
             requestId: string;
+        };
+        AdminDashboardResponse: {
+            data: components["schemas"]["AdminDashboard"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminDashboard: {
+            newInquiries: number;
+            highPriorityInquiries: number;
+            reviewPending: number;
+            translationPending: number;
+            publishedThisWeek: number;
+            tasks: {
+                inquiries: {
+                    id: string;
+                    name: string;
+                    company: string;
+                    /** @enum {string} */
+                    priority: "low" | "normal" | "high" | "urgent";
+                    /** @enum {string} */
+                    status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                    updatedAt: number;
+                }[];
+                reviews: {
+                    id: string;
+                    entityType: string;
+                    entityId: string;
+                    sourceVersion: number;
+                    submittedBy: string;
+                    /** Format: date-time */
+                    submittedAt: string;
+                }[];
+            };
+            recentAuditEvents: {
+                id: string;
+                actorId: string;
+                action: string;
+                entityType: string;
+                entityId: string;
+                detail: {
+                    [key: string]: unknown;
+                };
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            /** @enum {string} */
+            systemHealth: "normal" | "warning" | "unavailable";
         };
         AdminSettingsResponse: {
             data: components["schemas"]["SiteSettings"];
@@ -1610,6 +1675,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenResponse"];
+                };
+            };
+        };
+    };
+    getAdminDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Real operational summary for the authenticated employee. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

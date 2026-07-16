@@ -24,6 +24,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createPreviewService },
     { createReviewRepository },
     { createInquiryAdminRepository },
+    { createDashboardRepository },
   ] = await Promise.all([
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
@@ -45,6 +46,7 @@ await initializeRuntime(process.env, async (environment) => {
     import("./preview/preview-service.js"),
     import("./admin/repositories/review-repository.js"),
     import("./admin/repositories/inquiry-admin-repository.js"),
+    import("./admin/repositories/dashboard-repository.js"),
   ]);
   const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
   const contentRepository = createContentRepository(db);
@@ -74,6 +76,7 @@ await initializeRuntime(process.env, async (environment) => {
     previewService,
     reviewRepository: createReviewRepository(db, contentRepository),
     inquiryRepository: createInquiryAdminRepository(db),
+    dashboardRepository: createDashboardRepository(db),
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),

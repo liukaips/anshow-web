@@ -288,6 +288,210 @@
           "requestId"
         ]
       },
+      "AdminDashboardResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminDashboard"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminDashboard": {
+        "type": "object",
+        "properties": {
+          "newInquiries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "highPriorityInquiries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reviewPending": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "translationPending": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publishedThisWeek": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tasks": {
+            "type": "object",
+            "properties": {
+              "inquiries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "company": {
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high",
+                        "urgent"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "new",
+                        "pending_follow_up",
+                        "in_progress",
+                        "waiting_customer",
+                        "completed",
+                        "closed",
+                        "spam"
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "company",
+                    "priority",
+                    "status",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "reviews": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "entityType": {
+                      "type": "string"
+                    },
+                    "entityId": {
+                      "type": "string"
+                    },
+                    "sourceVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "submittedBy": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "entityType",
+                    "entityId",
+                    "sourceVersion",
+                    "submittedBy",
+                    "submittedAt"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "inquiries",
+              "reviews"
+            ]
+          },
+          "recentAuditEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "actorId",
+                "action",
+                "entityType",
+                "entityId",
+                "detail",
+                "createdAt"
+              ]
+            }
+          },
+          "systemHealth": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "warning",
+              "unavailable"
+            ]
+          }
+        },
+        "required": [
+          "newInquiries",
+          "highPriorityInquiries",
+          "reviewPending",
+          "translationPending",
+          "publishedThisWeek",
+          "tasks",
+          "recentAuditEvents",
+          "systemHealth"
+        ]
+      },
       "AdminSettingsResponse": {
         "type": "object",
         "properties": {
@@ -3288,6 +3492,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard": {
+      "get": {
+        "operationId": "getAdminDashboard",
+        "tags": [
+          "Administration Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Real operational summary for the authenticated employee.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
