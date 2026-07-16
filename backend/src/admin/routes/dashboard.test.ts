@@ -28,6 +28,7 @@ describe("admin dashboard route", () => {
 
     const authenticated = createApp({
       dashboardRepository,
+      checkReadiness: () => undefined,
       getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
       getPermissions: () => [],
     });
@@ -41,6 +42,7 @@ describe("admin dashboard route", () => {
     const dashboardRepository = { summary: vi.fn(() => dashboardSummary) } as DashboardRepository;
     const app = createApp({
       dashboardRepository,
+      checkReadiness: () => undefined,
       getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
       getPermissions: () => ["inquiry.read"],
     });
@@ -55,5 +57,69 @@ describe("admin dashboard route", () => {
     expect(body.data.tasks.reviews).toEqual([]);
     expect(body.data.recentAuditEvents).toEqual([]);
     expect(body.data.reviewPending).toBe(3);
+  });
+
+  it("returns authorized review and audit details with ISO timestamps", async () => {
+    const dashboardRepository = { summary: vi.fn(() => dashboardSummary) } as DashboardRepository;
+    const app = createApp({
+      dashboardRepository,
+      checkReadiness: () => undefined,
+      getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
+      getPermissions: () => ["content.review", "audit.read"],
+    });
+
+    const response = await app.request("/api/admin/dashboard");
+    const body = await response.json() as {
+      data: {
+        tasks: { inquiries: unknown[]; reviews: Array<{ submittedAt: string }> };
+        recentAuditEvents: Array<{ createdAt: string }>;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.data.tasks.inquiries).toEqual([]);
+    expect(body.data.tasks.reviews).toEqual([
+      expect.objectContaining({ submittedAt: "2026-07-16T04:00:00.000Z" }),
+    ]);
+    expect(body.data.recentAuditEvents).toEqual([
+      expect.objectContaining({ createdAt: "2026-07-16T04:00:00.000Z" }),
+    ]);
+  });
+
+  it.each([
+    {
+      name: "readiness failure",
+      checkReadiness: vi.fn(async () => { throw new Error("database unavailable"); }),
+      summary: vi.fn(() => dashboardSummary),
+    },
+    {
+      name: "dashboard query failure",
+      checkReadiness: vi.fn(async () => undefined),
+      summary: vi.fn(() => { throw new Error("query failed"); }),
+    },
+  ])("returns a safe unavailable summary after $name", async ({ checkReadiness, summary }) => {
+    const app = createApp({
+      checkReadiness,
+      dashboardRepository: { summary } as DashboardRepository,
+      getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
+      getPermissions: () => ["content.review", "audit.read", "inquiry.read"],
+    });
+
+    const response = await app.request("/api/admin/dashboard");
+    const body = await response.json() as {
+      data: typeof dashboardSummary;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.data).toMatchObject({
+      newInquiries: 0,
+      highPriorityInquiries: 0,
+      reviewPending: 0,
+      translationPending: 0,
+      publishedThisWeek: 0,
+      tasks: { inquiries: [], reviews: [] },
+      recentAuditEvents: [],
+      systemHealth: "unavailable",
+    });
   });
 });

@@ -143,7 +143,12 @@ export function createDashboardRepository(
           submittedAt: contentReviews.submittedAt,
         })
         .from(contentReviews)
-        .where(eq(contentReviews.decision, "pending"))
+        .where(
+          and(
+            eq(contentReviews.decision, "pending"),
+            eq(contentReviews.reviewerId, actorId),
+          ),
+        )
         .orderBy(contentReviews.submittedAt)
         .limit(10)
         .all();

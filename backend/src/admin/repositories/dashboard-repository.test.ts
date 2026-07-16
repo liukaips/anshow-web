@@ -5,6 +5,7 @@ import {
   contentReviews,
   contentWorkflow,
   inquiries,
+  notificationDeliveries,
   serviceTranslations,
   services,
   translationJobs,
@@ -140,11 +141,7 @@ describe("dashboard repository", () => {
         systemHealth: "normal",
       });
       expect(summary.tasks.inquiries.map((task) => task.id)).toEqual(["inquiry-1"]);
-      expect(summary.tasks.reviews.map((task) => task.id)).toEqual([
-        "review-1",
-        "review-2",
-        "review-3",
-      ]);
+      expect(summary.tasks.reviews).toEqual([]);
       expect(summary.recentAuditEvents).toHaveLength(10);
       expect(summary.recentAuditEvents[0]).toMatchObject({
         id: "audit-11",
@@ -154,4 +151,43 @@ describe("dashboard repository", () => {
       context.close();
     }
   });
+
+  it.each(["translation", "notification"] as const)(
+    "reports a warning when a %s operation has failed",
+    (failedOperation) => {
+      const context = createTestDatabase();
+      try {
+        if (failedOperation === "translation") {
+          context.db.insert(translationJobs).values({
+            id: "translation-failed",
+            entityType: "services",
+            entityId: "service-1",
+            sourceVersion: 1,
+            targetLocale: "en",
+            status: "failed",
+            attempts: 3,
+            lastError: "provider unavailable",
+            createdAt: now,
+            updatedAt: now,
+          }).run();
+        } else {
+          context.db.insert(notificationDeliveries).values({
+            id: "notification-failed",
+            inquiryId: "inquiry-1",
+            status: "failed",
+            attempts: 3,
+            nextAttemptAt: now.getTime(),
+            lastError: "mail provider unavailable",
+            idempotencyKey: "notification-failed",
+          }).run();
+        }
+
+        expect(
+          createDashboardRepository(context.db, { now: () => now }).summary("staff-1"),
+        ).toMatchObject({ systemHealth: "warning" });
+      } finally {
+        context.close();
+      }
+    },
+  );
 });

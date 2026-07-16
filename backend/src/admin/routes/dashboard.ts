@@ -5,6 +5,7 @@ import type { PermissionMiddlewareDependencies } from "../../auth/permission-mid
 import { envelope, errorEnvelopeSchema } from "../../content/public-contract.js";
 import { inquiryPriorities, inquiryStatuses } from "../../db/schema/inquiries.js";
 import type { AppEnv } from "../../http/context.js";
+import type { ReadinessCheck } from "../../routes/health-ready.js";
 import type { DashboardRepository } from "../repositories/dashboard-repository.js";
 
 const inquiryTaskSchema = z.object({
@@ -71,6 +72,7 @@ const dashboardRoute = createRoute({
 
 export type DashboardRouteDependencies = PermissionMiddlewareDependencies & {
   dashboardRepository: DashboardRepository;
+  checkReadiness: ReadinessCheck;
 };
 
 function hasPermission(
@@ -79,6 +81,17 @@ function hasPermission(
 ): boolean {
   return permissions.includes(permission);
 }
+
+const unavailableSummary = {
+  newInquiries: 0,
+  highPriorityInquiries: 0,
+  reviewPending: 0,
+  translationPending: 0,
+  publishedThisWeek: 0,
+  tasks: { inquiries: [], reviews: [] },
+  recentAuditEvents: [],
+  systemHealth: "unavailable" as const,
+};
 
 export function registerDashboardRoutes(
   app: OpenAPIHono<AppEnv>,
@@ -104,9 +117,22 @@ export function registerDashboardRoutes(
     await next();
   });
 
-  app.openapi(dashboardRoute, (context) => {
+  app.openapi(dashboardRoute, async (context) => {
     const actor = context.get("actor")!;
-    const summary = dependencies.dashboardRepository.summary(actor.user.id);
+    let summary: ReturnType<DashboardRepository["summary"]>;
+    try {
+      await dependencies.checkReadiness();
+      summary = dependencies.dashboardRepository.summary(actor.user.id);
+    } catch {
+      return context.json(
+        {
+          data: unavailableSummary,
+          error: null,
+          requestId: context.get("requestId"),
+        },
+        200,
+      );
+    }
     const data = {
       ...summary,
       tasks: {
