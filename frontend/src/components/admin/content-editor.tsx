@@ -585,7 +585,9 @@ export function ContentEditor({
           ) : null}
         </div>
         {!canPublish ? (
-          <p className="mt-3 text-sm text-neutral-600">需要 content.publish 权限才能发布。</p>
+          <p className="mt-3 text-sm text-neutral-600">
+            当前账号没有发布权限，请联系超级管理员授权。
+          </p>
         ) : null}
         <div aria-live="polite" className="min-h-7 pt-3">
           {message ? (

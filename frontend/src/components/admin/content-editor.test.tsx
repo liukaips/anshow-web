@@ -324,7 +324,10 @@ describe("ContentEditor", () => {
     expect(screen.queryByRole("link", { name: "前往预览发布" })).toBeNull();
     expect(screen.queryByRole("button", { name: "定时发布" })).toBeNull();
     expect(screen.queryByLabelText("发布时间")).toBeNull();
-    expect(screen.getByText("需要 content.publish 权限才能发布。")).toBeVisible();
+    expect(
+      screen.getByText("当前账号没有发布权限，请联系超级管理员授权。"),
+    ).toBeVisible();
+    expect(screen.queryByText(/content\.publish/)).toBeNull();
   });
 
   it("routes a publish-only actor to snapshot publication without legacy locale scheduling", () => {
