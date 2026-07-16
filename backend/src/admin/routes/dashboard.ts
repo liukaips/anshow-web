@@ -46,6 +46,7 @@ const dashboardSchema = z
     }),
     recentAuditEvents: z.array(auditEventSchema),
     systemHealth: z.enum(["normal", "warning", "unavailable"]),
+    systemHealthIssues: z.array(z.string()),
   })
   .openapi("AdminDashboard");
 
@@ -91,6 +92,7 @@ const unavailableSummary = {
   tasks: { inquiries: [], reviews: [] },
   recentAuditEvents: [],
   systemHealth: "unavailable" as const,
+  systemHealthIssues: ["系统状态暂时无法读取"],
 };
 
 export function registerDashboardRoutes(

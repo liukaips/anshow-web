@@ -101,7 +101,16 @@ export function AdminDashboard({ data }: Readonly<{ data: AdminDashboardData }>)
           <h2 className="flex items-center gap-2 font-semibold text-neutral-950" id="health-title"><CircleGauge aria-hidden="true" className="size-4" />系统状态</h2>
           <div className={`mt-4 flex items-start gap-3 rounded border p-3 ${data.systemHealth === "normal" ? "border-emerald-200 bg-emerald-50" : data.systemHealth === "warning" ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
             {data.systemHealth === "normal" ? <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-emerald-700" /> : <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-amber-800" />}
-            <div><p className="text-sm font-semibold text-neutral-950">{data.systemHealth === "normal" ? "运行正常" : data.systemHealth === "warning" ? "部分服务需要处理" : "服务暂不可用"}</p><p className="mt-1 text-xs leading-5 text-neutral-600">{data.systemHealth === "normal" ? "翻译和询盘通知队列没有失败任务。" : "请到系统设置检查翻译或通知服务状态。"}</p></div>
+            <div>
+              <p className="text-sm font-semibold text-neutral-950">{data.systemHealth === "normal" ? "运行正常" : data.systemHealth === "warning" ? "部分服务需要处理" : "服务暂不可用"}</p>
+              {data.systemHealthIssues.length > 0 ? (
+                <ul className="mt-1 grid gap-1 text-xs leading-5 text-neutral-700">
+                  {data.systemHealthIssues.map((issue) => <li key={issue}>{issue}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-neutral-600">翻译、通知、备份和媒体存储运行正常。</p>
+              )}
+            </div>
           </div>
           <Link className="mt-4 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-[var(--color-cyan-ink)]" href="/admin/settings">查看系统设置<ArrowRight aria-hidden="true" className="size-4" /></Link>
         </section>

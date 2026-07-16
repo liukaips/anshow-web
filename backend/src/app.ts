@@ -21,6 +21,7 @@ import { registerPreviewRoutes, type PreviewRouteDependencies } from "./admin/ro
 import { registerReviewRoutes, type ReviewRouteDependencies } from "./admin/routes/reviews.js";
 import { registerInquiryRoutes, type InquiryRouteDependencies } from "./admin/routes/inquiries.js";
 import { registerDashboardRoutes, type DashboardRouteDependencies } from "./admin/routes/dashboard.js";
+import { registerBackupRoutes, type BackupRouteDependencies } from "./admin/routes/backups.js";
 import { registerPublicPreviewRoutes } from "./public/preview-routes.js";
 import {
   errorEnvelopeSchema,
@@ -139,6 +140,7 @@ export type AppDependencies = AdminSessionDependencies &
     reviewRepository: ReviewRouteDependencies["reviewRepository"];
     inquiryRepository: InquiryRouteDependencies["inquiryRepository"];
     dashboardRepository: DashboardRouteDependencies["dashboardRepository"];
+    backupManager: BackupRouteDependencies["backupManager"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -160,6 +162,10 @@ const defaultDependencies: AppDependencies = {
     readSnapshot: () => null,
     revoke: () => undefined,
     publishSnapshot: () => { throw new Error("Preview service is not configured"); },
+    schedule: () => { throw new Error("Preview service is not configured"); },
+    cancelSchedule: () => { throw new Error("Preview service is not configured"); },
+    claimDue: () => null,
+    releaseClaim: () => undefined,
     list: () => [],
   },
   reviewRepository: {
@@ -190,7 +196,14 @@ const defaultDependencies: AppDependencies = {
       tasks: { inquiries: [], reviews: [] },
       recentAuditEvents: [],
       systemHealth: "unavailable",
+      systemHealthIssues: ["系统状态暂时无法读取"],
     }),
+  },
+  backupManager: {
+    list: () => [],
+    runNow: async () => { throw new Error("Backup manager is not configured"); },
+    verify: async () => { throw new Error("Backup manager is not configured"); },
+    stageRestore: async () => { throw new Error("Backup manager is not configured"); },
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -335,6 +348,7 @@ export function createApp(
   registerAdminSessionRoute(app, resolvedDependencies);
   registerDashboardRoutes(app, resolvedDependencies);
   registerSettingsRoutes(app, resolvedDependencies);
+  registerBackupRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
   registerTranslationRoutes(app, resolvedDependencies);
   registerPreviewRoutes(app, resolvedDependencies);

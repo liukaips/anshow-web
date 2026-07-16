@@ -33,6 +33,7 @@ const data = {
   },
   recentAuditEvents: [],
   systemHealth: "warning" as const,
+  systemHealthIssues: ["最近一次异地备份失败"],
 };
 
 afterEach(cleanup);
@@ -56,12 +57,13 @@ describe("AdminDashboard", () => {
       "/admin/reviews",
     );
     expect(screen.getByText("部分服务需要处理")).toBeVisible();
+    expect(screen.getByText("最近一次异地备份失败")).toBeVisible();
   });
 
   it("does not invent task rows when permissions hide details", () => {
     render(
       <AdminDashboard
-        data={{ ...data, tasks: { inquiries: [], reviews: [] }, systemHealth: "normal" }}
+        data={{ ...data, tasks: { inquiries: [], reviews: [] }, systemHealth: "normal", systemHealthIssues: [] }}
       />,
     );
     expect(screen.getByText("当前没有分配给你的待办")).toBeVisible();

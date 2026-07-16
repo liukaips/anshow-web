@@ -15,6 +15,7 @@ const dashboardSummary = {
   },
   recentAuditEvents: [{ id: "audit-1", actorId: "staff-1", action: "content.update", entityType: "services", entityId: "service-1", detail: {}, createdAt: new Date("2026-07-16T04:00:00.000Z") }],
   systemHealth: "normal" as const,
+  systemHealthIssues: [],
 };
 
 describe("admin dashboard route", () => {
@@ -120,6 +121,7 @@ describe("admin dashboard route", () => {
       tasks: { inquiries: [], reviews: [] },
       recentAuditEvents: [],
       systemHealth: "unavailable",
+      systemHealthIssues: ["系统状态暂时无法读取"],
     });
   });
 
@@ -138,6 +140,7 @@ describe("admin dashboard route", () => {
         tasks: { inquiries: [], reviews: [] },
         recentAuditEvents: [],
         systemHealth: "unavailable",
+        systemHealthIssues: ["系统状态暂时无法读取"],
       },
     });
   });

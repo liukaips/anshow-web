@@ -5,12 +5,14 @@ import {
   eq,
   gte,
   inArray,
+  isNotNull,
   sql,
   notInArray,
 } from "drizzle-orm";
 
 import type { AppDatabase } from "../../db/client.js";
 import {
+  mediaCleanupJobs,
   articleTranslations,
   cargoTypeTranslations,
   caseStudyTranslations,
@@ -23,6 +25,7 @@ import {
   serviceTranslations,
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
+import { backupRuns } from "../../db/schema/backups.js";
 import {
   inquiries,
   notificationDeliveries,
@@ -186,6 +189,43 @@ export function createDashboardRepository(
         .from(notificationDeliveries)
         .where(eq(notificationDeliveries.status, "failed"))
         .get()?.value ?? 0;
+      const latestBackup = database
+        .select({
+          status: backupRuns.status,
+          target: backupRuns.target,
+          startedAt: backupRuns.startedAt,
+        })
+        .from(backupRuns)
+        .orderBy(desc(backupRuns.startedAt))
+        .limit(1)
+        .get();
+      const failedMediaCleanup = database
+        .select({ value: count() })
+        .from(mediaCleanupJobs)
+        .where(isNotNull(mediaCleanupJobs.lastError))
+        .get()?.value ?? 0;
+      const systemHealthIssues: string[] = [];
+      if (failedTranslations > 0) {
+        systemHealthIssues.push("翻译任务失败，请检查翻译服务");
+      }
+      if (failedNotifications > 0) {
+        systemHealthIssues.push("询盘通知发送失败，请检查邮件服务");
+      }
+      if (latestBackup?.status === "failed") {
+        systemHealthIssues.push(
+          latestBackup.target === "cos"
+            ? "最近一次腾讯云 COS 备份失败"
+            : "最近一次服务器备份失败",
+        );
+      } else if (
+        latestBackup?.status === "running" &&
+        now().getTime() - latestBackup.startedAt.getTime() >= 6 * 3_600_000
+      ) {
+        systemHealthIssues.push("备份任务长时间未完成");
+      }
+      if (failedMediaCleanup > 0) {
+        systemHealthIssues.push("媒体文件清理失败，请检查存储服务");
+      }
 
       return {
         newInquiries,
@@ -198,9 +238,10 @@ export function createDashboardRepository(
           reviews: reviewTasks,
         },
         recentAuditEvents: audit.list({ pageSize: 10 }).items,
-        systemHealth: (failedTranslations + failedNotifications > 0
+        systemHealth: (systemHealthIssues.length > 0
           ? "warning"
           : "normal") as "normal" | "warning" | "unavailable",
+        systemHealthIssues,
       };
     },
   };

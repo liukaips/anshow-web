@@ -25,6 +25,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createReviewRepository },
     { createInquiryAdminRepository },
     { createDashboardRepository },
+    { createRuntimeBackupManager },
   ] = await Promise.all([
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
@@ -47,6 +48,7 @@ await initializeRuntime(process.env, async (environment) => {
     import("./admin/repositories/review-repository.js"),
     import("./admin/repositories/inquiry-admin-repository.js"),
     import("./admin/repositories/dashboard-repository.js"),
+    import("./backup/backup-runtime.js"),
   ]);
   const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
   const contentRepository = createContentRepository(db);
@@ -65,6 +67,14 @@ await initializeRuntime(process.env, async (environment) => {
     db,
     createPublicRepository(createDrizzleContentStore(db, { includeDrafts: true })),
   );
+  const settingsRepository = createSettingsRepository(db, {
+    encryptionConfigured: Boolean(environment.BACKUP_ENCRYPTION_KEY),
+  });
+  const backupManager = createRuntimeBackupManager({
+    database: db,
+    settingsRepository,
+    environment,
+  });
   const app = createApp({
     checkReadiness: createDatabaseReadinessCheck(db),
     getPermissions: (userId) => permissionsForUser(db, userId),
@@ -77,12 +87,11 @@ await initializeRuntime(process.env, async (environment) => {
     reviewRepository: createReviewRepository(db, contentRepository),
     inquiryRepository: createInquiryAdminRepository(db),
     dashboardRepository: createDashboardRepository(db),
+    backupManager,
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),
-    settingsRepository: createSettingsRepository(db, {
-      encryptionConfigured: Boolean(environment.BACKUP_ENCRYPTION_KEY),
-    }),
+    settingsRepository,
     mediaService: createMediaService({
       repository: createMediaRepository(db),
       storage:

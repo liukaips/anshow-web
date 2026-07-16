@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditLogs,
+  backupRuns,
   contentReviews,
   contentWorkflow,
   inquiries,
+  mediaCleanupJobs,
   notificationDeliveries,
   serviceTranslations,
   services,
@@ -67,7 +69,7 @@ describe("dashboard repository", () => {
 
       expect(
         createDashboardRepository(context.db, { now: () => now }).summary("staff-1"),
-      ).toMatchObject({ translationPending: 1, systemHealth: "normal" });
+      ).toMatchObject({ translationPending: 1, systemHealth: "normal", systemHealthIssues: [] });
     } finally {
       context.close();
     }
@@ -196,6 +198,7 @@ describe("dashboard repository", () => {
         translationPending: 1,
         publishedThisWeek: 4,
         systemHealth: "normal",
+        systemHealthIssues: [],
       });
       expect(summary.tasks.inquiries.map((task) => task.id)).toEqual(["inquiry-1"]);
       expect(summary.tasks.reviews).toEqual([]);
@@ -209,7 +212,7 @@ describe("dashboard repository", () => {
     }
   });
 
-  it.each(["translation", "notification"] as const)(
+  it.each(["translation", "notification", "backup", "media-cleanup"] as const)(
     "reports a warning when a %s operation has failed",
     (failedOperation) => {
       const context = createTestDatabase();
@@ -234,7 +237,7 @@ describe("dashboard repository", () => {
             createdAt: now,
             updatedAt: now,
           }).run();
-        } else {
+        } else if (failedOperation === "notification") {
           context.db.insert(notificationDeliveries).values({
             id: "notification-failed",
             inquiryId: "inquiry-1",
@@ -244,11 +247,33 @@ describe("dashboard repository", () => {
             lastError: "mail provider unavailable",
             idempotencyKey: "notification-failed",
           }).run();
+        } else if (failedOperation === "backup") {
+          context.db.insert(backupRuns).values({
+            id: "backup-failed",
+            status: "failed",
+            target: "cos",
+            actorId: "system:backup-worker",
+            startedAt: now,
+            completedAt: now,
+            error: "COS unavailable",
+          }).run();
+        } else {
+          context.db.insert(mediaCleanupJobs).values({
+            storageKey: "media/orphan.webp",
+            reason: "replace",
+            attempts: 3,
+            lastError: "storage unavailable",
+            createdAt: now,
+            updatedAt: now,
+            nextAttemptAt: now,
+          }).run();
         }
 
-        expect(
-          createDashboardRepository(context.db, { now: () => now }).summary("staff-1"),
-        ).toMatchObject({ systemHealth: "warning" });
+        const summary = createDashboardRepository(context.db, {
+          now: () => now,
+        }).summary("staff-1");
+        expect(summary).toMatchObject({ systemHealth: "warning" });
+        expect(summary.systemHealthIssues).toHaveLength(1);
       } finally {
         context.close();
       }

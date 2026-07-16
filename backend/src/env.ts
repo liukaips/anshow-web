@@ -16,7 +16,6 @@ const RuntimeEnvSchema = z
     COS_SECRET_KEY: z.string().min(1).optional(),
     BACKUP_DIR: z.string().trim().min(1).optional(),
     BACKUP_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
-    BACKUP_INTERVAL_HOURS: z.coerce.number().int().min(1).max(168).optional(),
     SMTP_HOST: z.string().trim().min(1).optional(),
     SMTP_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
     SMTP_USER: z.string().trim().min(1).optional(),
