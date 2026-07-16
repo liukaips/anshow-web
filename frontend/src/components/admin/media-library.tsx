@@ -53,6 +53,17 @@ const referenceFieldLabels: Record<string, string> = {
   leadImage: "主图",
   mediaId: "配图",
 };
+const mediaErrorLabels: Record<string, string> = {
+  INVALID_MEDIA: "图片文件无效，请重新选择。",
+  INVALID_MEDIA_DIMENSIONS: "图片尺寸无效，请选择宽高大于零的图片。",
+  MEDIA_BUDGET_EXCEEDED: "图片处理后仍然过大，请压缩原图后重试。",
+  MEDIA_CLEANUP_FAILED: "旧图片清理失败，系统会保留记录以便稍后重试。",
+  MEDIA_IN_USE: "图片正在被内容使用，请先更换对应内容中的图片。",
+  MEDIA_NOT_FOUND: "图片已不存在，请刷新媒体库。",
+  MEDIA_TOO_LARGE: "图片不能超过 20 MB，请压缩后重试。",
+  UNSUPPORTED_MEDIA: "暂不支持此图片格式，请使用 JPG、PNG、WebP 或 AVIF。",
+  VALIDATION_ERROR: "图片信息不完整，请检查三语言说明。",
+};
 const inputClass = "mt-1 min-h-11 w-full min-w-0 rounded-[var(--radius-control)] border border-neutral-300 bg-white px-3 text-base outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100";
 const buttonClass = "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition-[background-color,filter,opacity] duration-[var(--motion-fast)] disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -64,6 +75,15 @@ function validateMetadata(metadata: AdminMediaMetadataInput): MetadataErrors {
   if (!Number.isFinite(metadata.focalX) || metadata.focalX < 0 || metadata.focalX > 1) errors.focalX = "横向主体位置无效，请重新选择。";
   if (!Number.isFinite(metadata.focalY) || metadata.focalY < 0 || metadata.focalY > 1) errors.focalY = "纵向主体位置无效，请重新选择。";
   return errors;
+}
+
+function mediaErrorMessage(reason: unknown, fallback: string): string {
+  if (reason instanceof ApiError) {
+    return mediaErrorLabels[reason.code] ?? fallback;
+  }
+  return reason instanceof Error && /[\u3400-\u9fff]/u.test(reason.message)
+    ? reason.message
+    : fallback;
 }
 
 function phaseLabel(phase: Phase, progress: number): string {
@@ -164,7 +184,7 @@ function UploadForm({ onSaved }: { onSaved(asset: AdminMediaAsset): void }) {
       setFocal({ x: 0.5, y: 0.5 });
     } catch (reason) {
       setPhase("error");
-      setError(reason instanceof Error ? reason.message : "图片上传失败，请重试。");
+      setError(mediaErrorMessage(reason, "图片上传失败，请重试。"));
     }
   }
 
@@ -252,7 +272,7 @@ function AssetEditor({
       onChange(await updateAdminMediaMetadata(asset.id, metadata));
       setMessage("图片信息已保存。");
     } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : "图片信息保存失败，请重试。");
+      setMessage(mediaErrorMessage(reason, "图片信息保存失败，请重试。"));
     } finally {
       setPending(null);
     }
@@ -270,7 +290,7 @@ function AssetEditor({
       setReplacement(null);
       setMessage("图片已替换。");
     } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : "图片替换失败，请重试。");
+      setMessage(mediaErrorMessage(reason, "图片替换失败，请重试。"));
     } finally {
       setPending(null);
     }
@@ -294,7 +314,7 @@ function AssetEditor({
           ),
         );
       }
-      setMessage(reason instanceof Error ? reason.message : "图片删除失败，请重试。");
+      setMessage(mediaErrorMessage(reason, "图片删除失败，请重试。"));
       setPending(null);
     }
   }

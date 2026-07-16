@@ -136,6 +136,29 @@ describe("MediaLibrary", () => {
     ));
   });
 
+  it("translates technical media API errors into Chinese recovery guidance", async () => {
+    mediaApi.upload.mockRejectedValueOnce(
+      new ApiError({
+        status: 413,
+        code: "MEDIA_TOO_LARGE",
+        message: "Media uploads must not exceed 20 MB",
+      }),
+    );
+    render(<MediaLibrary canWrite initialItems={[]} />);
+    fireEvent.change(screen.getByLabelText("图片文件"), {
+      target: { files: [new File(["image"], "large.jpg", { type: "image/jpeg" })] },
+    });
+    fireEvent.change(screen.getByLabelText("新图片英文图片说明"), { target: { value: "Truck" } });
+    fireEvent.change(screen.getByLabelText("新图片中文图片说明"), { target: { value: "卡车" } });
+    fireEvent.change(screen.getByLabelText("新图片俄文图片说明"), { target: { value: "Грузовик" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "上传媒体" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "图片不能超过 20 MB，请压缩后重试。",
+    );
+  });
+
   it("focuses the first invalid localized metadata field", async () => {
     render(<MediaLibrary canWrite initialItems={[asset]} />);
     const english = screen.getByLabelText("英文图片说明");
