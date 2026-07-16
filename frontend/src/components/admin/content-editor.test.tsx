@@ -58,6 +58,7 @@ const ITEM: AdminContentItem = {
       updatedAt: "2026-07-15T04:00:00.000Z",
     },
   },
+  workflow: { state: "draft", ownerId: "staff-1", version: 1, submittedAt: null, updatedAt: "2026-07-15T04:00:00.000Z" },
 };
 const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
 

@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "../../db/client.js";
 import {
@@ -25,6 +25,7 @@ import {
   tradeLanes,
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
+import { contentWorkflow, type WorkflowState } from "../../db/schema/workflow.js";
 import {
   ADMIN_CONTENT_LOCALES,
   createContentInputSchema,
@@ -127,6 +128,13 @@ export type AdminContentItem = Readonly<{
   createdAt: string;
   updatedAt: string;
   translations: Partial<Record<AdminContentLocale, AdminContentTranslation>>;
+  workflow: {
+    state: WorkflowState;
+    ownerId: string | null;
+    version: number;
+    submittedAt: string | null;
+    updatedAt: string;
+  };
 }>;
 
 export type CreateAdminContentInput = Readonly<{
@@ -209,6 +217,7 @@ type ContentRepositoryOptions = {
 
 type BaseRow = typeof services.$inferSelect;
 type TranslationRow = typeof serviceTranslations.$inferSelect;
+type WorkflowRow = typeof contentWorkflow.$inferSelect;
 type ContentTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
@@ -235,6 +244,7 @@ function toTranslation(row: TranslationRow): AdminContentTranslation {
 function toItem(
   row: BaseRow,
   translationRows: readonly TranslationRow[],
+  workflowRow?: WorkflowRow,
 ): AdminContentItem {
   const translations: Partial<
     Record<AdminContentLocale, AdminContentTranslation>
@@ -243,6 +253,13 @@ function toItem(
     translations[translation.locale] = toTranslation(translation);
   }
 
+  const derivedState: WorkflowState = row.archivedAt
+    ? "archived"
+    : translationRows.some((translation) => translation.status === "published")
+      ? "published"
+      : translationRows.some((translation) => translation.status === "scheduled")
+        ? "scheduled"
+        : "draft";
   return {
     id: row.id,
     code: row.code,
@@ -253,6 +270,21 @@ function toItem(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     translations,
+    workflow: workflowRow
+      ? {
+          state: workflowRow.state,
+          ownerId: workflowRow.ownerId,
+          version: workflowRow.version,
+          submittedAt: iso(workflowRow.submittedAt),
+          updatedAt: workflowRow.updatedAt.toISOString(),
+        }
+      : {
+          state: derivedState,
+          ownerId: null,
+          version: 1,
+          submittedAt: null,
+          updatedAt: row.updatedAt.toISOString(),
+        },
   };
 }
 
@@ -311,6 +343,44 @@ function readBase(
     .from(config.base)
     .where(eq(config.base.id, id))
     .get();
+}
+
+function readWorkflow(
+  database: AppDatabase | ContentTransaction,
+  collection: AdminContentCollection,
+  id: string,
+): WorkflowRow | undefined {
+  return database.select().from(contentWorkflow).where(and(
+    eq(contentWorkflow.entityType, collection),
+    eq(contentWorkflow.entityId, id),
+  )).get();
+}
+
+function bumpWorkflow(
+  transaction: ContentTransaction,
+  collection: AdminContentCollection,
+  id: string,
+  actorId: string,
+  state: WorkflowState,
+  timestamp: Date,
+): void {
+  transaction.insert(contentWorkflow).values({
+    entityType: collection,
+    entityId: id,
+    state: "draft",
+    ownerId: actorId,
+    version: 1,
+    updatedAt: timestamp,
+  }).onConflictDoNothing().run();
+  transaction.update(contentWorkflow).set({
+    state,
+    ownerId: actorId,
+    version: sql`${contentWorkflow.version} + 1`,
+    updatedAt: timestamp,
+  }).where(and(
+    eq(contentWorkflow.entityType, collection),
+    eq(contentWorkflow.entityId, id),
+  )).run();
 }
 
 function assertMutable(row: BaseRow, collection: AdminContentCollection) {
@@ -420,7 +490,7 @@ export function createContentRepository(
       .where(eq(config.translations.ownerId, id))
       .orderBy(asc(config.translations.locale))
       .all();
-    return toItem(row, translations);
+    return toItem(row, translations, readWorkflow(database, collection, id));
   }
 
   return {
@@ -445,8 +515,12 @@ export function createContentRepository(
         grouped.push(translation);
         translationsByOwner.set(translation.ownerId, grouped);
       }
+      const workflows = new Map(
+        database.select().from(contentWorkflow).where(eq(contentWorkflow.entityType, collection)).all()
+          .map((workflow) => [workflow.entityId, workflow]),
+      );
       return rows.map((row) =>
-        toItem(row, translationsByOwner.get(row.id) ?? []),
+        toItem(row, translationsByOwner.get(row.id) ?? [], workflows.get(row.id)),
       );
     },
 
@@ -514,6 +588,14 @@ export function createContentRepository(
               })),
             )
             .run();
+          transaction.insert(contentWorkflow).values({
+            entityType: collection,
+            entityId: id,
+            state: "draft",
+            ownerId: actorId,
+            version: 1,
+            updatedAt: timestamp,
+          }).run();
           audit(transaction).record({
             actorId,
             action: "content.create",
@@ -563,6 +645,7 @@ export function createContentRepository(
               },
             })
             .run();
+          bumpWorkflow(transaction, collection, id, actorId, "draft", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.save-draft",
@@ -599,6 +682,7 @@ export function createContentRepository(
             { status: "published", scheduledAt: null, publishedAt: timestamp },
             timestamp,
           );
+          bumpWorkflow(transaction, collection, id, actorId, "published", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.publish",
@@ -643,6 +727,7 @@ export function createContentRepository(
             { status: "scheduled", scheduledAt: scheduledDate, publishedAt: null },
             timestamp,
           );
+          bumpWorkflow(transaction, collection, id, actorId, "scheduled", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.schedule",
@@ -678,6 +763,7 @@ export function createContentRepository(
           })
           .where(eq(config.base.id, id))
           .run();
+        bumpWorkflow(transaction, collection, id, actorId, "draft", timestamp);
         audit(transaction).record({
           actorId,
           action: "content.verification.update",
@@ -706,6 +792,7 @@ export function createContentRepository(
           .set({ archivedAt: timestamp, updatedAt: timestamp })
           .where(eq(config.base.id, id))
           .run();
+        bumpWorkflow(transaction, collection, id, actorId, "archived", timestamp);
         audit(transaction).record({
           actorId,
           action: "content.archive",

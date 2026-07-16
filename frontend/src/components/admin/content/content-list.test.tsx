@@ -50,6 +50,7 @@ const item: AdminContentItem = {
     en: completeTranslation("en", "Ocean Freight"),
     ru: completeTranslation("ru", "Морские перевозки"),
   },
+  workflow: { state: "published", ownerId: "staff-1", version: 3, submittedAt: null, updatedAt: "2026-07-15T04:00:00.000Z" },
 };
 
 afterEach(cleanup);

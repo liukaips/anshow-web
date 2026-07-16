@@ -356,6 +356,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/audit/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminAuditEvent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -650,6 +682,16 @@ export interface components {
                 zh?: components["schemas"]["AdminContentTranslation"];
                 ru?: components["schemas"]["AdminContentTranslation"];
             };
+            workflow: {
+                /** @enum {string} */
+                state: "draft" | "translation_pending" | "review_pending" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+                ownerId: string | null;
+                version: number;
+                /** Format: date-time */
+                submittedAt: string | null;
+                /** Format: date-time */
+                updatedAt: string;
+            };
         };
         AdminContentTranslation: components["schemas"]["AdminContentTranslationInput"] & {
             locale: components["schemas"]["AdminContentLocale"];
@@ -864,6 +906,37 @@ export interface components {
                 /** @enum {boolean} */
                 deleted: true;
             };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminAuditEventsResponse: {
+            data: {
+                items: components["schemas"]["AdminAuditEvent"][];
+                page: number;
+                pageSize: number;
+                total: number;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminAuditEvent: {
+            id: string;
+            actorId: string;
+            action: string;
+            entityType: string;
+            entityId: string;
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string | null;
+        };
+        AdminAuditEventResponse: {
+            data: components["schemas"]["AdminAuditEvent"];
             /** @enum {object|null} */
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
@@ -2461,6 +2534,84 @@ export interface operations {
                         };
                         requestId: string;
                     };
+                };
+            };
+        };
+    };
+    listAdminAuditEvents: {
+        parameters: {
+            query?: {
+                actorId?: string;
+                action?: string;
+                entityType?: string;
+                entityId?: string;
+                from?: string;
+                to?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered audit history with sensitive detail redacted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Audit permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getAdminAuditEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redacted audit event detail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventResponse"];
+                };
+            };
+            /** @description Audit event not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

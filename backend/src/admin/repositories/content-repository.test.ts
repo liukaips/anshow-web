@@ -65,6 +65,11 @@ describe("administration content repository", () => {
       expect(created).toMatchObject({
         id: FIRST_CONTENT_ID,
         code: expect.stringMatching(/^content-[a-f0-9]{8}$/),
+        workflow: {
+          state: "draft",
+          ownerId: "staff-1",
+          version: 1,
+        },
         translations: {
           en: { locale: "en", status: "draft", title: "" },
           ru: { locale: "ru", status: "draft", title: "" },
@@ -91,6 +96,7 @@ describe("administration content repository", () => {
         seoTitle: "",
         altText: "",
       });
+      expect(saved.workflow).toMatchObject({ state: "draft", version: 2 });
       await expect(
         context.repository.list("services"),
       ).resolves.toEqual([saved]);
@@ -169,7 +175,7 @@ describe("administration content repository", () => {
     }
   });
 
-  it("lists every base and translation using two select queries", async () => {
+  it("lists every base, translation, and workflow using three select queries", async () => {
     const context = createRepository();
 
     try {
@@ -202,7 +208,7 @@ describe("administration content repository", () => {
       const listed = await context.repository.list("services");
 
       expect(listed).toHaveLength(2);
-      expect(select).toHaveBeenCalledTimes(2);
+      expect(select).toHaveBeenCalledTimes(3);
     } finally {
       context.close();
     }

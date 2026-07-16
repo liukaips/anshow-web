@@ -10,6 +10,7 @@ import {
   errorEnvelopeSchema,
 } from "../../content/public-contract.js";
 import type { AppEnv } from "../../http/context.js";
+import { workflowStates } from "../../db/schema/workflow.js";
 import {
   adminContentCollectionSchema,
   adminContentIdSchema,
@@ -79,6 +80,13 @@ const AdminContentItemSchema = z
         ru: AdminContentTranslationSchema.optional(),
       })
       .strict(),
+    workflow: z.object({
+      state: z.enum(workflowStates),
+      ownerId: z.string().nullable(),
+      version: z.number().int().positive(),
+      submittedAt: z.string().datetime().nullable(),
+      updatedAt: z.string().datetime(),
+    }).strict(),
   })
   .openapi("AdminContentItem");
 
