@@ -139,7 +139,7 @@ test("reduced motion renders the complete process without a Three.js scene", asy
   const requestedUrls: string[] = [];
   page.on("request", (request) => requestedUrls.push(request.url()));
 
-  await page.goto("http://localhost:3000/en");
+  await page.goto("/en");
   await page.waitForLoadState("networkidle");
 
   await expect(page.locator("[data-route-canvas]")).toHaveCount(0);
