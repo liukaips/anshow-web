@@ -260,6 +260,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStaff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getStaff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStaffRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disableStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["enableStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateStaffRoles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -444,6 +540,16 @@ export interface components {
                 caseStudiesEnabled: boolean;
                 insightsEnabled: boolean;
             };
+            backup?: {
+                enabled: boolean;
+                intervalHours: number;
+                retentionDays: number;
+                /** @enum {string} */
+                target: "local" | "cos";
+                cosBucket: string;
+                cosRegion: string;
+                encryptionConfigured: boolean;
+            };
         };
         SaveAdminSettingsResponse: {
             data: components["schemas"]["SiteSettings"];
@@ -482,6 +588,16 @@ export interface components {
                 enquiriesEnabled: boolean;
                 caseStudiesEnabled: boolean;
                 insightsEnabled: boolean;
+            };
+            backup?: {
+                enabled: boolean;
+                intervalHours: number;
+                retentionDays: number;
+                /** @enum {string} */
+                target: "local" | "cos";
+                cosBucket: string;
+                cosRegion: string;
+                encryptionConfigured: boolean;
             };
         };
         AdminContactChannelsResponse: {
@@ -575,10 +691,7 @@ export interface components {
             requestId: string;
         };
         CreateAdminContentInput: {
-            code: string;
-            sortOrder?: number;
-            verified?: boolean;
-            verificationSource?: string | null;
+            titleZh: string;
         };
         SaveAdminContentDraftResponse: {
             data: components["schemas"]["AdminContentItem"];
@@ -2064,6 +2177,290 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Staff */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            email: string;
+                            /** Format: date-time */
+                            createdAt: string | null;
+                            roles: string | null;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Unauthenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    getStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Staff detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            email: string;
+                            /** Format: date-time */
+                            createdAt: string | null;
+                            roles: {
+                                id: string;
+                                name: string;
+                            }[];
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    listStaffRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            permissions: string[];
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    disableStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    enableStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateStaffRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    roleIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
                 };
             };
         };

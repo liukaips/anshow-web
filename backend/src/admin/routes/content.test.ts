@@ -158,13 +158,13 @@ describe("administration content routes", () => {
 
     const createResponse = await app.request(
       jsonRequest("/api/admin/content/services", "POST", {
-        code: "freight-service",
+        titleZh: "冷链运输服务",
       }),
     );
     expect(createResponse.status).toBe(201);
     expect(repository.create).toHaveBeenCalledWith(
       "services",
-      { code: "freight-service" },
+      { titleZh: "冷链运输服务" },
       "staff-1",
     );
 
@@ -267,6 +267,21 @@ describe("administration content routes", () => {
       error: { fields: { slug: expect.any(Array) } },
     });
     expect(repository.saveDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["blank title", { titleZh: "   " }],
+    ["client code", { titleZh: "冷链运输服务", code: "manual-code" }],
+  ])("rejects %s during content creation", async (_case, input) => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository);
+
+    const response = await app.request(
+      jsonRequest("/api/admin/content/services", "POST", input),
+    );
+
+    expect(response.status).toBe(400);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
   it.each([

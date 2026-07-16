@@ -26,6 +26,7 @@ import {
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
 import {
+  ADMIN_CONTENT_LOCALES,
   createContentInputSchema,
   publishableTranslationSchema,
   scheduleTranslationInputSchema,
@@ -40,6 +41,7 @@ import {
   type TranslationInput,
   type VerificationInput,
 } from "../content/content-schema.js";
+import { slugFromTitle, uniqueIdentifier } from "../content/content-identifiers.js";
 import { createAuditRepository } from "./audit-repository.js";
 
 type BaseTable = typeof services;
@@ -128,10 +130,7 @@ export type AdminContentItem = Readonly<{
 }>;
 
 export type CreateAdminContentInput = Readonly<{
-  code: string;
-  sortOrder?: number;
-  verified?: boolean;
-  verificationSource?: string | null;
+  titleZh: string;
 }>;
 
 export const CONTENT_REPOSITORY_ERROR_CODES = [
@@ -458,45 +457,73 @@ export function createContentRepository(
       const parsedInput = createContentInputSchema.parse(input);
       const id = createId();
       const timestamp = now();
-      const verificationSource =
-        parsedInput.verificationSource?.trim() || null;
 
       try {
         database.transaction((transaction) => {
-          const codeCollision = transaction
-            .select({ id: config.base.id })
-            .from(config.base)
-            .where(eq(config.base.code, parsedInput.code))
-            .get();
-          if (codeCollision) {
-            throw new ContentRepositoryError(
-              "CONTENT_CONFLICT",
-              `Code ${parsedInput.code} is already used`,
-            );
-          }
+          const existingCodes = new Set(
+            transaction
+              .select({ code: config.base.code })
+              .from(config.base)
+              .all()
+              .map((row) => row.code),
+          );
+          const code = uniqueIdentifier(parsedInput.titleZh, existingCodes);
+          const existingChineseSlugs = new Set(
+            transaction
+              .select({ slug: config.translations.slug })
+              .from(config.translations)
+              .where(eq(config.translations.locale, "zh"))
+              .all()
+              .map((row) => row.slug)
+              .filter(Boolean),
+          );
+          const preferredSlug = slugFromTitle(parsedInput.titleZh, "zh");
+          const slug = existingChineseSlugs.has(preferredSlug)
+            ? code
+            : preferredSlug;
 
           transaction
             .insert(config.base)
             .values({
               id,
-              code: parsedInput.code,
-              sortOrder: parsedInput.sortOrder ?? 0,
-              verifiedAt: parsedInput.verified ? timestamp : null,
-              verificationSource,
+              code,
+              sortOrder: 0,
+              verifiedAt: null,
+              verificationSource: null,
               createdAt: timestamp,
               updatedAt: timestamp,
             })
+            .run();
+          transaction
+            .insert(config.translations)
+            .values(
+              ADMIN_CONTENT_LOCALES.map((locale) => ({
+                ownerId: id,
+                locale,
+                status: "draft" as const,
+                scheduledAt: null,
+                publishedAt: null,
+                slug: locale === "zh" ? slug : "",
+                title: locale === "zh" ? parsedInput.titleZh : "",
+                summary: "",
+                body: "",
+                seoTitle: "",
+                seoDescription: "",
+                altText: "",
+                updatedAt: timestamp,
+              })),
+            )
             .run();
           audit(transaction).record({
             actorId,
             action: "content.create",
             entityType: collection,
             entityId: id,
-            detail: { code: parsedInput.code },
+            detail: { code },
           });
         });
       } catch (error) {
-        mapContentConstraint(error, parsedInput.code);
+        mapContentConstraint(error, parsedInput.titleZh);
       }
 
       return get(collection, id);

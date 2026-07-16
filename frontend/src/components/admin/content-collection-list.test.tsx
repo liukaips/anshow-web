@@ -48,14 +48,14 @@ describe("ContentCollectionList", () => {
     );
 
     expect(screen.getByText("暂无服务内容。")).toBeVisible();
-    fireEvent.change(screen.getByLabelText("内容编码"), {
-      target: { value: "new-service" },
+    fireEvent.change(screen.getByLabelText("服务名称"), {
+      target: { value: "冷链运输服务" },
     });
     fireEvent.click(screen.getByRole("button", { name: "创建内容" }));
 
     await waitFor(() =>
       expect(createContent).toHaveBeenCalledWith("services", {
-        code: "new-service",
+        titleZh: "冷链运输服务",
       }),
     );
     expect(push).toHaveBeenCalledWith("/admin/content/services/content-1");
