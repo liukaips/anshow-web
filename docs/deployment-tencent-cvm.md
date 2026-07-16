@@ -137,6 +137,7 @@ docker run --rm \
       rm -rf /media/*
       cp -a "/restore/.staging/restore-${RUN_ID}/media/." /media/
     fi
+    chown -R 1000:1000 /data/anshow.db /media
   '
 
 # 对较旧备份补齐当前版本迁移，再启动全部服务。
