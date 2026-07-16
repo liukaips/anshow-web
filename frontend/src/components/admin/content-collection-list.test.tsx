@@ -70,10 +70,12 @@ describe("ContentCollectionList", () => {
       />,
     );
 
-    expect(screen.getByRole("listitem")).toHaveTextContent("new-service");
+    expect(screen.getByRole("listitem")).toHaveTextContent("未命名内容");
+    expect(screen.queryByText("new-service")).toBeNull();
     expect(screen.queryByLabelText("Content code")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "创建内容" }),
     ).toBeNull();
+    expect(screen.getAllByRole("link", { name: "查看" }).length).toBeGreaterThan(0);
   });
 });

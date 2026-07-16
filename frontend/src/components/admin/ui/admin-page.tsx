@@ -16,7 +16,7 @@ export function AdminPage({
   title,
 }: AdminPageProps) {
   return (
-    <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8" id="admin-main">
       <div className="mx-auto grid w-full max-w-7xl gap-6">
         <header className="flex min-w-0 flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">

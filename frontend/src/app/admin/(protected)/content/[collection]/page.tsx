@@ -7,8 +7,12 @@ import { listAdminContent } from "@/api/admin-content.server";
 import { getAdminSession } from "@/api/server";
 import {
   ContentCollectionList,
-  collectionLabels,
 } from "@/components/admin/content-collection-list";
+import {
+  collectionDescriptions,
+  collectionPageTitles,
+} from "@/components/admin/content/content-labels";
+import { AdminPage } from "@/components/admin/ui/admin-page";
 
 export default async function AdminContentCollectionPage({
   params,
@@ -22,25 +26,16 @@ export default async function AdminContentCollectionPage({
   const items = await listAdminContent(collection);
 
   return (
-    <main className="px-4 py-7 sm:px-8 sm:py-9" id="admin-main">
-      <div className="mx-auto min-w-0 max-w-7xl">
-        <p className="text-sm font-medium text-[var(--color-cyan-ink)]">
-          Multilingual content
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold text-[var(--color-text)] sm:text-3xl">
-          {collectionLabels[collection]}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
-          Review publication state and translation completeness for each locale.
-        </p>
-        <div className="mt-6">
-          <ContentCollectionList
-            canWrite={session.permissions.includes("content.write")}
-            collection={collection}
-            initialItems={items}
-          />
-        </div>
-      </div>
-    </main>
+    <AdminPage
+      description={collectionDescriptions[collection]}
+      eyebrow="内容管理"
+      title={collectionPageTitles[collection]}
+    >
+      <ContentCollectionList
+        canWrite={session.permissions.includes("content.write")}
+        collection={collection}
+        initialItems={items}
+      />
+    </AdminPage>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowRight, LoaderCircle, Plus } from "lucide-react";
-import Link from "next/link";
+import { LoaderCircle, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -9,36 +8,17 @@ import {
   createAdminContent,
   type AdminContentCollection,
   type AdminContentItem,
-  type AdminContentLocale,
 } from "../../api/admin-content";
-import { isTranslationComplete } from "./locale-tabs";
+import { ContentList } from "./content/content-list";
+import { collectionLabels } from "./content/content-labels";
+
+export { collectionLabels };
 
 type ContentCollectionListProps = {
   canWrite: boolean;
   collection: AdminContentCollection;
   initialItems: AdminContentItem[];
 };
-
-export const collectionLabels: Record<AdminContentCollection, string> = {
-  pages: "页面",
-  "hero-slides": "首屏轮播",
-  services: "服务",
-  "trade-lanes": "贸易航线",
-  "cargo-types": "特种货物",
-  "case-studies": "案例",
-  articles: "文章",
-  partners: "合作伙伴",
-  certificates: "资质证书",
-  "proof-metrics": "证明指标",
-  "navigation-items": "导航项目",
-};
-
-const localeLabels: Record<AdminContentLocale, string> = {
-  en: "EN",
-  zh: "ZH",
-  ru: "RU",
-};
-const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 
 export function ContentCollectionList({
   canWrite,
@@ -53,7 +33,7 @@ export function ContentCollectionList({
 
   async function create() {
     if (!code.trim()) {
-      setError("Enter a content code.");
+      setError("请输入内容编码。");
       return;
     }
     setPending(true);
@@ -61,8 +41,8 @@ export function ContentCollectionList({
     try {
       const created = await createAdminContent(collection, { code: code.trim() });
       router.push(`/admin/content/${collection}/${created.id}`);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Content creation failed.");
+    } catch {
+      setError("创建内容失败，请重试。");
     } finally {
       setPending(false);
     }
@@ -112,39 +92,7 @@ export function ContentCollectionList({
           </p>
         </div>
       ) : (
-        <div className="border-t border-neutral-200" role="list">
-          {items.map((item) => (
-            <Link
-              className="grid min-w-0 grid-cols-1 gap-3 border-b border-neutral-200 px-3 py-4 transition-[background-color] duration-[var(--motion-fast)] hover:bg-white sm:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_auto] sm:items-center"
-              href={`/admin/content/${collection}/${item.id}`}
-              key={item.id}
-              role="listitem"
-            >
-              <div className="min-w-0">
-                <p className="break-words text-sm font-semibold text-[var(--color-text)]">{item.code}</p>
-                <p className="mt-1 text-xs text-neutral-500">
-                  {item.archivedAt ? "已归档" : `排序 ${item.sortOrder}`}
-                </p>
-              </div>
-              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-                {locales.map((locale) => {
-                  const translation = item.translations[locale];
-                  const complete = isTranslationComplete(translation);
-                  return (
-                    <div className="min-w-0 border-l-2 border-neutral-200 pl-2" key={locale}>
-                      <p className="text-xs font-semibold text-neutral-500">{localeLabels[locale]}</p>
-                      <p className="break-words text-sm capitalize text-[var(--color-text)]">{translation?.status ?? "draft"}</p>
-                      <p className={`text-xs ${complete ? "text-[var(--color-teal-ink)]" : "text-[var(--color-danger)]"}`}>
-                        {complete ? "已完成" : "未完成"}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-              <ArrowRight aria-hidden="true" className="size-5 text-neutral-400" />
-            </Link>
-          ))}
-        </div>
+        <ContentList canWrite={canWrite} collection={collection} items={items} />
       )}
     </div>
   );

@@ -10,7 +10,10 @@ describe("AdminContentError", () => {
     const reset = vi.fn();
     render(<AdminContentError error={new Error("failed")} reset={reset} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      screen.getByRole("heading", { name: "内容加载失败" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "重新加载" }));
 
     expect(reset).toHaveBeenCalledOnce();
   });
