@@ -56,25 +56,27 @@ function breadcrumbsFor(pathname: string): readonly Breadcrumb[] {
   return breadcrumbs;
 }
 
-export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
-  const pathname = usePathname();
+type AdminTopbarContentProps = AdminTopbarProps & { pathname: string };
+
+function AdminTopbarContent({
+  email,
+  navigation,
+  pathname,
+}: AdminTopbarContentProps) {
   const router = useRouter();
   const actionsRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const helpTriggerRef = useRef<HTMLButtonElement>(null);
   const [error, setError] = useState("");
-  const [panelState, setPanelState] = useState<{
-    name: "account" | "help";
-    pathname: string;
-  } | null>(null);
+  const [openPanel, setOpenPanel] = useState<"account" | "help" | null>(null);
   const [pending, setPending] = useState(false);
   const helpPanelId = `admin-help-${useId()}`;
   const accountPanelId = `admin-account-${useId()}`;
   const breadcrumbs = breadcrumbsFor(pathname);
-  const openPanel = panelState?.pathname === pathname ? panelState.name : null;
 
   useEffect(() => {
     function closeOnDocumentInput(event: KeyboardEvent | PointerEvent) {
+      if (!openPanel) return;
       if (
         event.type === "pointerdown" &&
         actionsRef.current?.contains(event.target as Node)
@@ -89,7 +91,7 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
         openPanel === "account"
           ? accountTriggerRef.current
           : helpTriggerRef.current;
-      setPanelState(null);
+      setOpenPanel(null);
       if (event.type === "keydown") trigger?.focus();
     }
     document.addEventListener("keydown", closeOnDocumentInput);
@@ -101,11 +103,7 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
   }, [openPanel]);
 
   function togglePanel(name: "account" | "help") {
-    setPanelState((current) =>
-      current?.name === name && current.pathname === pathname
-        ? null
-        : { name, pathname },
-    );
+    setOpenPanel((current) => (current === name ? null : name));
   }
 
   async function signOut() {
@@ -122,16 +120,16 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
     try {
       const result = await authClient.signOut();
       if (result.error) {
-        setPanelState(null);
+        setOpenPanel(null);
         setError("退出失败，请重试。");
         return;
       }
 
-      setPanelState(null);
+      setOpenPanel(null);
       router.replace("/admin/login");
       router.refresh();
     } catch {
-      setPanelState(null);
+      setOpenPanel(null);
       setError("退出失败，请重试。");
     } finally {
       setPending(false);
@@ -274,4 +272,9 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
       ) : null}
     </header>
   );
+}
+
+export function AdminTopbar(props: AdminTopbarProps) {
+  const pathname = usePathname();
+  return <AdminTopbarContent key={pathname} pathname={pathname} {...props} />;
 }

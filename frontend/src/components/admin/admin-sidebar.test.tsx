@@ -142,6 +142,15 @@ describe("AdminTopbar", () => {
     expect(account).toHaveFocus();
   });
 
+  it("does not move focus when Escape is pressed without an open panel", () => {
+    render(<AdminTopbar email="editor@anshow.example" />);
+    const account = screen.getByRole("button", { name: "账号菜单" });
+    account.focus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(account).toHaveFocus();
+  });
+
   it("closes open panels on route changes and outside pointer input", () => {
     const view = render(<AdminTopbar email="editor@anshow.example" />);
     const help = screen.getByRole("button", { name: "帮助" });
@@ -150,7 +159,17 @@ describe("AdminTopbar", () => {
 
     pathname.mockReturnValue("/admin/media");
     view.rerender(<AdminTopbar email="editor@anshow.example" />);
-    expect(help).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "帮助" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    pathname.mockReturnValue("/admin/content/pages");
+    view.rerender(<AdminTopbar email="editor@anshow.example" />);
+    expect(screen.getByRole("button", { name: "帮助" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
     const account = screen.getByRole("button", { name: "账号菜单" });
     fireEvent.click(account);
