@@ -23,6 +23,9 @@ const RuntimeEnvSchema = z
     SMTP_PASSWORD: z.string().min(1).optional(),
     SMTP_FROM: z.string().email().optional(),
     SALES_EMAIL: z.string().email().optional(),
+    TRANSLATION_API_URL: z.url().optional(),
+    TRANSLATION_API_KEY: z.string().min(1).optional(),
+    TRANSLATION_MODEL: z.string().trim().min(1).optional(),
     PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   })
   .superRefine((environment, context) => {
@@ -64,6 +67,23 @@ const RuntimeEnvSchema = z
       for (const key of ["COS_BUCKET", "COS_REGION", "COS_PUBLIC_BASE_URL", "COS_SECRET_ID", "COS_SECRET_KEY"] as const) {
         if (!environment[key]) {
           context.addIssue({ code: "custom", message: `${key} is required when MEDIA_DRIVER=cos`, path: [key] });
+        }
+      }
+    }
+
+    const translationKeys = [
+      "TRANSLATION_API_URL",
+      "TRANSLATION_API_KEY",
+      "TRANSLATION_MODEL",
+    ] as const;
+    if (translationKeys.some((key) => environment[key])) {
+      for (const key of translationKeys) {
+        if (!environment[key]) {
+          context.addIssue({
+            code: "custom",
+            message: `${key} is required when translation is configured`,
+            path: [key],
+          });
         }
       }
     }

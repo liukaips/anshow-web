@@ -30,6 +30,19 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos" })).toThrow(/COS_BUCKET/);
   });
 
+  it("accepts a complete translation provider configuration", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      TRANSLATION_API_URL: "https://api.example.test/v1/chat/completions",
+      TRANSLATION_API_KEY: "translation-secret",
+      TRANSLATION_MODEL: "translation-model",
+    })).toMatchObject({ TRANSLATION_MODEL: "translation-model" });
+  });
+
+  it("requires translation provider values together", () => {
+    expect(() => parseEnv({ ...validEnvironment, TRANSLATION_API_KEY: "secret" })).toThrow(/TRANSLATION_API_URL/);
+  });
+
   it("requires HTTPS for the production site URL", () => {
     expect(() =>
       parseEnv({ ...validEnvironment, SITE_URL: "http://example.com" }),
