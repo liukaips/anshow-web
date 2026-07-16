@@ -29,7 +29,7 @@ export function AdminPage({
               {title}
             </h1>
             {description ? (
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600 sm:text-base">
+              <p className="mt-2 max-w-3xl text-base leading-6 text-neutral-600">
                 {description}
               </p>
             ) : null}
