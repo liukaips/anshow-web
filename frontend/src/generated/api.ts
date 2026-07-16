@@ -260,6 +260,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reviews/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media": {
         parameters: {
             query?: never;
@@ -988,6 +1052,80 @@ export interface components {
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
             requestId: string;
+        };
+        AdminReviewsResponse: {
+            data: components["schemas"]["AdminContentReview"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContentReview: {
+            id: string;
+            entityType: string;
+            entityId: string;
+            sourceVersion: number;
+            submittedBy: string;
+            reviewerId: string | null;
+            /** @enum {string} */
+            decision: "pending" | "approved" | "changes_requested";
+            reason: string | null;
+            /** Format: date-time */
+            submittedAt: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+        };
+        SubmitAdminReviewResponse: {
+            data: components["schemas"]["AdminContentReview"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        SubmitAdminReviewInput: {
+            /** @enum {string} */
+            collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+            id: string;
+            expectedVersion: number;
+        };
+        ApproveAdminReviewResponse: {
+            data: {
+                review: components["schemas"]["AdminContentReview"];
+                workflow: components["schemas"]["AdminContentWorkflow"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContentWorkflow: {
+            entityType: string;
+            entityId: string;
+            /** @enum {string} */
+            state: "draft" | "translation_pending" | "review_pending" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+            ownerId: string | null;
+            version: number;
+            /** Format: date-time */
+            submittedAt: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        ApproveAdminReviewInput: {
+            expectedVersion: number;
+        };
+        RejectAdminReviewResponse: {
+            data: {
+                review: components["schemas"]["AdminContentReview"];
+                workflow: components["schemas"]["AdminContentWorkflow"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        RejectAdminReviewInput: {
+            expectedVersion: number;
+            reason: string;
         };
         AdminMediaListResponse: {
             data: components["schemas"]["AdminMediaAsset"][];
@@ -2248,6 +2386,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevokeAdminPreviewResponse"];
+                };
+            };
+        };
+    };
+    listAdminReviews: {
+        parameters: {
+            query?: {
+                decision?: "pending" | "approved" | "changes_requested";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Content review queue. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReviewsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Content submitted for review. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmitAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    approveAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Review approved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rejectAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Changes requested. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

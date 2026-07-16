@@ -1860,6 +1860,317 @@
           "requestId"
         ]
       },
+      "AdminReviewsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminContentReview"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminContentReview": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "number"
+          },
+          "submittedBy": {
+            "type": "string"
+          },
+          "reviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "changes_requested"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "entityType",
+          "entityId",
+          "sourceVersion",
+          "submittedBy",
+          "reviewerId",
+          "decision",
+          "reason",
+          "submittedAt",
+          "decidedAt"
+        ]
+      },
+      "SubmitAdminReviewResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminContentReview"
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "SubmitAdminReviewInput": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "enum": [
+              "pages",
+              "hero-slides",
+              "services",
+              "trade-lanes",
+              "cargo-types",
+              "case-studies",
+              "articles",
+              "partners",
+              "certificates",
+              "proof-metrics",
+              "navigation-items"
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[a-z0-9-]+$"
+              }
+            ]
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "collection",
+          "id",
+          "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
+      "ApproveAdminReviewResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "review": {
+                "$ref": "#/components/schemas/AdminContentReview"
+              },
+              "workflow": {
+                "$ref": "#/components/schemas/AdminContentWorkflow"
+              }
+            },
+            "required": [
+              "review",
+              "workflow"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminContentWorkflow": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "translation_pending",
+              "review_pending",
+              "changes_requested",
+              "approved",
+              "scheduled",
+              "published",
+              "archived"
+            ]
+          },
+          "ownerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "number"
+          },
+          "submittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "entityType",
+          "entityId",
+          "state",
+          "ownerId",
+          "version",
+          "submittedAt",
+          "updatedAt"
+        ]
+      },
+      "ApproveAdminReviewInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
+      "RejectAdminReviewResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "review": {
+                "$ref": "#/components/schemas/AdminContentReview"
+              },
+              "workflow": {
+                "$ref": "#/components/schemas/AdminContentWorkflow"
+              }
+            },
+            "required": [
+              "review",
+              "workflow"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "RejectAdminReviewInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "AdminMediaListResponse": {
         "type": "object",
         "properties": {
@@ -4262,6 +4573,273 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RevokeAdminPreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reviews/queue": {
+      "get": {
+        "operationId": "listAdminReviews",
+        "tags": [
+          "Administration Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "changes_requested"
+              ]
+            },
+            "required": false,
+            "name": "decision",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content review queue.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Workflow version or state conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reviews/submit": {
+      "post": {
+        "operationId": "submitAdminContentReview",
+        "tags": [
+          "Administration Review"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAdminReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Content submitted for review.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAdminReviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Workflow version or state conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reviews/{id}/approve": {
+      "post": {
+        "operationId": "approveAdminContentReview",
+        "tags": [
+          "Administration Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveAdminReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Review approved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveAdminReviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Workflow version or state conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reviews/{id}/reject": {
+      "post": {
+        "operationId": "rejectAdminContentReview",
+        "tags": [
+          "Administration Review"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectAdminReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changes requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectAdminReviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Workflow version or state conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

@@ -2,6 +2,7 @@
 
 import {
   BookOpenText,
+  ClipboardCheck,
   Boxes,
   FileText,
   Gauge,
@@ -11,6 +12,7 @@ import {
   MessagesSquare,
   Newspaper,
   Route,
+  ScanEye,
   Settings,
   ShieldCheck,
   ShipWheel,
@@ -127,6 +129,20 @@ const navigationItems: readonly NavigationItem[] = [
     label: "媒体库",
     permission: "media.read",
     section: "Operations",
+  },
+  {
+    href: "/admin/reviews",
+    icon: ClipboardCheck,
+    label: "审核中心",
+    permission: "content.review",
+    section: "Content",
+  },
+  {
+    href: "/admin/publish",
+    icon: ScanEye,
+    label: "预览与发布",
+    permission: "preview.create",
+    section: "Content",
   },
   {
     href: "/admin/inquiries",

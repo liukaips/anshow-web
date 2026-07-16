@@ -18,6 +18,7 @@ import type { StaffRepository } from "./admin/repositories/staff-repository.js";
 import { registerAuditRoutes, type AuditRouteDependencies } from "./admin/routes/audit.js";
 import { registerTranslationRoutes, type TranslationRouteDependencies } from "./admin/routes/translation.js";
 import { registerPreviewRoutes, type PreviewRouteDependencies } from "./admin/routes/previews.js";
+import { registerReviewRoutes, type ReviewRouteDependencies } from "./admin/routes/reviews.js";
 import { registerPublicPreviewRoutes } from "./public/preview-routes.js";
 import {
   errorEnvelopeSchema,
@@ -133,6 +134,7 @@ export type AppDependencies = AdminSessionDependencies &
     auditRepository: AuditRouteDependencies["auditRepository"];
     translationService: TranslationRouteDependencies["translationService"];
     previewService: PreviewRouteDependencies["previewService"];
+    reviewRepository: ReviewRouteDependencies["reviewRepository"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -154,6 +156,13 @@ const defaultDependencies: AppDependencies = {
     readSnapshot: () => null,
     revoke: () => undefined,
     list: () => [],
+  },
+  reviewRepository: {
+    list: () => [],
+    submit: async () => { throw new Error("Review repository is not configured"); },
+    approve: () => { throw new Error("Review repository is not configured"); },
+    reject: () => { throw new Error("Review repository is not configured"); },
+    workflow: () => undefined,
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -300,6 +309,7 @@ export function createApp(
   registerContentRoutes(app, resolvedDependencies);
   registerTranslationRoutes(app, resolvedDependencies);
   registerPreviewRoutes(app, resolvedDependencies);
+  registerReviewRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
   registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
   registerAuditRoutes(app, resolvedDependencies);
@@ -308,6 +318,17 @@ export function createApp(
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");
+    if (
+      "status" in error &&
+      error.status === 409 &&
+      "code" in error &&
+      typeof error.code === "string"
+    ) {
+      return context.json(
+        errorEnvelope(requestId, error.code, error.message),
+        409,
+      );
+    }
     console.error({
       event: "http.unhandled_error",
       requestId,

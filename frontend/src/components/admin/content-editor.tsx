@@ -8,6 +8,7 @@ import {
   Languages,
   Save,
   Send,
+  ClipboardCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -25,6 +26,7 @@ import {
   type ProofContentCollection,
 } from "../../api/admin-content";
 import { ApiError } from "../../api/http";
+import { submitAdminReview } from "../../api/admin-reviews";
 import {
   ADMIN_NAVIGATION_REQUEST,
   requestAdminNavigation,
@@ -47,7 +49,7 @@ type ContentEditorProps = {
 
 type EditorField = TranslationField | "scheduledAt";
 type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "publish" | "save" | "schedule" | "translate" | "verification";
+type Command = "archive" | "publish" | "save" | "schedule" | "submit" | "translate" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 const proofCollections: readonly ProofContentCollection[] = [
@@ -464,6 +466,24 @@ export function ContentEditor({
     }
   }
 
+  async function submitForReview() {
+    if (dirty) {
+      setMessage({ kind: "error", text: "请先保存当前修改，再提交审核。" });
+      return;
+    }
+    setPending("submit");
+    setMessage(null);
+    try {
+      const review = await submitAdminReview({ collection, id: item.id, expectedVersion: item.workflow.version });
+      setItem((current) => ({ ...current, workflow: { ...current.workflow, state: "review_pending", version: review.sourceVersion, submittedAt: review.submittedAt } }));
+      setMessage({ kind: "success", text: "内容已提交审核。" });
+    } catch (error) {
+      handleCommandError(error);
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function publish() {
     if (!validatePublish()) return;
     setPending("publish");
@@ -711,6 +731,7 @@ export function ContentEditor({
           ) : null}
           <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="定时发布" onClick={schedule} pending={pending === "schedule"} />
           <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="发布" onClick={publish} pending={pending === "publish"} />
+          {canWrite ? <CommandButton disabled={pending !== null || dirty || item.workflow.state === "review_pending"} icon={ClipboardCheck} label="提交审核" onClick={submitForReview} pending={pending === "submit"} /> : null}
           {canWrite ? (
             <CommandButton danger disabled={pending !== null} icon={Archive} label="归档" onClick={archive} pending={pending === "archive"} />
           ) : null}

@@ -11,6 +11,7 @@ const {
   publishTranslation,
   saveDraft,
   scheduleTranslation,
+  submitReview,
   updateVerification,
 } = vi.hoisted(() => ({
   archiveContent: vi.fn(),
@@ -18,6 +19,7 @@ const {
   publishTranslation: vi.fn(),
   saveDraft: vi.fn(),
   scheduleTranslation: vi.fn(),
+  submitReview: vi.fn(),
   updateVerification: vi.fn(),
 }));
 
@@ -33,6 +35,7 @@ vi.mock("../../api/admin-content", async (importOriginal) => {
     updateAdminContentVerification: updateVerification,
   };
 });
+vi.mock("../../api/admin-reviews", () => ({ submitAdminReview: submitReview }));
 
 import { ContentEditor } from "./content-editor";
 
@@ -74,6 +77,7 @@ beforeEach(() => {
   archiveContent.mockResolvedValue(ITEM);
   updateVerification.mockResolvedValue(ITEM);
   generateTranslations.mockResolvedValue({ sourceVersion: 1, jobs: [], item: ITEM });
+  submitReview.mockResolvedValue({ id: "review-1", entityType: "services", entityId: "content-1", sourceVersion: 2, submittedBy: "staff-1", reviewerId: null, decision: "pending", reason: null, submittedAt: "2026-07-15T05:00:00.000Z", decidedAt: null });
 });
 
 afterEach(() => {
@@ -87,6 +91,13 @@ describe("ContentEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "自动生成英文和俄文" }));
     await waitFor(() => expect(generateTranslations).toHaveBeenCalledWith("services", "content-1", { targets: ["en", "ru"], sourceVersion: 1 }));
     expect(await screen.findByText("英文和俄文草稿已生成，请检查后再提交审核。")).toBeVisible();
+  });
+
+  it("submits the current saved version for review", async () => {
+    render(<ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />);
+    fireEvent.click(screen.getByRole("button", { name: "提交审核" }));
+    await waitFor(() => expect(submitReview).toHaveBeenCalledWith({ collection: "services", id: "content-1", expectedVersion: 1 }));
+    expect(await screen.findByText("内容已提交审核。")).toBeVisible();
   });
 
   it("warns on unload and locale changes while dirty, then clears dirty state after save", async () => {
