@@ -4,8 +4,10 @@ import {
   createHash,
   randomBytes,
 } from "node:crypto";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import Database from "better-sqlite3";
 
 export type BackupEntry = {
   path: string;
@@ -33,6 +35,7 @@ export const BACKUP_VALIDATION_ERROR_CODES = [
   "BACKUP_MANIFEST_INVALID",
   "BACKUP_CHECKSUM_MISMATCH",
   "BACKUP_PATH_UNSAFE",
+  "BACKUP_DATABASE_INVALID",
 ] as const;
 
 export class BackupValidationError extends Error {
@@ -155,6 +158,29 @@ function validEntry(entry: unknown, withData: boolean): entry is BackupEntry {
   );
 }
 
+async function assertSqliteIntegrity(data: Buffer): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "anshow-restore-check-"));
+  const path = join(directory, "anshow.db");
+  try {
+    await writeFile(path, data, { mode: 0o600 });
+    let database: Database.Database | undefined;
+    try {
+      database = new Database(path, { fileMustExist: true, readonly: true });
+      const result = database.pragma("integrity_check", { simple: true });
+      if (result !== "ok") throw new Error(String(result));
+    } finally {
+      database?.close();
+    }
+  } catch {
+    throw new BackupValidationError(
+      "BACKUP_DATABASE_INVALID",
+      "SQLite 数据库完整性校验失败",
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 export async function createEncryptedBackup(options: {
   databasePath: string;
   mediaDir?: string;
@@ -162,22 +188,39 @@ export async function createEncryptedBackup(options: {
   encryptionKey: string | Buffer;
 }): Promise<{ file: string; manifest: BackupManifest }> {
   const entries: BackupEntry[] = [];
-  const sourcePaths = [options.databasePath];
-  if (options.mediaDir) {
-    sourcePaths.push(...(await files(options.mediaDir)));
-  }
-  for (const source of sourcePaths) {
-    const data = await readFile(source);
-    const path =
-      options.mediaDir && source !== options.databasePath
-        ? `media/${relative(options.mediaDir, source)}`
-        : "anshow.db";
-    entries.push({
-      path,
-      size: data.length,
-      sha256: digest(data),
-      data: data.toString("base64"),
+  const snapshotDirectory = await mkdtemp(join(tmpdir(), "anshow-sqlite-snapshot-"));
+  try {
+    const snapshotPath = join(snapshotDirectory, "anshow.db");
+    const sourceDatabase = new Database(options.databasePath, {
+      fileMustExist: true,
+      readonly: true,
     });
+    try {
+      await sourceDatabase.backup(snapshotPath);
+    } finally {
+      sourceDatabase.close();
+    }
+
+    const databaseData = await readFile(snapshotPath);
+    entries.push({
+      path: "anshow.db",
+      size: databaseData.length,
+      sha256: digest(databaseData),
+      data: databaseData.toString("base64"),
+    });
+    if (options.mediaDir) {
+      for (const source of await files(options.mediaDir)) {
+        const data = await readFile(source);
+        entries.push({
+          path: `media/${relative(options.mediaDir, source)}`,
+          size: data.length,
+          sha256: digest(data),
+          data: data.toString("base64"),
+        });
+      }
+    }
+  } finally {
+    await rm(snapshotDirectory, { recursive: true, force: true });
   }
   const manifest: BackupManifest = {
     version: 1,
@@ -289,6 +332,17 @@ export async function verifyAndRestoreBackup(options: {
     }
     return { data, destination };
   });
+
+  const databaseEntry = verifiedEntries.find(
+    (_entry, index) => parsed.entries[index]?.path === "anshow.db",
+  );
+  if (!databaseEntry) {
+    throw new BackupValidationError(
+      "BACKUP_MANIFEST_INVALID",
+      "备份清单缺少 SQLite 数据库",
+    );
+  }
+  await assertSqliteIntegrity(databaseEntry.data);
 
   await mkdir(restoreRoot, { recursive: true });
   for (const entry of verifiedEntries) {
