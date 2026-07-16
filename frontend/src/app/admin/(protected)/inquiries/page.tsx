@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getAdminInquiryServer, listAdminInquiries } from "@/api/admin-inquiries.server";
+import { getAdminInquiryServer, listAdminInquiries, listAdminInquiryAssignees } from "@/api/admin-inquiries.server";
 import { getAdminSession } from "@/api/server";
 import { InquiryList } from "@/components/admin/inquiries/inquiry-list";
 import { AdminPage } from "@/components/admin/ui/admin-page";
@@ -17,9 +17,11 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
   if (!session.permissions.includes("inquiry.read")) redirect("/admin");
   const query = await searchParams;
   const selectedId = first(query.selected);
-  const [items, initialDetail] = await Promise.all([
+  const canAssign = session.permissions.includes("inquiry.assign");
+  const [items, initialDetail, assignees] = await Promise.all([
     listAdminInquiries(),
     selectedId ? getAdminInquiryServer(selectedId) : Promise.resolve(undefined),
+    canAssign ? listAdminInquiryAssignees() : Promise.resolve([]),
   ]);
   return (
     <AdminPage
@@ -28,9 +30,9 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
       title="询盘管理"
     >
       <InquiryList
-        assignees={[{ id: session.user.id, name: "我", email: session.user.email }]}
+        assignees={assignees}
         canAddNote={session.permissions.includes("inquiry.note")}
-        canAssign={session.permissions.includes("inquiry.assign")}
+        canAssign={canAssign}
         canChangeStatus={session.permissions.includes("inquiry.status")}
         canExport={session.permissions.includes("inquiry.export")}
         canRetry={session.permissions.includes("inquiry.retry")}

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, like, lte, or, type SQL } from "drizzle-orm";
 
 import type { AppDatabase } from "../../db/client.js";
+import { user } from "../../db/schema/auth.js";
 import {
   inquiries,
   inquiryHistory,
@@ -72,6 +73,15 @@ function auditValues(
 
 export function createInquiryAdminRepository(db: AppDatabase) {
   return {
+    listAssignees() {
+      return db
+        .select({ id: user.id, name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.emailVerified, true))
+        .orderBy(asc(user.name), asc(user.email))
+        .all();
+    },
+
     list(filters: InquiryAdminFilters = {}) {
       const conditions = filterConditions(filters);
       const query = db

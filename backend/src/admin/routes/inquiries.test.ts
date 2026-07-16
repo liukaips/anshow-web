@@ -5,6 +5,7 @@ import type { InquiryAdminRepository } from "../repositories/inquiry-admin-repos
 
 function repository(): InquiryAdminRepository {
   return {
+    listAssignees: vi.fn(() => [{ id: "staff-2", name: "王运营", email: "wang@example.test" }]),
     list: vi.fn(() => []),
     detail: vi.fn(() => null),
     assign: vi.fn(() => ({ id: "inquiry-1", assigneeId: "staff-2" }) as never),
@@ -75,6 +76,22 @@ describe("admin inquiry routes", () => {
     });
     expect(response.status).toBe(200);
     expect(inquiryRepository.assign).toHaveBeenCalledWith("inquiry-1", "staff-2", "staff-1");
+  });
+
+  it("provides enabled employee choices without requiring staff management", async () => {
+    const inquiryRepository = repository();
+    const app = createApp({
+      inquiryRepository,
+      getSession: session,
+      getPermissions: () => ["inquiry.read", "inquiry.assign"],
+    });
+
+    const response = await app.request("/api/admin/inquiries/assignees");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: [{ id: "staff-2", name: "王运营", email: "wang@example.test" }],
+    });
   });
 
   it("exports CSV only with inquiry.export", async () => {

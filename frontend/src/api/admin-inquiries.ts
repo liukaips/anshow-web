@@ -3,6 +3,7 @@ import type { paths } from "@/generated/api";
 import { getEnvelope } from "./http";
 
 type ListOperation = paths["/api/admin/inquiries"]["get"];
+type AssigneesOperation = paths["/api/admin/inquiries/assignees"]["get"];
 type DetailOperation = paths["/api/admin/inquiries/{id}"]["get"];
 type AssignOperation = paths["/api/admin/inquiries/{id}/assign"]["post"];
 type PriorityOperation = paths["/api/admin/inquiries/{id}/priority"]["post"];
@@ -17,6 +18,9 @@ export type AdminInquiryDetail = NonNullable<
 >;
 export type AdminInquiryStatus = AdminInquiry["status"];
 export type AdminInquiryPriority = AdminInquiry["priority"];
+export type AdminInquiryAssignee = NonNullable<
+  AssigneesOperation["responses"][200]["content"]["application/json"]["data"]
+>[number];
 
 const segment = (value: string) => encodeURIComponent(value);
 const command = <T>(path: string, body?: unknown) =>

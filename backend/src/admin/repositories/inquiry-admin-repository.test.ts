@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../../db/test-db.js";
+import { user } from "../../db/schema/auth.js";
 import { auditLogs } from "../../db/schema/settings.js";
 import { notificationDeliveries } from "../../db/schema/inquiries.js";
 import { createInquiryRepository } from "../../inquiries/repository.js";
@@ -21,6 +22,23 @@ const inquiryInput = {
 };
 
 describe("inquiry admin repository", () => {
+  it("lists enabled employees as human-readable assignee choices", () => {
+    const context = createTestDatabase();
+    try {
+      const now = new Date("2026-07-16T08:00:00.000Z");
+      context.db.insert(user).values([
+        { id: "staff-1", name: "王运营", email: "wang@example.test", emailVerified: true, createdAt: now, updatedAt: now },
+        { id: "staff-2", name: "停用员工", email: "disabled@example.test", emailVerified: false, createdAt: now, updatedAt: now },
+      ]).run();
+
+      expect(createInquiryAdminRepository(context.db).listAssignees()).toEqual([
+        { id: "staff-1", name: "王运营", email: "wang@example.test" },
+      ]);
+    } finally {
+      context.close();
+    }
+  });
+
   it("keeps assignment, priority, state, notes, and audit history consistent", () => {
     const context = createTestDatabase();
     try {

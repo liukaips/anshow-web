@@ -356,6 +356,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/inquiries/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminInquiryAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/inquiries/export": {
         parameters: {
             query?: never;
@@ -2867,6 +2883,67 @@ export interface operations {
                             createdAt: number;
                             updatedAt: number;
                             closedAt: number | null;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    listAdminInquiryAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 可分配的启用员工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            /** Format: email */
+                            email: string;
                         }[];
                         error: unknown;
                         requestId: string;

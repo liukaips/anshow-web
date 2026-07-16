@@ -169,6 +169,7 @@ const defaultDependencies: AppDependencies = {
     workflow: () => undefined,
   },
   inquiryRepository: {
+    listAssignees: () => [],
     list: () => [],
     detail: () => null,
     assign: () => { throw new Error("Inquiry repository is not configured"); },

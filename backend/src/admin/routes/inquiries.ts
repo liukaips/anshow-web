@@ -100,6 +100,25 @@ const listRoute = createRoute({
     ...commonErrors,
   },
 });
+const assigneesRoute = createRoute({
+  method: "get",
+  path: "/api/admin/inquiries/assignees",
+  operationId: "listAdminInquiryAssignees",
+  tags: ["Administration"],
+  responses: {
+    200: {
+      description: "可分配的启用员工",
+      content: {
+        "application/json": {
+          schema: envelope(
+            z.array(z.object({ id: z.string(), name: z.string(), email: z.string().email() })),
+          ),
+        },
+      },
+    },
+    ...commonErrors,
+  },
+});
 const detailRoute = createRoute({
   method: "get",
   path: "/api/admin/inquiries/{id}",
@@ -211,6 +230,7 @@ export function registerInquiryRoutes(
 ): void {
   app.use("/api/admin/inquiries", requirePermission("inquiry.read", dependencies));
   app.use("/api/admin/inquiries/export", requirePermission("inquiry.export", dependencies));
+  app.use("/api/admin/inquiries/assignees", requirePermission("inquiry.assign", dependencies));
   app.use("/api/admin/inquiries/:id", requirePermission("inquiry.read", dependencies));
   app.use("/api/admin/inquiries/:id/assign", requirePermission("inquiry.assign", dependencies));
   app.use("/api/admin/inquiries/:id/priority", requirePermission("inquiry.status", dependencies));
@@ -220,6 +240,9 @@ export function registerInquiryRoutes(
 
   app.openapi(listRoute, (context) =>
     context.json({ data: dependencies.inquiryRepository.list(context.req.valid("query")), error: null, requestId: context.get("requestId") }, 200),
+  );
+  app.openapi(assigneesRoute, (context) =>
+    context.json({ data: dependencies.inquiryRepository.listAssignees(), error: null, requestId: context.get("requestId") }, 200),
   );
   app.openapi(exportRoute, (context) => {
     const csv = dependencies.inquiryRepository.exportCsv(context.req.valid("query"), actorId(context));

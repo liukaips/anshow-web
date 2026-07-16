@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 
 import { getFrontendServerEnv } from "@/env";
 
-import type { AdminInquiry, AdminInquiryDetail } from "./admin-inquiries";
+import type { AdminInquiry, AdminInquiryAssignee, AdminInquiryDetail } from "./admin-inquiries";
 
 async function readAdmin<T>(path: string): Promise<T> {
   const requestHeaders = await headers();
@@ -26,4 +26,8 @@ export async function listAdminInquiries(): Promise<readonly AdminInquiry[]> {
 
 export async function getAdminInquiryServer(id: string): Promise<AdminInquiryDetail> {
   return readAdmin<AdminInquiryDetail>(`/api/admin/inquiries/${encodeURIComponent(id)}`);
+}
+
+export async function listAdminInquiryAssignees(): Promise<readonly AdminInquiryAssignee[]> {
+  return readAdmin<AdminInquiryAssignee[]>("/api/admin/inquiries/assignees");
 }
