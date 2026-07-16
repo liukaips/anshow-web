@@ -21,6 +21,7 @@ const locales: readonly AdminContentLocale[] = ["zh", "en", "ru"];
 const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "Asia/Shanghai",
 });
 
 export function translationProgress(item: AdminContentItem): string {
@@ -43,8 +44,9 @@ function publicationStatus(item: AdminContentItem): AdminDisplayStatus {
   if (item.archivedAt) return "archived";
   const translations = Object.values(item.translations);
   if (
-    translations.length > 0 &&
-    translations.every((translation) => translation.status === "published")
+    locales.every(
+      (locale) => item.translations[locale]?.status === "published",
+    )
   ) {
     return "published";
   }
