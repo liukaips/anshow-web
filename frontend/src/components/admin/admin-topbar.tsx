@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { authClient } from "../../auth/client";
 import { requestAdminNavigation } from "./admin-navigation";
@@ -48,10 +48,9 @@ function breadcrumbsFor(pathname: string): readonly Breadcrumb[] {
 
   const segments = pathname.split("/").filter(Boolean).slice(1);
   const breadcrumbs: Breadcrumb[] = [{ href: "/admin", label: "工作台" }];
-  segments.forEach((segment, index) => {
+  segments.forEach((segment) => {
     const knownLabel = routeLabels[segment];
-    const previousSegment = segments[index - 1];
-    const label = knownLabel ?? (previousSegment ? "编辑内容" : "详情");
+    const label = knownLabel ?? (segments[0] === "content" ? "编辑内容" : "详情");
     if (label !== breadcrumbs.at(-1)?.label) breadcrumbs.push({ label });
   });
   return breadcrumbs;
@@ -60,20 +59,54 @@ function breadcrumbsFor(pathname: string): readonly Breadcrumb[] {
 export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const helpTriggerRef = useRef<HTMLButtonElement>(null);
   const [error, setError] = useState("");
-  const [openPanel, setOpenPanel] = useState<"account" | "help" | null>(null);
+  const [panelState, setPanelState] = useState<{
+    name: "account" | "help";
+    pathname: string;
+  } | null>(null);
   const [pending, setPending] = useState(false);
   const helpPanelId = `admin-help-${useId()}`;
   const accountPanelId = `admin-account-${useId()}`;
   const breadcrumbs = breadcrumbsFor(pathname);
+  const openPanel = panelState?.pathname === pathname ? panelState.name : null;
 
   useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenPanel(null);
+    function closeOnDocumentInput(event: KeyboardEvent | PointerEvent) {
+      if (
+        event.type === "pointerdown" &&
+        actionsRef.current?.contains(event.target as Node)
+      ) {
+        return;
+      }
+      if (event.type === "keydown" && (event as KeyboardEvent).key !== "Escape") {
+        return;
+      }
+
+      const trigger =
+        openPanel === "account"
+          ? accountTriggerRef.current
+          : helpTriggerRef.current;
+      setPanelState(null);
+      if (event.type === "keydown") trigger?.focus();
     }
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, []);
+    document.addEventListener("keydown", closeOnDocumentInput);
+    document.addEventListener("pointerdown", closeOnDocumentInput);
+    return () => {
+      document.removeEventListener("keydown", closeOnDocumentInput);
+      document.removeEventListener("pointerdown", closeOnDocumentInput);
+    };
+  }, [openPanel]);
+
+  function togglePanel(name: "account" | "help") {
+    setPanelState((current) =>
+      current?.name === name && current.pathname === pathname
+        ? null
+        : { name, pathname },
+    );
+  }
 
   async function signOut() {
     if (
@@ -89,14 +122,16 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
     try {
       const result = await authClient.signOut();
       if (result.error) {
+        setPanelState(null);
         setError("退出失败，请重试。");
         return;
       }
 
-      setOpenPanel(null);
+      setPanelState(null);
       router.replace("/admin/login");
       router.refresh();
     } catch {
+      setPanelState(null);
       setError("退出失败，请重试。");
     } finally {
       setPending(false);
@@ -112,16 +147,19 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
             {breadcrumbs.map((breadcrumb, index) => {
               const current = index === breadcrumbs.length - 1;
               return (
-                <li className="flex min-w-0 items-center" key={`${breadcrumb.label}-${index}`}>
+                <li
+                  className={`${current ? "flex" : "hidden sm:flex"} min-w-0 items-center`}
+                  key={`${breadcrumb.label}-${index}`}
+                >
                   {index > 0 ? (
                     <ChevronRight
                       aria-hidden="true"
-                      className="mx-1 size-4 shrink-0 text-neutral-400"
+                      className="mx-1 hidden size-4 shrink-0 text-neutral-400 sm:block"
                     />
                   ) : null}
                   {breadcrumb.href && !current ? (
                     <Link
-                      className="hidden min-h-11 items-center whitespace-nowrap hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 sm:flex"
+                      className="flex min-h-11 items-center whitespace-nowrap hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
                       href={breadcrumb.href}
                     >
                       {breadcrumb.label}
@@ -141,15 +179,17 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
         </nav>
       </div>
 
-      <div className="relative flex shrink-0 items-center gap-1 sm:gap-2">
+      <div
+        className="relative flex shrink-0 items-center gap-1 sm:gap-2"
+        ref={actionsRef}
+      >
         <button
           aria-controls={helpPanelId}
           aria-expanded={openPanel === "help"}
           aria-label="帮助"
           className="flex min-h-11 items-center gap-2 rounded px-3 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
-          onClick={() =>
-            setOpenPanel((current) => (current === "help" ? null : "help"))
-          }
+          onClick={() => togglePanel("help")}
+          ref={helpTriggerRef}
           type="button"
         >
           <CircleHelp aria-hidden="true" className="size-5" />
@@ -161,11 +201,8 @@ export function AdminTopbar({ email, navigation }: AdminTopbarProps) {
           aria-expanded={openPanel === "account"}
           aria-label="账号菜单"
           className="flex min-h-11 max-w-[48vw] items-center gap-2 rounded px-2 text-sm text-neutral-700 transition-colors hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 sm:max-w-xs sm:px-3"
-          onClick={() =>
-            setOpenPanel((current) =>
-              current === "account" ? null : "account",
-            )
-          }
+          onClick={() => togglePanel("account")}
+          ref={accountTriggerRef}
           type="button"
         >
           <UserRound aria-hidden="true" className="size-5 shrink-0" />

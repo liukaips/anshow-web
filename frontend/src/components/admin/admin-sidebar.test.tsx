@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { refresh, replace, signOut } = vi.hoisted(() => ({
+const { pathname, refresh, replace, signOut } = vi.hoisted(() => ({
+  pathname: vi.fn(() => "/admin/content/pages"),
   refresh: vi.fn(),
   replace: vi.fn(),
   signOut: vi.fn(
@@ -13,7 +14,7 @@ const { refresh, replace, signOut } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/admin/content/pages",
+  usePathname: pathname,
   useRouter: () => ({ refresh, replace }),
 }));
 
@@ -31,6 +32,7 @@ afterEach(() => {
   cleanup();
   document.body.style.overflow = "";
   vi.clearAllMocks();
+  pathname.mockReturnValue("/admin/content/pages");
 });
 
 describe("AdminSidebar", () => {
@@ -118,6 +120,55 @@ describe("AdminTopbar", () => {
     expect(screen.getByRole("button", { name: "账号菜单" })).toBeVisible();
   });
 
+  it("uses detail breadcrumbs outside content editing", () => {
+    pathname.mockReturnValue("/admin/inquiries/inquiry-1");
+    render(<AdminTopbar email="editor@anshow.example" />);
+
+    const breadcrumb = screen.getByRole("navigation", { name: "当前位置" });
+    expect(breadcrumb).toHaveTextContent("询盘");
+    expect(breadcrumb).toHaveTextContent("详情");
+    expect(breadcrumb).not.toHaveTextContent("编辑内容");
+  });
+
+  it("returns focus to the menu trigger when Escape closes a panel", () => {
+    render(<AdminTopbar email="editor@anshow.example" />);
+    const account = screen.getByRole("button", { name: "账号菜单" });
+    fireEvent.click(account);
+    screen.getByRole("button", { name: "退出登录" }).focus();
+    expect(account).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(account).toHaveAttribute("aria-expanded", "false");
+    expect(account).toHaveFocus();
+  });
+
+  it("closes open panels on route changes and outside pointer input", () => {
+    const view = render(<AdminTopbar email="editor@anshow.example" />);
+    const help = screen.getByRole("button", { name: "帮助" });
+    fireEvent.click(help);
+    expect(help).toHaveAttribute("aria-expanded", "true");
+
+    pathname.mockReturnValue("/admin/media");
+    view.rerender(<AdminTopbar email="editor@anshow.example" />);
+    expect(help).toHaveAttribute("aria-expanded", "false");
+
+    const account = screen.getByRole("button", { name: "账号菜单" });
+    fireEvent.click(account);
+    fireEvent.pointerDown(document.body);
+    expect(account).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps only the current breadcrumb visible on mobile", () => {
+    render(<AdminTopbar email="editor@anshow.example" />);
+    const breadcrumb = screen.getByRole("navigation", { name: "当前位置" });
+    const items = breadcrumb.querySelectorAll("li");
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveClass("hidden");
+    expect(items[1]).toHaveClass("hidden");
+    expect(items[2]).not.toHaveClass("hidden");
+    expect(items[2]?.querySelector("svg")).toHaveClass("hidden");
+  });
+
   it("does not sign out when admin navigation is cancelled", async () => {
     const cancelNavigation = (event: Event) => event.preventDefault();
     window.addEventListener(ADMIN_NAVIGATION_REQUEST, cancelNavigation);
@@ -129,7 +180,7 @@ describe("AdminTopbar", () => {
     await waitFor(() => expect(signOut).not.toHaveBeenCalled());
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "账号菜单" })).toBeEnabled();
     window.removeEventListener(
       ADMIN_NAVIGATION_REQUEST,
       cancelNavigation,
@@ -161,9 +212,10 @@ describe("AdminTopbar", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "退出失败，请重试。",
     );
+    expect(screen.queryByLabelText("账号信息")).toBeNull();
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "账号菜单" })).toBeEnabled();
   });
 
   it("keeps the shell open and reports a rejected sign-out request", async () => {
@@ -176,8 +228,9 @@ describe("AdminTopbar", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "退出失败，请重试。",
     );
+    expect(screen.queryByLabelText("账号信息")).toBeNull();
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "退出登录" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "账号菜单" })).toBeEnabled();
   });
 });
