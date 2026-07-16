@@ -14,9 +14,12 @@ export default async function AdminLayout({
   if (!session) redirect("/admin/login");
 
   return (
-    <div lang="zh-CN" className="grid min-h-dvh grid-cols-1 bg-[var(--color-light-surface)] text-[var(--color-text)] md:grid-cols-[14rem_minmax(0,1fr)]">
+    <div
+      className="grid min-h-dvh grid-cols-1 bg-neutral-100 text-neutral-950 md:grid-cols-[232px_minmax(0,1fr)]"
+      lang="zh-CN"
+    >
       <AdminSidebar permissions={session.permissions} />
-      <div className="min-w-0">
+      <div className="min-w-0 overflow-x-clip">
         <AdminTopbar
           email={session.user.email}
           navigation={

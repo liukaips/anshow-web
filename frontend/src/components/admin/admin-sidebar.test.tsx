@@ -64,6 +64,12 @@ describe("AdminSidebar", () => {
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeVisible();
     }
+
+    for (const section of ["工作", "内容", "业务", "系统"]) {
+      expect(screen.getByText(section)).toBeVisible();
+    }
+    expect(screen.queryByText("Permission-aware workspace")).toBeNull();
+    expect(screen.getByText("当前账号权限已生效")).toBeVisible();
   });
 });
 
@@ -95,11 +101,29 @@ describe("AdminMobileNavigation", () => {
 });
 
 describe("AdminTopbar", () => {
+  function openAccountMenu() {
+    fireEvent.click(screen.getByRole("button", { name: "账号菜单" }));
+  }
+
+  it("shows Chinese breadcrumbs, help, and the account menu", () => {
+    render(<AdminTopbar email="editor@anshow.example" />);
+
+    const breadcrumb = screen.getByRole("navigation", { name: "当前位置" });
+    expect(breadcrumb).toHaveTextContent("内容");
+    expect(breadcrumb).toHaveTextContent("页面");
+    expect(screen.getByRole("button", { name: "帮助" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "账号菜单" })).toBeVisible();
+  });
+
   it("does not sign out when admin navigation is cancelled", async () => {
     const cancelNavigation = (event: Event) => event.preventDefault();
     window.addEventListener(ADMIN_NAVIGATION_REQUEST, cancelNavigation);
     render(<AdminTopbar email="editor@anshow.example" />);
 
+    openAccountMenu();
     fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     await waitFor(() => expect(signOut).not.toHaveBeenCalled());
@@ -116,6 +140,7 @@ describe("AdminTopbar", () => {
     render(<AdminTopbar email="editor@anshow.example" />);
 
     expect(screen.getByText("editor@anshow.example")).toBeVisible();
+    openAccountMenu();
     fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
@@ -130,10 +155,11 @@ describe("AdminTopbar", () => {
     });
     render(<AdminTopbar email="editor@anshow.example" />);
 
+    openAccountMenu();
     fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Session service unavailable",
+      "退出失败，请重试。",
     );
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
@@ -144,6 +170,7 @@ describe("AdminTopbar", () => {
     signOut.mockRejectedValueOnce(new Error("network unavailable"));
     render(<AdminTopbar email="editor@anshow.example" />);
 
+    openAccountMenu();
     fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
