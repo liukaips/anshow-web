@@ -73,6 +73,7 @@ export default defineConfig({
           cwd: "..",
           env: {
             ...localEnvironment,
+            NODE_ENV: "development",
             PORT: String(frontendPort),
             BACKEND_INTERNAL_URL: backendURL,
             SITE_URL: baseURL,
