@@ -17,6 +17,8 @@ import { registerStaffRoutes } from "./admin/routes/staff.js";
 import type { StaffRepository } from "./admin/repositories/staff-repository.js";
 import { registerAuditRoutes, type AuditRouteDependencies } from "./admin/routes/audit.js";
 import { registerTranslationRoutes, type TranslationRouteDependencies } from "./admin/routes/translation.js";
+import { registerPreviewRoutes, type PreviewRouteDependencies } from "./admin/routes/previews.js";
+import { registerPublicPreviewRoutes } from "./public/preview-routes.js";
 import {
   errorEnvelopeSchema,
   requestIdSchema,
@@ -130,6 +132,7 @@ export type AppDependencies = AdminSessionDependencies &
   ContentRouteDependencies & {
     auditRepository: AuditRouteDependencies["auditRepository"];
     translationService: TranslationRouteDependencies["translationService"];
+    previewService: PreviewRouteDependencies["previewService"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -145,6 +148,12 @@ const defaultDependencies: AppDependencies = {
   translationService: {
     generate: async () => { throw new Error("Translation service is not configured"); },
     listJobs: () => [],
+  },
+  previewService: {
+    createSnapshot: async () => { throw new Error("Preview service is not configured"); },
+    readSnapshot: () => null,
+    revoke: () => undefined,
+    list: () => [],
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -285,10 +294,12 @@ export function createApp(
   registerSettingsRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
   registerTranslationRoutes(app, resolvedDependencies);
+  registerPreviewRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
   registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
   registerAuditRoutes(app, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
+  registerPublicPreviewRoutes(app, resolvedDependencies.previewService);
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");

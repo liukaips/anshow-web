@@ -228,6 +228,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminPreviews"];
+        put?: never;
+        post: operations["createAdminPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews/tokens/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeAdminPreviewToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media": {
         parameters: {
             query?: never;
@@ -388,6 +420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/staff/{id}/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeStaffSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/audit": {
         parameters: {
             query?: never;
@@ -476,6 +524,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPublicContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/preview/{token}/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPublicPreview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -866,6 +930,66 @@ export interface components {
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
             requestId: string;
         };
+        CreateAdminPreviewResponse: {
+            data: {
+                snapshotId: string;
+                tokenId: string;
+                rawToken: string;
+                contentHash: string;
+                sourceVersions: {
+                    entityType: string;
+                    entityId: string;
+                    version: number;
+                }[];
+                /** Format: date-time */
+                createdAt: string | null;
+                /** Format: date-time */
+                expiresAt: string | null;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CreateAdminPreviewInput: {
+            /** @default 24 */
+            expiresInHours: number;
+        };
+        AdminPreviewsResponse: {
+            data: {
+                id: string;
+                contentHash: string;
+                sourceVersions: {
+                    entityType: string;
+                    entityId: string;
+                    version: number;
+                }[];
+                createdBy: string;
+                /** Format: date-time */
+                createdAt: string | null;
+                /** Format: date-time */
+                expiresAt: string | null;
+                /** Format: date-time */
+                publishedAt: string | null;
+                payload: {
+                    [key: string]: unknown;
+                };
+            }[];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        RevokeAdminPreviewResponse: {
+            data: {
+                /** @enum {boolean} */
+                revoked: true;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
         AdminMediaListResponse: {
             data: components["schemas"]["AdminMediaAsset"][];
             /** @enum {object|null} */
@@ -1095,6 +1219,26 @@ export interface components {
         PublicCollection: "services" | "trade-lanes" | "special-cargo" | "insights" | "case-studies" | "pages";
         PublicItemEnvelope: {
             data: components["schemas"]["PublicContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        PublicPreviewResponse: {
+            data: {
+                snapshotId: string;
+                home: components["schemas"]["PublicHome"];
+                collections: {
+                    services: components["schemas"]["PublicContentItem"][];
+                    "trade-lanes": components["schemas"]["PublicContentItem"][];
+                    "special-cargo": components["schemas"]["PublicContentItem"][];
+                    insights: components["schemas"]["PublicContentItem"][];
+                    "case-studies": components["schemas"]["PublicContentItem"][];
+                    pages: components["schemas"]["PublicContentItem"][];
+                };
+                /** Format: date-time */
+                expiresAt: string | null;
+            };
             /** @enum {object|null} */
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
@@ -2025,6 +2169,90 @@ export interface operations {
             };
         };
     };
+    listAdminPreviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview snapshot history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPreviewsResponse"];
+                };
+            };
+        };
+    };
+    createAdminPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description Immutable preview snapshot and one-time raw share token. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminPreviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Preview creation permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revokeAdminPreviewToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview token revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAdminPreviewResponse"];
+                };
+            };
+        };
+    };
     listAdminMedia: {
         parameters: {
             query?: never;
@@ -2428,7 +2656,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Staff */
+            /** @description 员工列表 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2439,16 +2667,20 @@ export interface operations {
                             id: string;
                             name: string;
                             email: string;
+                            enabled: boolean;
                             /** Format: date-time */
                             createdAt: string | null;
                             roles: string | null;
+                            roleIds: string[];
+                            roleNames: string[];
+                            isSuperAdmin: boolean;
                         }[];
                         error: unknown;
                         requestId: string;
                     };
                 };
             };
-            /** @description Unauthenticated */
+            /** @description 未登录 */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2464,7 +2696,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Forbidden */
+            /** @description 无员工管理权限 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2493,7 +2725,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Staff detail */
+            /** @description 员工详情 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2504,19 +2736,53 @@ export interface operations {
                             id: string;
                             name: string;
                             email: string;
+                            enabled: boolean;
                             /** Format: date-time */
                             createdAt: string | null;
                             roles: {
                                 id: string;
                                 name: string;
                             }[];
+                            isSuperAdmin: boolean;
                         };
                         error: unknown;
                         requestId: string;
                     };
                 };
             };
-            /** @description Not found */
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2543,7 +2809,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Roles */
+            /** @description 角色模板 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2556,6 +2822,38 @@ export interface operations {
                             permissions: string[];
                         }[];
                         error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
                         requestId: string;
                     };
                 };
@@ -2573,7 +2871,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Updated */
+            /** @description 员工状态已更新 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2589,7 +2887,55 @@ export interface operations {
                     };
                 };
             };
-            /** @description Conflict */
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工状态受保护 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2618,7 +2964,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Updated */
+            /** @description 员工状态已更新 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2634,7 +2980,55 @@ export interface operations {
                     };
                 };
             };
-            /** @description Conflict */
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工状态受保护 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2661,7 +3055,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": {
                     roleIds: string[];
@@ -2669,7 +3063,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated */
+            /** @description 员工角色已更新 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2685,7 +3079,148 @@ export interface operations {
                     };
                 };
             };
-            /** @description Conflict */
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 角色修改受保护 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    revokeStaffSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工会话已撤销 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 会话撤销受保护 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2896,6 +3431,38 @@ export interface operations {
                 };
             };
             /** @description No published item exists in the requested locale. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getPublicPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                locale: components["schemas"]["PublicLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One locale from an immutable preview snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPreviewResponse"];
+                };
+            };
+            /** @description Preview expired, revoked, or missing. */
             404: {
                 headers: {
                     [name: string]: unknown;

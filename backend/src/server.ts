@@ -21,6 +21,7 @@ await initializeRuntime(process.env, async (environment) => {
     { createTranslationProvider },
     { createTranslationService },
     { createAuditQueryRepository },
+    { createPreviewService },
   ] = await Promise.all([
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
@@ -39,6 +40,7 @@ await initializeRuntime(process.env, async (environment) => {
     import("./translation/translation-provider.js"),
     import("./translation/translation-service.js"),
     import("./admin/repositories/audit-query-repository.js"),
+    import("./preview/preview-service.js"),
   ]);
   const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
   const contentRepository = createContentRepository(db);
@@ -53,6 +55,10 @@ await initializeRuntime(process.env, async (environment) => {
         }),
       )
     : undefined;
+  const previewService = createPreviewService(
+    db,
+    createPublicRepository(createDrizzleContentStore(db, { includeDrafts: true })),
+  );
   const app = createApp({
     checkReadiness: createDatabaseReadinessCheck(db),
     getPermissions: (userId) => permissionsForUser(db, userId),
@@ -61,6 +67,7 @@ await initializeRuntime(process.env, async (environment) => {
     contentRepository,
     ...(translationService ? { translationService } : {}),
     auditRepository: createAuditQueryRepository(db),
+    previewService,
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),
