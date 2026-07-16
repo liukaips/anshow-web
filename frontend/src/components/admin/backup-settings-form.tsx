@@ -70,8 +70,12 @@ export function BackupSettingsForm({ settings }: { settings: AdminSettings }) {
         body: JSON.stringify({
           ...settings,
           backup: {
-            ...value,
-            encryptionConfigured: initial.encryptionConfigured,
+            enabled: value.enabled,
+            intervalHours: value.intervalHours,
+            retentionDays: value.retentionDays,
+            target: value.target,
+            cosBucket: value.cosBucket,
+            cosRegion: value.cosRegion,
           },
         }),
       });

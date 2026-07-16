@@ -725,7 +725,6 @@ export interface components {
                 target: "local" | "cos";
                 cosBucket: string;
                 cosRegion: string;
-                encryptionConfigured: boolean;
             };
         };
         AdminContactChannelsResponse: {

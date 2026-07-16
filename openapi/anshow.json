@@ -770,9 +770,6 @@
               "cosRegion": {
                 "type": "string",
                 "maxLength": 100
-              },
-              "encryptionConfigured": {
-                "type": "boolean"
               }
             },
             "required": [
@@ -781,8 +778,7 @@
               "retentionDays",
               "target",
               "cosBucket",
-              "cosRegion",
-              "encryptionConfigured"
+              "cosRegion"
             ],
             "additionalProperties": false
           }

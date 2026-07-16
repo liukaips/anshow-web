@@ -26,8 +26,16 @@ const localeSchema = z.enum(["en", "zh", "ru"]);
 const emptyOrEmailSchema = z.union([z.literal(""), z.email()]);
 const shortTextSchema = z.string().trim().max(300);
 
-export const siteSettingsSchema = z
-  .object({
+const backupSettingsInputSchema = z.object({
+  enabled: z.boolean(),
+  intervalHours: z.number().int().min(1).max(168),
+  retentionDays: z.number().int().min(1).max(3650),
+  target: z.enum(["local", "cos"]),
+  cosBucket: z.string().trim().max(200),
+  cosRegion: z.string().trim().max(100),
+}).strict();
+
+const siteSettingsShape = {
     companyIdentity: z
       .object({
         displayName: shortTextSchema,
@@ -74,15 +82,17 @@ export const siteSettingsSchema = z
         insightsEnabled: z.boolean(),
       })
       .strict(),
-    backup: z.object({
-      enabled: z.boolean(), intervalHours: z.number().int().min(1).max(168),
-      retentionDays: z.number().int().min(1).max(3650), target: z.enum(["local", "cos"]),
-      cosBucket: z.string().trim().max(200), cosRegion: z.string().trim().max(100), encryptionConfigured: z.boolean(),
-    }).strict().optional(),
-  })
-  .strict();
+    backup: backupSettingsInputSchema.optional(),
+} as const;
+
+export const saveSiteSettingsInputSchema = z.object(siteSettingsShape).strict();
+export const siteSettingsSchema = z.object({
+  ...siteSettingsShape,
+  backup: backupSettingsInputSchema.extend({ encryptionConfigured: z.boolean() }).strict().optional(),
+}).strict();
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
+export type SaveSiteSettingsInput = z.infer<typeof saveSiteSettingsInputSchema>;
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   companyIdentity: {
@@ -115,11 +125,11 @@ const SITE_SETTING_KEYS = [
   "mediaMode",
   "featureFlags",
   "backup",
-] as const satisfies readonly (keyof SiteSettings)[];
+] as const satisfies readonly (keyof SaveSiteSettingsInput)[];
 
 export interface SettingsRepository {
   getSettings(): Promise<SiteSettings>;
-  saveSettings(settings: SiteSettings, actorId: string): Promise<SiteSettings>;
+  saveSettings(settings: SaveSiteSettingsInput, actorId: string): Promise<SiteSettings>;
   listContactChannels(): Promise<ContactChannel[]>;
   saveContactChannels(
     channels: readonly ContactChannel[],
@@ -129,6 +139,7 @@ export interface SettingsRepository {
 
 type SettingsRepositoryOptions = {
   createId?: () => string;
+  encryptionConfigured?: boolean;
   now?: () => Date;
 };
 
@@ -145,25 +156,31 @@ export function createSettingsRepository(
   options: SettingsRepositoryOptions = {},
 ): SettingsRepository {
   const now = options.now ?? (() => new Date());
+  const encryptionConfigured = options.encryptionConfigured ?? false;
 
   return {
     async getSettings() {
-      const storedValues: Partial<Record<keyof SiteSettings, unknown>> = {};
+      const storedValues: Partial<Record<keyof SaveSiteSettingsInput, unknown>> = {};
 
       for (const row of database.select().from(siteSettings).all()) {
-        if (SITE_SETTING_KEYS.includes(row.key as keyof SiteSettings)) {
-          storedValues[row.key as keyof SiteSettings] = JSON.parse(row.value);
+        if (SITE_SETTING_KEYS.includes(row.key as keyof SaveSiteSettingsInput)) {
+          storedValues[row.key as keyof SaveSiteSettingsInput] = JSON.parse(row.value);
         }
       }
-
-      return siteSettingsSchema.parse({
+      const stored = saveSiteSettingsInputSchema.parse({
         ...DEFAULT_SITE_SETTINGS,
         ...storedValues,
+      });
+      return siteSettingsSchema.parse({
+        ...stored,
+        backup: stored.backup
+          ? { ...stored.backup, encryptionConfigured }
+          : undefined,
       });
     },
 
     async saveSettings(settings, actorId) {
-      const validatedSettings = siteSettingsSchema.parse(settings);
+      const validatedSettings = saveSiteSettingsInputSchema.parse(settings);
       const updatedAt = now();
 
       return database.transaction((transaction) => {
@@ -187,7 +204,12 @@ export function createSettingsRepository(
           detail: { keys: SITE_SETTING_KEYS },
         });
 
-        return validatedSettings;
+        return siteSettingsSchema.parse({
+          ...validatedSettings,
+          backup: validatedSettings.backup
+            ? { ...validatedSettings.backup, encryptionConfigured }
+            : undefined,
+        });
       });
     },
 

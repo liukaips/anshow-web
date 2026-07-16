@@ -71,7 +71,9 @@ await initializeRuntime(process.env, async (environment) => {
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),
-    settingsRepository: createSettingsRepository(db),
+    settingsRepository: createSettingsRepository(db, {
+      encryptionConfigured: Boolean(environment.BACKUP_ENCRYPTION_KEY),
+    }),
     mediaService: createMediaService({
       repository: createMediaRepository(db),
       storage:

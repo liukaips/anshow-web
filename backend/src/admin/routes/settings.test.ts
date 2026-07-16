@@ -70,7 +70,12 @@ function createFakeRepository(): SettingsRepository & {
 } {
   return {
     getSettings: vi.fn(async () => SETTINGS),
-    saveSettings: vi.fn(async (settings) => settings),
+    saveSettings: vi.fn(async (settings) => ({
+      ...settings,
+      backup: settings.backup
+        ? { ...settings.backup, encryptionConfigured: false }
+        : undefined,
+    })),
     listContactChannels: vi.fn(async () => CHANNELS),
     saveContactChannels: vi.fn(async (channels) => [...channels]),
   };

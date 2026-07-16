@@ -186,7 +186,12 @@ const defaultDependencies: AppDependencies = {
   },
   settingsRepository: {
     getSettings: async () => structuredClone(DEFAULT_SITE_SETTINGS),
-    saveSettings: async (settings) => settings,
+    saveSettings: async (settings) => ({
+      ...settings,
+      backup: settings.backup
+        ? { ...settings.backup, encryptionConfigured: false }
+        : undefined,
+    }),
     listContactChannels: async () => [],
     saveContactChannels: async (channels) => [...channels],
   },
