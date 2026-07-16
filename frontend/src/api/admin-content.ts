@@ -6,9 +6,8 @@ type ListOperation = paths["/api/admin/content/{collection}"]["get"];
 type CreateOperation = paths["/api/admin/content/{collection}"]["post"];
 type DetailOperation = paths["/api/admin/content/{collection}/{id}"]["get"];
 type DraftOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}"]["put"];
-type PublishOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/publish"]["post"];
-type ScheduleOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/schedule"]["post"];
 type VerificationOperation = paths["/api/admin/content/{collection}/{id}/verification"]["put"];
+type GenerateOperation = paths["/api/admin/content/{collection}/{id}/translations/generate"]["post"];
 
 export type AdminContentCollection =
   ListOperation["parameters"]["path"]["collection"];
@@ -24,14 +23,15 @@ export type CreateAdminContentInput =
   CreateOperation["requestBody"]["content"]["application/json"];
 export type AdminContentTranslationInput =
   DraftOperation["requestBody"]["content"]["application/json"];
-export type PublishAdminContentInput =
-  PublishOperation["requestBody"]["content"]["application/json"];
-export type ScheduleAdminContentInput =
-  ScheduleOperation["requestBody"]["content"]["application/json"];
 export type AdminContentVerificationInput =
   VerificationOperation["requestBody"]["content"]["application/json"];
 export type ProofContentCollection =
   VerificationOperation["parameters"]["path"]["collection"];
+export type GenerateAdminTranslationsInput =
+  GenerateOperation["requestBody"]["content"]["application/json"];
+export type GenerateAdminTranslationsResult = NonNullable<
+  GenerateOperation["responses"][200]["content"]["application/json"]["data"]
+>;
 
 export const ADMIN_CONTENT_COLLECTIONS = [
   "pages",
@@ -74,6 +74,17 @@ export function createAdminContent(
   );
 }
 
+export function generateAdminContentTranslations(
+  collection: AdminContentCollection,
+  id: string,
+  input: GenerateAdminTranslationsInput,
+): Promise<GenerateAdminTranslationsResult> {
+  return getEnvelope<GenerateAdminTranslationsResult>(
+    `/api/admin/content/${segment(collection)}/${segment(id)}/translations/generate`,
+    commandInit("POST", input),
+  );
+}
+
 export function saveAdminContentDraft(
   collection: AdminContentCollection,
   id: string,
@@ -83,30 +94,6 @@ export function saveAdminContentDraft(
   return getEnvelope<AdminContentItem>(
     `/api/admin/content/${segment(collection)}/${segment(id)}/translations/${segment(locale)}`,
     commandInit("PUT", input),
-  );
-}
-
-export function publishAdminContentTranslation(
-  collection: AdminContentCollection,
-  id: string,
-  locale: AdminContentLocale,
-  input: PublishAdminContentInput,
-): Promise<AdminContentItem> {
-  return getEnvelope<AdminContentItem>(
-    `/api/admin/content/${segment(collection)}/${segment(id)}/translations/${segment(locale)}/publish`,
-    commandInit("POST", input),
-  );
-}
-
-export function scheduleAdminContentTranslation(
-  collection: AdminContentCollection,
-  id: string,
-  locale: AdminContentLocale,
-  input: ScheduleAdminContentInput,
-): Promise<AdminContentItem> {
-  return getEnvelope<AdminContentItem>(
-    `/api/admin/content/${segment(collection)}/${segment(id)}/translations/${segment(locale)}/schedule`,
-    commandInit("POST", input),
   );
 }
 

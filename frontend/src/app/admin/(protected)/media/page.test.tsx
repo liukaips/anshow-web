@@ -21,7 +21,7 @@ describe("AdminMediaPage", () => {
     render(await AdminMediaPage());
 
     expect(
-      screen.getByText(/管理优化后的图片版本/),
+      screen.getByText(/上传网站图片、维护三语言图片说明/),
     ).toHaveClass("text-base");
   });
 });

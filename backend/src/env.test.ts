@@ -20,6 +20,22 @@ describe("parseEnv", () => {
     });
   });
 
+  it("treats blank optional Compose variables as not configured", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      BACKUP_ENCRYPTION_KEY: "",
+      COS_BUCKET: "",
+      SMTP_HOST: "",
+      TRANSLATION_API_URL: "",
+      TRANSLATION_API_KEY: "",
+      TRANSLATION_MODEL: "",
+    })).toEqual({
+      ...validEnvironment,
+      MEDIA_DRIVER: "local",
+      PORT: 4000,
+    });
+  });
+
   it("accepts an explicit COS media driver and port", () => {
     expect(
       parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos", PORT: "8080", COS_BUCKET: "b", COS_REGION: "r", COS_PUBLIC_BASE_URL: "https://cdn.example.com", COS_SECRET_ID: "id", COS_SECRET_KEY: "key" }),
@@ -28,6 +44,35 @@ describe("parseEnv", () => {
 
   it("requires COS credentials when COS media is selected", () => {
     expect(() => parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos" })).toThrow(/COS_BUCKET/);
+  });
+
+  it("accepts a complete translation provider configuration", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      TRANSLATION_API_URL: "https://api.example.test/v1/chat/completions",
+      TRANSLATION_API_KEY: "translation-secret",
+      TRANSLATION_MODEL: "translation-model",
+    })).toMatchObject({ TRANSLATION_MODEL: "translation-model" });
+  });
+
+  it("requires translation provider values together", () => {
+    expect(() => parseEnv({ ...validEnvironment, TRANSLATION_API_KEY: "secret" })).toThrow(/TRANSLATION_API_URL/);
+  });
+
+  it("accepts complete SMTP notification configuration", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PORT: "587",
+      SMTP_USER: "mailer",
+      SMTP_PASSWORD: "secret",
+      SMTP_FROM: "notifications@example.com",
+      SALES_EMAIL: "sales@example.com",
+    })).toMatchObject({ SMTP_PORT: 587, SALES_EMAIL: "sales@example.com" });
+  });
+
+  it("requires SMTP notification values together", () => {
+    expect(() => parseEnv({ ...validEnvironment, SMTP_HOST: "smtp.example.com" })).toThrow(/SMTP_USER/);
   });
 
   it("requires HTTPS for the production site URL", () => {

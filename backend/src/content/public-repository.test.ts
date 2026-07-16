@@ -206,6 +206,20 @@ describe("public content repository", () => {
     }
   });
 
+  it("can include complete drafts for an authenticated preview snapshot", async () => {
+    const testDatabase = createTestDatabase();
+    try {
+      insertService(testDatabase.db, {
+        id: "draft-service",
+        translations: [{ locale: "zh", slug: "draft-preview", title: "草稿预览", status: "draft" }],
+      });
+      const preview = createPublicRepository(createDrizzleContentStore(testDatabase.db, { now: () => NOW, includeDrafts: true }));
+      await expect(preview.listCollection("services", "zh")).resolves.toMatchObject([{ id: "draft-service", title: "草稿预览" }]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
   it("builds alternates only from published translations for the same owner", async () => {
     const testDatabase = createTestDatabase();
 

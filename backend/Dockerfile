@@ -15,6 +15,7 @@ COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
 RUN pnpm install --frozen-lockfile --filter @anshow/backend...
 COPY backend backend
+COPY content/assets/manifest.json content/assets/manifest.json
 RUN pnpm --filter @anshow/backend build
 RUN pnpm --filter @anshow/backend deploy --legacy --prod /prod/backend
 

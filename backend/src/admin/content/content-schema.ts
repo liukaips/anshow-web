@@ -80,15 +80,7 @@ export const publishableTranslationSchema = translationInputSchema.extend({
 
 export const createContentInputSchema = z
   .object({
-    code: z
-      .string()
-      .trim()
-      .min(1)
-      .max(200)
-      .regex(/^[a-z0-9-]+$/),
-    sortOrder: z.number().int().optional(),
-    verified: z.boolean().optional(),
-    verificationSource: z.string().trim().max(2_000).nullable().optional(),
+    titleZh: z.string().trim().min(1).max(200),
   })
   .strict();
 

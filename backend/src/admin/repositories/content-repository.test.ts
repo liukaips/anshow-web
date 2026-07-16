@@ -59,13 +59,27 @@ describe("administration content repository", () => {
     try {
       const created = await context.repository.create(
         "services",
-        { code: "freight-service", sortOrder: 3 },
+        { titleZh: "冷链运输服务" },
         "staff-1",
       );
       expect(created).toMatchObject({
         id: FIRST_CONTENT_ID,
-        code: "freight-service",
-        translations: {},
+        code: expect.stringMatching(/^content-[a-f0-9]{8}$/),
+        workflow: {
+          state: "draft",
+          ownerId: "staff-1",
+          version: 1,
+        },
+        translations: {
+          en: { locale: "en", status: "draft", title: "" },
+          ru: { locale: "ru", status: "draft", title: "" },
+          zh: {
+            locale: "zh",
+            status: "draft",
+            title: "冷链运输服务",
+            slug: expect.stringMatching(/^content-[a-f0-9]{8}$/),
+          },
+        },
       });
 
       const saved = await context.repository.saveDraft(
@@ -82,6 +96,7 @@ describe("administration content repository", () => {
         seoTitle: "",
         altText: "",
       });
+      expect(saved.workflow).toMatchObject({ state: "draft", version: 2 });
       await expect(
         context.repository.list("services"),
       ).resolves.toEqual([saved]);
@@ -115,7 +130,7 @@ describe("administration content repository", () => {
       await expect(
         context.repository.create(
           "services",
-          { code: "Upper Case" },
+          { titleZh: "   " },
           "staff-1",
         ),
       ).rejects.toMatchObject({ name: "ZodError" });
@@ -125,18 +140,53 @@ describe("administration content repository", () => {
     }
   });
 
-  it("lists every base and translation using two select queries", async () => {
+  it("generates unique internal codes and Chinese slugs when titles collide", async () => {
     const context = createRepository();
 
     try {
       const first = await context.repository.create(
         "services",
-        { code: "list-first" },
+        { titleZh: "Air Freight" },
         "staff-1",
       );
       const second = await context.repository.create(
         "services",
-        { code: "list-second" },
+        { titleZh: "Air Freight" },
+        "staff-1",
+      );
+
+      expect(first).toMatchObject({
+        code: "air-freight",
+        translations: { zh: { slug: "air-freight" } },
+      });
+      expect(second).toMatchObject({
+        code: "air-freight-2",
+        translations: { zh: { slug: "air-freight-2" } },
+      });
+      expect(
+        context.db
+          .select()
+          .from(auditLogs)
+          .all()
+          .map((entry) => JSON.parse(entry.detail)),
+      ).toEqual([{ code: "air-freight" }, { code: "air-freight-2" }]);
+    } finally {
+      context.close();
+    }
+  });
+
+  it("lists every base, translation, and workflow using three select queries", async () => {
+    const context = createRepository();
+
+    try {
+      const first = await context.repository.create(
+        "services",
+        { titleZh: "List First" },
+        "staff-1",
+      );
+      const second = await context.repository.create(
+        "services",
+        { titleZh: "List Second" },
         "staff-1",
       );
       await context.repository.saveDraft(
@@ -158,7 +208,7 @@ describe("administration content repository", () => {
       const listed = await context.repository.list("services");
 
       expect(listed).toHaveLength(2);
-      expect(select).toHaveBeenCalledTimes(2);
+      expect(select).toHaveBeenCalledTimes(3);
     } finally {
       context.close();
     }
@@ -170,7 +220,7 @@ describe("administration content repository", () => {
     try {
       const item = await context.repository.create(
         "articles",
-        { code: "language-states" },
+        { titleZh: "Language States" },
         "staff-1",
       );
       for (const locale of ["en", "zh"] as const) {
@@ -226,7 +276,7 @@ describe("administration content repository", () => {
     try {
       const item = await context.repository.create(
         "pages",
-        { code: "scheduled-page" },
+        { titleZh: "Scheduled Page" },
         "staff-1",
       );
       await expect(
@@ -270,7 +320,7 @@ describe("administration content repository", () => {
       try {
         const item = await context.repository.create(
           collection,
-          { code: `unverified-${collection}` },
+          { titleZh: `Unverified ${collection}` },
           "staff-1",
         );
         await context.repository.saveDraft(
@@ -309,7 +359,7 @@ describe("administration content repository", () => {
       try {
         const item = await context.repository.create(
           collection,
-          { code: `verified-${collection}` },
+          { titleZh: `Verified ${collection}` },
           "staff-1",
         );
         const verified = await withVerification(
@@ -355,12 +405,14 @@ describe("administration content repository", () => {
     try {
       const item = await context.repository.create(
         "partners",
-        {
-          code: "unverify-partner",
-          verified: true,
-          verificationSource: "Official registry record",
-        },
+        { titleZh: "Unverify Partner" },
         "staff-1",
+      );
+      await withVerification(context.repository).updateVerification(
+        "partners",
+        item.id,
+        { verified: true, verificationSource: "Official registry record" },
+        "staff-editor",
       );
       const unverified = await withVerification(
         context.repository,
@@ -395,7 +447,7 @@ describe("administration content repository", () => {
     try {
       const item = await context.repository.create(
         "certificates",
-        { code: "verification-rollback" },
+        { titleZh: "Verification Rollback" },
         "staff-1",
       );
       context.db.run(sql.raw(`
@@ -432,12 +484,12 @@ describe("administration content repository", () => {
     try {
       const first = await context.repository.create(
         "services",
-        { code: "first" },
+        { titleZh: "First" },
         "staff-1",
       );
       const second = await context.repository.create(
         "services",
-        { code: "second" },
+        { titleZh: "Second" },
         "staff-1",
       );
       await context.repository.saveDraft(
@@ -479,7 +531,7 @@ describe("administration content repository", () => {
       await expect(
         context.repository.create(
           "services",
-          { code: "race-code" },
+          { titleZh: "Race Code" },
           "staff-1",
         ),
       ).rejects.toMatchObject({ code: "CONTENT_CONFLICT" });
@@ -496,12 +548,12 @@ describe("administration content repository", () => {
       try {
         const first = await context.repository.create(
           "services",
-          { code: `race-first-${command}` },
+          { titleZh: `Race First ${command}` },
           "staff-1",
         );
         const second = await context.repository.create(
           "services",
-          { code: `race-second-${command}` },
+          { titleZh: `Race Second ${command}` },
           "staff-1",
         );
         context.db.run(sql.raw(`
@@ -509,13 +561,9 @@ describe("administration content repository", () => {
           BEFORE INSERT ON service_translations
           WHEN NEW.slug = 'race-slug' AND NEW.service_id <> '${first.id}'
           BEGIN
-            INSERT INTO service_translations (
-              service_id, locale, status, slug, title, summary, body,
-              seo_title, seo_description, alt_text, updated_at
-            ) VALUES (
-              '${first.id}', NEW.locale, 'draft', NEW.slug, 'Race', 'Race',
-              'Race', 'Race', 'Race', 'Race', 0
-            );
+            UPDATE service_translations
+            SET slug = NEW.slug
+            WHERE service_id = '${first.id}' AND locale = NEW.locale;
           END
         `));
         const translation = { ...completeTranslation, slug: "race-slug" };
@@ -562,12 +610,12 @@ describe("administration content repository", () => {
     try {
       const first = await context.repository.create(
         "services",
-        { code: "blank-first" },
+        { titleZh: "Blank First" },
         "staff-1",
       );
       const second = await context.repository.create(
         "services",
-        { code: "blank-second" },
+        { titleZh: "Blank Second" },
         "staff-1",
       );
       const incomplete = {
@@ -606,7 +654,7 @@ describe("administration content repository", () => {
     try {
       const item = await context.repository.create(
         "hero-slides",
-        { code: "archivable" },
+        { titleZh: "Archivable" },
         "staff-1",
       );
       const archived = await context.repository.archive(
@@ -640,7 +688,7 @@ describe("administration content repository", () => {
     try {
       const item = await repository.create(
         "hero-slides",
-        { code: "archive-once" },
+        { titleZh: "Archive Once" },
         "staff-1",
       );
       const first = await repository.archive(
@@ -677,7 +725,7 @@ describe("administration content repository", () => {
       });
       const item = await repository.create(
         "services",
-        { code: "uuid-created" },
+        { titleZh: "UUID Created" },
         "staff-1",
       );
 
@@ -697,7 +745,7 @@ describe("administration content repository", () => {
       try {
         const item = await context.repository.create(
           "services",
-          { code: `rollback-${command}` },
+          { titleZh: `Rollback ${command}` },
           "staff-1",
         );
         context.db.run(sql.raw(`

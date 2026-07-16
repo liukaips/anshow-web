@@ -2,6 +2,7 @@
 
 import {
   BookOpenText,
+  ClipboardCheck,
   Boxes,
   FileText,
   Gauge,
@@ -11,6 +12,7 @@ import {
   MessagesSquare,
   Newspaper,
   Route,
+  ScanEye,
   Settings,
   ShieldCheck,
   ShipWheel,
@@ -129,6 +131,20 @@ const navigationItems: readonly NavigationItem[] = [
     section: "Operations",
   },
   {
+    href: "/admin/reviews",
+    icon: ClipboardCheck,
+    label: "审核中心",
+    permission: "content.review",
+    section: "Content",
+  },
+  {
+    href: "/admin/publish",
+    icon: ScanEye,
+    label: "预览与发布",
+    permission: "preview.create",
+    section: "Content",
+  },
+  {
     href: "/admin/inquiries",
     icon: MessagesSquare,
     label: "询盘",
@@ -159,7 +175,12 @@ const navigationItems: readonly NavigationItem[] = [
 ] as const;
 
 const sections = ["Workspace", "Content", "Operations", "System"] as const;
-const sectionLabels: Record<(typeof sections)[number], string> = { Workspace: "工作台", Content: "内容", Operations: "运营", System: "系统" };
+const sectionLabels: Record<(typeof sections)[number], string> = {
+  Workspace: "工作",
+  Content: "内容",
+  Operations: "业务",
+  System: "系统",
+};
 const focusableSelector =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -186,7 +207,7 @@ function NavigationLinks({
 
         return (
           <div key={section}>
-            <p className="mb-1 px-3 text-xs font-semibold uppercase text-[var(--color-muted-inverse)]">
+            <p className="mb-1 px-3 text-xs font-semibold text-[var(--color-muted-inverse)]">
               {sectionLabels[section]}
             </p>
             <div className="space-y-0.5">
@@ -228,7 +249,7 @@ function SidebarBody({
       <div className="flex min-h-16 items-center border-b border-[var(--color-border-inverse)] px-5">
         <AnShowLogo className="text-white" />
       </div>
-      <div className="flex flex-1 flex-col overflow-y-auto px-3 py-5">
+      <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-3 py-5">
         <NavigationLinks
           closeNavigation={closeNavigation}
           permissions={permissions}
@@ -236,7 +257,7 @@ function SidebarBody({
         <div className="mt-6 border-t border-[var(--color-border-inverse)] px-3 pt-4">
           <div className="flex items-center gap-2 text-xs text-[var(--color-muted-inverse)]">
             <ShieldCheck aria-hidden="true" className="size-4 text-[var(--color-teal)]" />
-            Permission-aware workspace
+            当前账号权限已生效
           </div>
         </div>
       </div>
@@ -246,7 +267,7 @@ function SidebarBody({
 
 export function AdminSidebar({ permissions }: AdminSidebarProps) {
   return (
-    <aside className="sticky top-0 hidden h-dvh flex-col bg-[var(--color-carbon)] text-[var(--color-text-inverse)] md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-[232px] overflow-hidden bg-[var(--color-carbon)] text-[var(--color-text-inverse)] md:flex md:flex-col">
       <SidebarBody permissions={permissions} />
     </aside>
   );
@@ -340,7 +361,7 @@ export function AdminMobileNavigation({ permissions }: AdminSidebarProps) {
                 <X aria-hidden="true" className="size-5" strokeWidth={1.8} />
               </button>
             </div>
-            <div className="flex flex-1 flex-col overflow-y-auto px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
               <NavigationLinks
                 closeNavigation={() => setOpen(false)}
                 permissions={permissions}

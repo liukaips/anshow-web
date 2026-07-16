@@ -12,6 +12,7 @@ import type { AppEnv } from "../../http/context.js";
 import {
   CONTACT_CHANNEL_KINDS,
   siteSettingsSchema,
+  saveSiteSettingsInputSchema,
   type SettingsRepository,
 } from "../repositories/settings-repository.js";
 
@@ -29,7 +30,7 @@ const ContactChannelSchema = z
   .strict()
   .openapi("AdminContactChannel");
 
-const SaveSiteSettingsInputSchema = siteSettingsSchema.openapi(
+const SaveSiteSettingsInputSchema = saveSiteSettingsInputSchema.openapi(
   "SaveSiteSettingsInput",
 );
 const SaveContactChannelsInputSchema = z

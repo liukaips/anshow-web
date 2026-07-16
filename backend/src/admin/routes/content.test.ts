@@ -34,6 +34,13 @@ const ITEM: AdminContentItem = {
       updatedAt: "2026-07-15T04:00:00.000Z",
     },
   },
+  workflow: {
+    state: "draft",
+    ownerId: "staff-1",
+    version: 1,
+    submittedAt: null,
+    updatedAt: "2026-07-15T04:00:00.000Z",
+  },
 };
 
 const translationInput = {
@@ -143,7 +150,7 @@ describe("administration content routes", () => {
     expect(repository.publish).not.toHaveBeenCalled();
   });
 
-  it("supports list, detail, create, draft, schedule, publish, and archive with the actor", async () => {
+  it("supports list, detail, create, draft, publish, and archive with the actor", async () => {
     const repository = createFakeRepository();
     const app = createAuthorizedApp(repository);
 
@@ -158,13 +165,13 @@ describe("administration content routes", () => {
 
     const createResponse = await app.request(
       jsonRequest("/api/admin/content/services", "POST", {
-        code: "freight-service",
+        titleZh: "冷链运输服务",
       }),
     );
     expect(createResponse.status).toBe(201);
     expect(repository.create).toHaveBeenCalledWith(
       "services",
-      { code: "freight-service" },
+      { titleZh: "冷链运输服务" },
       "staff-1",
     );
 
@@ -184,22 +191,16 @@ describe("administration content routes", () => {
       "staff-1",
     );
 
-    const scheduledAt = "2026-07-16T04:00:00.000Z";
     const scheduleResponse = await app.request(
       jsonRequest(
         `/api/admin/content/services/${CONTENT_ID}/translations/ru/schedule`,
         "POST",
-        { ...translationInput, scheduledAt },
+        { ...translationInput, scheduledAt: "2026-07-16T04:00:00.000Z" },
       ),
     );
-    expect(scheduleResponse.status).toBe(200);
-    expect(repository.schedule).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "ru",
-      { ...translationInput, scheduledAt },
-      "staff-1",
-    );
+    expect(scheduleResponse.status).toBe(409);
+    expect(await scheduleResponse.json()).toMatchObject({ error: { code: "SNAPSHOT_SCHEDULE_REQUIRED" } });
+    expect(repository.schedule).not.toHaveBeenCalled();
 
     const publishResponse = await app.request(
       jsonRequest(
@@ -208,14 +209,11 @@ describe("administration content routes", () => {
         translationInput,
       ),
     );
-    expect(publishResponse.status).toBe(200);
-    expect(repository.publish).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "ru",
-      translationInput,
-      "staff-1",
-    );
+    expect(publishResponse.status).toBe(409);
+    expect(await publishResponse.json()).toMatchObject({
+      error: { code: "SNAPSHOT_PUBLISH_REQUIRED" },
+    });
+    expect(repository.publish).not.toHaveBeenCalled();
 
     const archiveResponse = await app.request(
       jsonRequest(
@@ -270,6 +268,21 @@ describe("administration content routes", () => {
   });
 
   it.each([
+    ["blank title", { titleZh: "   " }],
+    ["client code", { titleZh: "冷链运输服务", code: "manual-code" }],
+  ])("rejects %s during content creation", async (_case, input) => {
+    const repository = createFakeRepository();
+    const app = createAuthorizedApp(repository);
+
+    const response = await app.request(
+      jsonRequest("/api/admin/content/services", "POST", input),
+    );
+
+    expect(response.status).toBe(400);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ["CONTENT_NOT_FOUND", 404],
     ["SLUG_CONFLICT", 409],
     ["PROOF_NOT_VERIFIED", 409],
@@ -292,7 +305,7 @@ describe("administration content routes", () => {
     });
   });
 
-  it("returns the exact proof conflict from the publish endpoint", async () => {
+  it("requires proof content to use the reviewed snapshot publish flow", async () => {
     const repository = createFakeRepository();
     repository.publish.mockRejectedValueOnce(
       new ContentRepositoryError(
@@ -313,12 +326,13 @@ describe("administration content routes", () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({
       data: null,
-      error: { code: "PROOF_NOT_VERIFIED" },
+      error: { code: "SNAPSHOT_PUBLISH_REQUIRED" },
       requestId: response.headers.get("x-request-id"),
     });
+    expect(repository.publish).not.toHaveBeenCalled();
   });
 
-  it("allows a content.publish-only actor to publish submitted content", async () => {
+  it("rejects direct publication even for a content.publish actor", async () => {
     const repository = createFakeRepository();
     const app = createAuthorizedApp(repository, ["content.publish"]);
 
@@ -330,14 +344,9 @@ describe("administration content routes", () => {
       ),
     );
 
-    expect(response.status).toBe(200);
-    expect(repository.publish).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "en",
-      translationInput,
-      "staff-1",
-    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: "SNAPSHOT_PUBLISH_REQUIRED" } });
+    expect(repository.publish).not.toHaveBeenCalled();
     expect(repository.saveDraft).not.toHaveBeenCalled();
   });
 

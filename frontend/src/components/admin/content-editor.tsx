@@ -2,19 +2,20 @@
 
 import {
   Archive,
-  CalendarClock,
   Eye,
   LoaderCircle,
+  Languages,
   Save,
   Send,
+  ClipboardCheck,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   archiveAdminContent,
-  publishAdminContentTranslation,
+  generateAdminContentTranslations,
   saveAdminContentDraft,
-  scheduleAdminContentTranslation,
   updateAdminContentVerification,
   type AdminContentCollection,
   type AdminContentItem,
@@ -23,11 +24,18 @@ import {
   type ProofContentCollection,
 } from "../../api/admin-content";
 import { ApiError } from "../../api/http";
+import { submitAdminReview } from "../../api/admin-reviews";
 import {
   ADMIN_NAVIGATION_REQUEST,
   requestAdminNavigation,
 } from "./admin-navigation";
 import { LocaleTabs } from "./locale-tabs";
+import { AdvancedSettings } from "./content/editor/advanced-settings";
+import { ChineseContentStep } from "./content/editor/chinese-content-step";
+import {
+  firstContentErrorField,
+  type TranslationField,
+} from "./content/editor/content-validation";
 
 type ContentEditorProps = {
   canPublish: boolean;
@@ -36,10 +44,8 @@ type ContentEditorProps = {
   initialItem: AdminContentItem;
 };
 
-type TranslationField = keyof AdminContentTranslationInput;
-type EditorField = TranslationField | "scheduledAt";
-type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "publish" | "save" | "schedule" | "verification";
+type FieldErrors = Partial<Record<TranslationField, string>>;
+type Command = "archive" | "save" | "submit" | "translate" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 const proofCollections: readonly ProofContentCollection[] = [
@@ -97,50 +103,12 @@ function isProofCollection(
   );
 }
 
-function toLocalDateTime(value: string | null | undefined): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 16);
-}
-
-function itemScheduleDrafts(item: AdminContentItem) {
-  return Object.fromEntries(
-    locales.map((locale) => [
-      locale,
-      toLocalDateTime(item.translations[locale]?.scheduledAt),
-    ]),
-  ) as Record<AdminContentLocale, string>;
-}
-
-function publishErrors(input: AdminContentTranslationInput): FieldErrors {
-  const errors: FieldErrors = {};
-  for (const field of Object.keys(fieldLabels) as TranslationField[]) {
-    if (!input[field].trim()) {
-      errors[field] = `发布前必须填写${fieldLabels[field]}。`;
-    }
-  }
-  if (input.slug && !/^[a-z0-9-]+$/.test(input.slug)) {
-    errors.slug = "Slug must use lowercase letters, numbers, and hyphens.";
-  }
-  if (input.seoTitle.length > 60) {
-    errors.seoTitle = "SEO title must be 60 characters or fewer.";
-  }
-  if (input.seoDescription.length > 160) {
-    errors.seoDescription = "SEO description must be 160 characters or fewer.";
-  }
-  return errors;
-}
-
 function firstErrorField(errors: FieldErrors): TranslationField | undefined {
-  return (Object.keys(fieldLabels) as TranslationField[]).find(
-    (field) => errors[field],
-  );
+  return firstContentErrorField(errors);
 }
 
 function commandMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "The command failed.";
+  return error instanceof Error ? error.message : "操作失败，请稍后重试。";
 }
 
 export function ContentEditor({
@@ -155,12 +123,6 @@ export function ContentEditor({
   const [dirtyLocales, setDirtyLocales] = useState<Set<AdminContentLocale>>(
     () => new Set(),
   );
-  const [scheduleDrafts, setScheduleDrafts] = useState(() =>
-    itemScheduleDrafts(initialItem),
-  );
-  const [scheduleDirtyLocales, setScheduleDirtyLocales] = useState<
-    Set<AdminContentLocale>
-  >(() => new Set());
   const [verified, setVerified] = useState(initialItem.verified);
   const [verificationSource, setVerificationSource] = useState(
     initialItem.verificationSource ?? "",
@@ -176,16 +138,11 @@ export function ContentEditor({
     text: string;
   } | null>(null);
 
-  const dirty =
-    dirtyLocales.size > 0 ||
-    scheduleDirtyLocales.size > 0 ||
-    verificationDirty;
+  const dirty = dirtyLocales.size > 0 || verificationDirty;
   const canEdit = canWrite || canPublish;
   const fieldsDisabled = pending !== null || !canEdit;
   const activeDraft = drafts[activeLocale];
-  const activeScheduledAt = scheduleDrafts[activeLocale];
-  const activeDirty =
-    dirtyLocales.has(activeLocale) || scheduleDirtyLocales.has(activeLocale);
+  const activeDirty = dirtyLocales.has(activeLocale);
   const activeState = item.translations[activeLocale]?.status ?? "draft";
   const tabTranslations = useMemo(
     () =>
@@ -203,15 +160,9 @@ export function ContentEditor({
 
   useEffect(() => {
     if (pending !== null) return;
-    const first =
-      firstErrorField(errors) ??
-      (errors.scheduledAt ? "scheduledAt" : undefined);
+    const first = firstErrorField(errors);
     if (!first) return;
-    document
-      .getElementById(
-        first === "scheduledAt" ? "scheduled-at" : `translation-${first}`,
-      )
-      ?.focus();
+    document.getElementById(`translation-${first}`)?.focus();
   }, [errors, pending]);
 
   useEffect(() => {
@@ -235,7 +186,7 @@ export function ContentEditor({
     };
 
     const guardNavigationRequest = (event: Event) => {
-      if (!window.confirm("This item has unsaved changes. Leave this page?")) {
+      if (!window.confirm("当前内容尚未保存，确定离开此页面吗？")) {
         event.preventDefault();
       }
     };
@@ -318,9 +269,7 @@ export function ContentEditor({
     setItem(nextItem);
     if (command === "archive") {
       setDrafts(itemDrafts(nextItem));
-      setScheduleDrafts(itemScheduleDrafts(nextItem));
       setDirtyLocales(new Set());
-      setScheduleDirtyLocales(new Set());
       setVerified(nextItem.verified);
       setVerificationSource(nextItem.verificationSource ?? "");
       setVerificationDirty(false);
@@ -355,19 +304,6 @@ export function ContentEditor({
       return next;
     });
 
-    const preserveDirtySchedule =
-      command === "save" && scheduleDirtyLocales.has(locale);
-    if (!preserveDirtySchedule) {
-      setScheduleDrafts((current) => ({
-        ...current,
-        [locale]: toLocalDateTime(persistedTranslation?.scheduledAt),
-      }));
-      setScheduleDirtyLocales((current) => {
-        const next = new Set(current);
-        next.delete(locale);
-        return next;
-      });
-    }
     if (!verificationDirty) {
       setVerified(nextItem.verified);
       setVerificationSource(nextItem.verificationSource ?? "");
@@ -390,7 +326,7 @@ export function ContentEditor({
     if (
       locale !== activeLocale &&
       activeDirty &&
-      !window.confirm("This translation has unsaved changes. Change language anyway?")
+      !window.confirm("当前语言内容尚未保存，确定切换语言吗？")
     ) {
       return;
     }
@@ -404,10 +340,9 @@ export function ContentEditor({
       const nextErrors: FieldErrors = {};
       for (const [field, messages] of Object.entries(error.fields)) {
         if (
-          (field in fieldLabels || field === "scheduledAt") &&
-          messages[0]
+          field in fieldLabels && messages[0]
         ) {
-          nextErrors[field as EditorField] = messages[0];
+          nextErrors[field as TranslationField] = messages[0];
         }
       }
       if (Object.keys(nextErrors).length > 0) {
@@ -415,12 +350,6 @@ export function ContentEditor({
       }
     }
     setMessage({ kind: "error", text: commandMessage(error) });
-  }
-
-  function validatePublish(): boolean {
-    const nextErrors = publishErrors(activeDraft);
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
   }
 
   async function save() {
@@ -442,19 +371,21 @@ export function ContentEditor({
     }
   }
 
-  async function publish() {
-    if (!validatePublish()) return;
-    setPending("publish");
+  async function generateTranslations() {
+    if (dirty) {
+      setMessage({ kind: "error", text: "请先保存当前修改，再自动生成翻译。" });
+      return;
+    }
+    setPending("translate");
     setMessage(null);
     try {
-      const published = await publishAdminContentTranslation(
-        collection,
-        item.id,
-        activeLocale,
-        activeDraft,
-      );
-      reconcileResponse(published, "publish", activeLocale);
-      setMessage({ kind: "success", text: "翻译已发布。" });
+      const result = await generateAdminContentTranslations(collection, item.id, {
+        targets: ["en", "ru"],
+        sourceVersion: item.workflow.version,
+      });
+      setItem(result.item);
+      setDrafts(itemDrafts(result.item));
+      setMessage({ kind: "success", text: "英文和俄文草稿已生成，请检查后再提交审核。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -462,31 +393,17 @@ export function ContentEditor({
     }
   }
 
-  async function schedule() {
-    if (!validatePublish()) return;
-    const date = new Date(activeScheduledAt);
-    if (
-      !activeScheduledAt ||
-      Number.isNaN(date.getTime()) ||
-      date <= new Date()
-    ) {
-      setMessage({
-        kind: "error",
-        text: "Choose a future publication date and time.",
-      });
+  async function submitForReview() {
+    if (dirty) {
+      setMessage({ kind: "error", text: "请先保存当前修改，再提交审核。" });
       return;
     }
-    setPending("schedule");
+    setPending("submit");
     setMessage(null);
     try {
-      const scheduled = await scheduleAdminContentTranslation(
-        collection,
-        item.id,
-        activeLocale,
-        { ...activeDraft, scheduledAt: date.toISOString() },
-      );
-      reconcileResponse(scheduled, "schedule", activeLocale);
-      setMessage({ kind: "success", text: "翻译已设置定时发布。" });
+      const review = await submitAdminReview({ collection, id: item.id, expectedVersion: item.workflow.version });
+      setItem((current) => ({ ...current, workflow: { ...current.workflow, state: "review_pending", version: review.sourceVersion, submittedAt: review.submittedAt } }));
+      setMessage({ kind: "success", text: "内容已提交审核。" });
     } catch (error) {
       handleCommandError(error);
     } finally {
@@ -496,8 +413,8 @@ export function ContentEditor({
 
   async function archive() {
     const warning = dirty
-      ? "Archive this item and leave unsaved changes behind?"
-      : "Archive this content item?";
+      ? "归档后未保存的修改将丢失，确定继续吗？"
+      : "确定归档这条内容吗？";
     if (!window.confirm(warning)) return;
     setPending("archive");
     setMessage(null);
@@ -517,7 +434,7 @@ export function ContentEditor({
     if (verified && !verificationSource.trim()) {
       setMessage({
         kind: "error",
-        text: "Enter an official verification source.",
+        text: "请填写官方核验来源。",
       });
       return;
     }
@@ -562,13 +479,17 @@ export function ContentEditor({
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
           <div>
             <p className="text-sm font-semibold uppercase text-neutral-500">
-              {activeLocale} translation
+              {activeLocale === "zh" ? "中文内容" : activeLocale === "en" ? "英文内容" : "俄文内容"}
             </p>
             <p className="mt-1 text-sm text-neutral-600">
               状态：<span className="font-semibold capitalize text-[var(--color-text)]">{activeState === "published" ? "已发布" : activeState === "scheduled" ? "已定时" : "草稿"}</span>
-              {activeDirty ? " · Unsaved changes" : ""}
+              {activeDirty ? " · 未保存" : ""}
             </p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          {canWrite ? (
+            <CommandButton disabled={pending !== null || dirty} icon={Languages} label="自动生成英文和俄文" onClick={generateTranslations} pending={pending === "translate"} />
+          ) : null}
           <a
             className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-neutral-300 bg-white px-4 text-sm font-semibold text-[var(--color-text)] transition-[background-color,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:bg-neutral-50"
             href="#content-preview"
@@ -576,113 +497,22 @@ export function ContentEditor({
             <Eye aria-hidden="true" className="size-4" />
             预览
           </a>
-        </div>
-
-        <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.title}
-            field="title"
-            label="标题"
-            onChange={updateField}
-            value={activeDraft.title}
-          />
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.slug}
-            field="slug"
-            label="别名"
-            onChange={updateField}
-            value={activeDraft.slug}
-          />
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.summary}
-            field="summary"
-            label="摘要"
-            multiline
-            onChange={updateField}
-            value={activeDraft.summary}
-          />
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.altText}
-            field="altText"
-            label="替代文本"
-            onChange={updateField}
-            value={activeDraft.altText}
-          />
-          <div className="min-w-0 lg:col-span-2">
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.body}
-              field="body"
-              label="正文"
-              multiline
-              onChange={updateField}
-              rows={10}
-              value={activeDraft.body}
-            />
           </div>
         </div>
 
-        <div className="mt-8 border-t border-neutral-200 pt-6">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">搜索元数据</h2>
-          <div className="mt-4 grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.seoTitle}
-              field="seoTitle"
-              label="SEO 标题"
-              maxLength={60}
-              onChange={updateField}
-              value={activeDraft.seoTitle}
-            />
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.seoDescription}
-              field="seoDescription"
-              label="SEO 描述"
-              maxLength={160}
-              multiline
-              onChange={updateField}
-              value={activeDraft.seoDescription}
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-neutral-200 pt-6">
-          <label className="block max-w-md text-sm font-semibold text-[var(--color-text)]" htmlFor="scheduled-at">
-            发布时间
-          </label>
-          <input
-            aria-describedby={errors.scheduledAt ? "scheduled-at-error" : undefined}
-            aria-invalid={errors.scheduledAt ? true : undefined}
-            className={`${fieldClass} max-w-md ${errors.scheduledAt ? "border-[var(--color-danger)]" : "border-neutral-300"}`}
-            disabled={pending !== null || !canPublish}
-            id="scheduled-at"
-            onChange={(event) => {
-              if (pending !== null || !canPublish) return;
-              setScheduleDrafts((current) => ({
-                ...current,
-                [activeLocale]: event.target.value,
-              }));
-              setScheduleDirtyLocales((current) =>
-                new Set(current).add(activeLocale),
-              );
-              setErrors((current) => ({
-                ...current,
-                scheduledAt: undefined,
-              }));
-            }}
-            type="datetime-local"
-            value={activeScheduledAt}
+        <div className="grid min-w-0 grid-cols-1 gap-5">
+          <ChineseContentStep
+            disabled={fieldsDisabled}
+            errors={errors}
+            onChange={updateField}
+            value={activeDraft}
           />
-          {errors.scheduledAt ? (
-            <p className="mt-1 text-sm text-[var(--color-danger)]" id="scheduled-at-error">
-              {errors.scheduledAt}
-            </p>
-          ) : null}
+          <AdvancedSettings
+            disabled={fieldsDisabled}
+            errors={errors}
+            onChange={updateField}
+            value={activeDraft}
+          />
         </div>
 
         {canWrite && isProofCollection(collection) ? (
@@ -740,14 +570,24 @@ export function ContentEditor({
           {canWrite ? (
             <CommandButton disabled={pending !== null} icon={Save} label="保存草稿" onClick={save} pending={pending === "save"} />
           ) : null}
-          <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="定时发布" onClick={schedule} pending={pending === "schedule"} />
-          <CommandButton action disabled={pending !== null || !canPublish} icon={Send} label="发布" onClick={publish} pending={pending === "publish"} />
+          {canPublish ? (
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-cyan-ink)]"
+              href="/admin/publish"
+            >
+              <Send aria-hidden="true" className="size-4" />
+              前往预览发布
+            </Link>
+          ) : null}
+          {canWrite ? <CommandButton disabled={pending !== null || dirty || item.workflow.state === "review_pending"} icon={ClipboardCheck} label="提交审核" onClick={submitForReview} pending={pending === "submit"} /> : null}
           {canWrite ? (
             <CommandButton danger disabled={pending !== null} icon={Archive} label="归档" onClick={archive} pending={pending === "archive"} />
           ) : null}
         </div>
         {!canPublish ? (
-          <p className="mt-3 text-sm text-neutral-600">需要 content.publish 权限才能发布。</p>
+          <p className="mt-3 text-sm text-neutral-600">
+            当前账号没有发布权限，请联系超级管理员授权。
+          </p>
         ) : null}
         <div aria-live="polite" className="min-h-7 pt-3">
           {message ? (
@@ -775,64 +615,7 @@ export function ContentEditor({
   );
 }
 
-function Field({
-  disabled,
-  error,
-  field,
-  label,
-  maxLength,
-  multiline = false,
-  onChange,
-  rows = 3,
-  value,
-}: {
-  disabled: boolean;
-  error?: string;
-  field: TranslationField;
-  label: string;
-  maxLength?: number;
-  multiline?: boolean;
-  onChange: (field: TranslationField, value: string) => void;
-  rows?: number;
-  value: string;
-}) {
-  const inputId = `translation-${field}`;
-  const errorId = `${inputId}-error`;
-  const className = `mt-2 min-h-11 w-full rounded-[var(--radius-control)] border bg-white px-3 py-2 text-base text-[var(--color-text)] outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:ring-2 ${
-    error
-      ? "border-[var(--color-danger)] focus:ring-red-100"
-      : "border-neutral-300 focus:border-[var(--color-cyan-ink)] focus:ring-sky-100"
-  }`;
-  const shared = {
-    "aria-describedby": error ? errorId : undefined,
-    "aria-invalid": error ? (true as const) : undefined,
-    className,
-    disabled,
-    id: inputId,
-    maxLength,
-    onChange: (
-      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => onChange(field, event.target.value),
-    value,
-  };
-
-  return (
-    <div className="min-w-0">
-      <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor={inputId}>
-        {label}
-      </label>
-      {multiline ? <textarea {...shared} rows={rows} /> : <input {...shared} type="text" />}
-      {error ? (
-        <p className="mt-1 text-sm text-[var(--color-danger)]" id={errorId}>
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 function CommandButton({
-  action = false,
   danger = false,
   disabled,
   icon: Icon,
@@ -840,7 +623,6 @@ function CommandButton({
   onClick,
   pending,
 }: {
-  action?: boolean;
   danger?: boolean;
   disabled: boolean;
   icon: typeof Save;
@@ -848,11 +630,9 @@ function CommandButton({
   onClick: () => void;
   pending: boolean;
 }) {
-  const colors = action
-    ? "border-[var(--color-action)] bg-[var(--color-action)] text-white hover:brightness-95"
-    : danger
-      ? "border-red-200 bg-white text-[var(--color-danger)] hover:bg-red-50"
-      : "border-neutral-300 bg-white text-[var(--color-text)] hover:bg-neutral-50";
+  const colors = danger
+    ? "border-red-200 bg-white text-[var(--color-danger)] hover:bg-red-50"
+    : "border-neutral-300 bg-white text-[var(--color-text)] hover:bg-neutral-50";
   return (
     <button
       className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-4 text-sm font-semibold transition-[background-color,transform,filter] duration-[var(--motion-fast)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${colors}`}

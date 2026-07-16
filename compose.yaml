@@ -5,10 +5,23 @@ x-backend-environment: &backend-environment
   DATABASE_PATH: /data/anshow.db
   BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
   RATE_LIMIT_SECRET: ${RATE_LIMIT_SECRET:?Set RATE_LIMIT_SECRET in .env}
-  MEDIA_DRIVER: local
+  MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
+  COS_BUCKET: ${COS_BUCKET:-}
+  COS_REGION: ${COS_REGION:-}
+  COS_PUBLIC_BASE_URL: ${COS_PUBLIC_BASE_URL:-}
+  COS_SECRET_ID: ${COS_SECRET_ID:-}
+  COS_SECRET_KEY: ${COS_SECRET_KEY:-}
   BACKUP_DIR: /data/backups
   BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
-  BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SALES_EMAIL: ${SALES_EMAIL:-}
+  TRANSLATION_API_URL: ${TRANSLATION_API_URL:-}
+  TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
+  TRANSLATION_MODEL: ${TRANSLATION_MODEL:-}
   PORT: 4000
 
 services:
@@ -53,6 +66,20 @@ services:
       retries: 6
       start_period: 20s
 
+  worker:
+    image: anshow-backend:${ANSHOW_IMAGE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    command: ["node", "backend/dist/worker/index.js"]
+    environment: *backend-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - app-data:/data
+      - media:/media
+      - backups:/data/backups
+
   frontend:
     build:
       context: .
@@ -66,6 +93,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      worker:
+        condition: service_started
     healthcheck:
       test:
         [

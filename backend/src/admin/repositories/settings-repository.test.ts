@@ -12,6 +12,7 @@ import {
   createSettingsRepository,
   orderEnabledChannels,
   type SiteSettings,
+  saveSiteSettingsInputSchema,
 } from "./settings-repository.js";
 
 const NOW = new Date("2026-07-15T02:00:00.000Z");
@@ -86,6 +87,18 @@ describe("orderEnabledChannels", () => {
 });
 
 describe("createSettingsRepository", () => {
+  it("derives backup encryption status from server configuration", async () => {
+    const testDatabase = createTestDatabase();
+    try {
+      const repository = createSettingsRepository(testDatabase.db, { encryptionConfigured: true });
+      const backup = { enabled: true, intervalHours: 24, retentionDays: 30, target: "local" as const, cosBucket: "", cosRegion: "" };
+      expect(saveSiteSettingsInputSchema.safeParse({ ...SETTINGS, backup: { ...backup, encryptionConfigured: false } }).success).toBe(false);
+      await repository.saveSettings({ ...SETTINGS, backup }, "staff-1");
+      await expect(repository.getSettings()).resolves.toMatchObject({ backup: { ...backup, encryptionConfigured: true } });
+    } finally {
+      testDatabase.close();
+    }
+  });
   it("returns safe typed defaults without fabricating company or contact data", async () => {
     const testDatabase = createTestDatabase();
 

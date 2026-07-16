@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "../../db/client.js";
 import {
@@ -25,7 +25,9 @@ import {
   tradeLanes,
   tradeLaneTranslations,
 } from "../../db/schema/content.js";
+import { contentWorkflow, type WorkflowState } from "../../db/schema/workflow.js";
 import {
+  ADMIN_CONTENT_LOCALES,
   createContentInputSchema,
   publishableTranslationSchema,
   scheduleTranslationInputSchema,
@@ -40,6 +42,7 @@ import {
   type TranslationInput,
   type VerificationInput,
 } from "../content/content-schema.js";
+import { slugFromTitle, uniqueIdentifier } from "../content/content-identifiers.js";
 import { createAuditRepository } from "./audit-repository.js";
 
 type BaseTable = typeof services;
@@ -125,13 +128,17 @@ export type AdminContentItem = Readonly<{
   createdAt: string;
   updatedAt: string;
   translations: Partial<Record<AdminContentLocale, AdminContentTranslation>>;
+  workflow: {
+    state: WorkflowState;
+    ownerId: string | null;
+    version: number;
+    submittedAt: string | null;
+    updatedAt: string;
+  };
 }>;
 
 export type CreateAdminContentInput = Readonly<{
-  code: string;
-  sortOrder?: number;
-  verified?: boolean;
-  verificationSource?: string | null;
+  titleZh: string;
 }>;
 
 export const CONTENT_REPOSITORY_ERROR_CODES = [
@@ -210,6 +217,7 @@ type ContentRepositoryOptions = {
 
 type BaseRow = typeof services.$inferSelect;
 type TranslationRow = typeof serviceTranslations.$inferSelect;
+type WorkflowRow = typeof contentWorkflow.$inferSelect;
 type ContentTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
@@ -236,6 +244,7 @@ function toTranslation(row: TranslationRow): AdminContentTranslation {
 function toItem(
   row: BaseRow,
   translationRows: readonly TranslationRow[],
+  workflowRow?: WorkflowRow,
 ): AdminContentItem {
   const translations: Partial<
     Record<AdminContentLocale, AdminContentTranslation>
@@ -244,6 +253,13 @@ function toItem(
     translations[translation.locale] = toTranslation(translation);
   }
 
+  const derivedState: WorkflowState = row.archivedAt
+    ? "archived"
+    : translationRows.some((translation) => translation.status === "published")
+      ? "published"
+      : translationRows.some((translation) => translation.status === "scheduled")
+        ? "scheduled"
+        : "draft";
   return {
     id: row.id,
     code: row.code,
@@ -254,6 +270,21 @@ function toItem(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     translations,
+    workflow: workflowRow
+      ? {
+          state: workflowRow.state,
+          ownerId: workflowRow.ownerId,
+          version: workflowRow.version,
+          submittedAt: iso(workflowRow.submittedAt),
+          updatedAt: workflowRow.updatedAt.toISOString(),
+        }
+      : {
+          state: derivedState,
+          ownerId: null,
+          version: 1,
+          submittedAt: null,
+          updatedAt: row.updatedAt.toISOString(),
+        },
   };
 }
 
@@ -312,6 +343,44 @@ function readBase(
     .from(config.base)
     .where(eq(config.base.id, id))
     .get();
+}
+
+function readWorkflow(
+  database: AppDatabase | ContentTransaction,
+  collection: AdminContentCollection,
+  id: string,
+): WorkflowRow | undefined {
+  return database.select().from(contentWorkflow).where(and(
+    eq(contentWorkflow.entityType, collection),
+    eq(contentWorkflow.entityId, id),
+  )).get();
+}
+
+function bumpWorkflow(
+  transaction: ContentTransaction,
+  collection: AdminContentCollection,
+  id: string,
+  actorId: string,
+  state: WorkflowState,
+  timestamp: Date,
+): void {
+  transaction.insert(contentWorkflow).values({
+    entityType: collection,
+    entityId: id,
+    state: "draft",
+    ownerId: actorId,
+    version: 1,
+    updatedAt: timestamp,
+  }).onConflictDoNothing().run();
+  transaction.update(contentWorkflow).set({
+    state,
+    ownerId: actorId,
+    version: sql`${contentWorkflow.version} + 1`,
+    updatedAt: timestamp,
+  }).where(and(
+    eq(contentWorkflow.entityType, collection),
+    eq(contentWorkflow.entityId, id),
+  )).run();
 }
 
 function assertMutable(row: BaseRow, collection: AdminContentCollection) {
@@ -421,7 +490,7 @@ export function createContentRepository(
       .where(eq(config.translations.ownerId, id))
       .orderBy(asc(config.translations.locale))
       .all();
-    return toItem(row, translations);
+    return toItem(row, translations, readWorkflow(database, collection, id));
   }
 
   return {
@@ -446,8 +515,12 @@ export function createContentRepository(
         grouped.push(translation);
         translationsByOwner.set(translation.ownerId, grouped);
       }
+      const workflows = new Map(
+        database.select().from(contentWorkflow).where(eq(contentWorkflow.entityType, collection)).all()
+          .map((workflow) => [workflow.entityId, workflow]),
+      );
       return rows.map((row) =>
-        toItem(row, translationsByOwner.get(row.id) ?? []),
+        toItem(row, translationsByOwner.get(row.id) ?? [], workflows.get(row.id)),
       );
     },
 
@@ -458,45 +531,81 @@ export function createContentRepository(
       const parsedInput = createContentInputSchema.parse(input);
       const id = createId();
       const timestamp = now();
-      const verificationSource =
-        parsedInput.verificationSource?.trim() || null;
 
       try {
         database.transaction((transaction) => {
-          const codeCollision = transaction
-            .select({ id: config.base.id })
-            .from(config.base)
-            .where(eq(config.base.code, parsedInput.code))
-            .get();
-          if (codeCollision) {
-            throw new ContentRepositoryError(
-              "CONTENT_CONFLICT",
-              `Code ${parsedInput.code} is already used`,
-            );
-          }
+          const existingCodes = new Set(
+            transaction
+              .select({ code: config.base.code })
+              .from(config.base)
+              .all()
+              .map((row) => row.code),
+          );
+          const code = uniqueIdentifier(parsedInput.titleZh, existingCodes);
+          const existingChineseSlugs = new Set(
+            transaction
+              .select({ slug: config.translations.slug })
+              .from(config.translations)
+              .where(eq(config.translations.locale, "zh"))
+              .all()
+              .map((row) => row.slug)
+              .filter(Boolean),
+          );
+          const preferredSlug = slugFromTitle(parsedInput.titleZh, "zh");
+          const slug = existingChineseSlugs.has(preferredSlug)
+            ? code
+            : preferredSlug;
 
           transaction
             .insert(config.base)
             .values({
               id,
-              code: parsedInput.code,
-              sortOrder: parsedInput.sortOrder ?? 0,
-              verifiedAt: parsedInput.verified ? timestamp : null,
-              verificationSource,
+              code,
+              sortOrder: 0,
+              verifiedAt: null,
+              verificationSource: null,
               createdAt: timestamp,
               updatedAt: timestamp,
             })
             .run();
+          transaction
+            .insert(config.translations)
+            .values(
+              ADMIN_CONTENT_LOCALES.map((locale) => ({
+                ownerId: id,
+                locale,
+                status: "draft" as const,
+                scheduledAt: null,
+                publishedAt: null,
+                slug: locale === "zh" ? slug : "",
+                title: locale === "zh" ? parsedInput.titleZh : "",
+                summary: "",
+                body: "",
+                seoTitle: "",
+                seoDescription: "",
+                altText: "",
+                updatedAt: timestamp,
+              })),
+            )
+            .run();
+          transaction.insert(contentWorkflow).values({
+            entityType: collection,
+            entityId: id,
+            state: "draft",
+            ownerId: actorId,
+            version: 1,
+            updatedAt: timestamp,
+          }).run();
           audit(transaction).record({
             actorId,
             action: "content.create",
             entityType: collection,
             entityId: id,
-            detail: { code: parsedInput.code },
+            detail: { code },
           });
         });
       } catch (error) {
-        mapContentConstraint(error, parsedInput.code);
+        mapContentConstraint(error, parsedInput.titleZh);
       }
 
       return get(collection, id);
@@ -536,6 +645,7 @@ export function createContentRepository(
               },
             })
             .run();
+          bumpWorkflow(transaction, collection, id, actorId, "draft", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.save-draft",
@@ -572,6 +682,7 @@ export function createContentRepository(
             { status: "published", scheduledAt: null, publishedAt: timestamp },
             timestamp,
           );
+          bumpWorkflow(transaction, collection, id, actorId, "published", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.publish",
@@ -616,6 +727,7 @@ export function createContentRepository(
             { status: "scheduled", scheduledAt: scheduledDate, publishedAt: null },
             timestamp,
           );
+          bumpWorkflow(transaction, collection, id, actorId, "scheduled", timestamp);
           audit(transaction).record({
             actorId,
             action: "content.translation.schedule",
@@ -651,6 +763,7 @@ export function createContentRepository(
           })
           .where(eq(config.base.id, id))
           .run();
+        bumpWorkflow(transaction, collection, id, actorId, "draft", timestamp);
         audit(transaction).record({
           actorId,
           action: "content.verification.update",
@@ -679,6 +792,7 @@ export function createContentRepository(
           .set({ archivedAt: timestamp, updatedAt: timestamp })
           .where(eq(config.base.id, id))
           .run();
+        bumpWorkflow(transaction, collection, id, actorId, "archived", timestamp);
         audit(transaction).record({
           actorId,
           action: "content.archive",

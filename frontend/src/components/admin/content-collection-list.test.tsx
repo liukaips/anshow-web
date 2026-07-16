@@ -29,6 +29,7 @@ const created: AdminContentItem = {
   createdAt: "2026-07-15T04:00:00.000Z",
   updatedAt: "2026-07-15T04:00:00.000Z",
   translations: {},
+  workflow: { state: "draft", ownerId: "staff-1", version: 1, submittedAt: null, updatedAt: "2026-07-15T04:00:00.000Z" },
 };
 
 afterEach(() => {
@@ -48,14 +49,14 @@ describe("ContentCollectionList", () => {
     );
 
     expect(screen.getByText("暂无服务内容。")).toBeVisible();
-    fireEvent.change(screen.getByLabelText("内容编码"), {
-      target: { value: "new-service" },
+    fireEvent.change(screen.getByLabelText("服务名称"), {
+      target: { value: "冷链运输服务" },
     });
     fireEvent.click(screen.getByRole("button", { name: "创建内容" }));
 
     await waitFor(() =>
       expect(createContent).toHaveBeenCalledWith("services", {
-        code: "new-service",
+        titleZh: "冷链运输服务",
       }),
     );
     expect(push).toHaveBeenCalledWith("/admin/content/services/content-1");
@@ -70,10 +71,12 @@ describe("ContentCollectionList", () => {
       />,
     );
 
-    expect(screen.getByRole("listitem")).toHaveTextContent("new-service");
+    expect(screen.getByRole("listitem")).toHaveTextContent("未命名内容");
+    expect(screen.queryByText("new-service")).toBeNull();
     expect(screen.queryByLabelText("Content code")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "创建内容" }),
     ).toBeNull();
+    expect(screen.getAllByRole("link", { name: "查看" }).length).toBeGreaterThan(0);
   });
 });

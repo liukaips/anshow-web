@@ -43,6 +43,34 @@
       "when": 1784096170256,
       "tag": "0005_bright_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784191225045,
+      "tag": "0006_admin_workflow",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784193706628,
+      "tag": "0007_thick_night_thrasher",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784197002876,
+      "tag": "0008_tearful_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784199002535,
+      "tag": "0009_grey_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

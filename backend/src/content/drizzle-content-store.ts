@@ -30,6 +30,7 @@ import { LOCALES, type Locale, type PublicCollection } from "./types.js";
 import { mediaForCatalogId } from "./media-catalog.js";
 
 type ContentStoreOptions = {
+  includeDrafts?: boolean;
   now?: () => Date;
 };
 
@@ -149,6 +150,7 @@ export function createDrizzleContentStore(
   options: ContentStoreOptions = {},
 ): PublicContentStore {
   const now = options.now ?? (() => new Date());
+  const includeDrafts = options.includeDrafts ?? false;
 
   async function readPublished(
     config: CollectionConfig,
@@ -158,11 +160,18 @@ export function createDrizzleContentStore(
       config.translations,
       "published_alternates",
     );
-    const currentFilters = [
-      eq(config.translations.status, "published"),
-      lte(config.translations.publishedAt, now()),
-      isNull(config.base.archivedAt),
-    ];
+    const currentFilters = [isNull(config.base.archivedAt)];
+    if (includeDrafts) {
+      currentFilters.push(
+        sql`trim(${config.translations.slug}) <> ''`,
+        sql`trim(${config.translations.title}) <> ''`,
+      );
+    } else {
+      currentFilters.push(
+        eq(config.translations.status, "published"),
+        lte(config.translations.publishedAt, now()),
+      );
+    }
 
     if (filters.locale) {
       currentFilters.push(eq(config.translations.locale, filters.locale));
@@ -170,7 +179,7 @@ export function createDrizzleContentStore(
     if (filters.slug) {
       currentFilters.push(eq(config.translations.slug, filters.slug));
     }
-    if (config.requiresVerification) {
+    if (config.requiresVerification && !includeDrafts) {
       currentFilters.push(
         isNotNull(config.base.verifiedAt),
         isNotNull(config.base.verificationSource),
@@ -199,11 +208,17 @@ export function createDrizzleContentStore(
       .innerJoin(config.base, eq(config.base.id, config.translations.ownerId))
       .leftJoin(
         alternateTranslations,
-        and(
-          eq(alternateTranslations.ownerId, config.base.id),
-          eq(alternateTranslations.status, "published"),
-          lte(alternateTranslations.publishedAt, now()),
-        ),
+        includeDrafts
+          ? and(
+              eq(alternateTranslations.ownerId, config.base.id),
+              sql`trim(${alternateTranslations.slug}) <> ''`,
+              sql`trim(${alternateTranslations.title}) <> ''`,
+            )
+          : and(
+              eq(alternateTranslations.ownerId, config.base.id),
+              eq(alternateTranslations.status, "published"),
+              lte(alternateTranslations.publishedAt, now()),
+            ),
       )
       .where(and(...currentFilters))
       .orderBy(

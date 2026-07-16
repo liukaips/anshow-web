@@ -64,10 +64,12 @@ export function Breadcrumbs({
   collection,
   current,
   locale,
+  pathPrefix = "",
 }: {
   collection?: PublicCollection;
   current: string;
   locale: SupportedLocale;
+  pathPrefix?: string;
 }) {
   const labels = getPublicCopy(locale);
   const collectionLabel = collection
@@ -78,7 +80,7 @@ export function Breadcrumbs({
     <nav aria-label={labels.breadcrumb} className="border-b border-white/10">
       <ol className="mx-auto flex min-h-12 w-full max-w-7xl flex-wrap items-center gap-2 px-5 py-2 text-sm text-[var(--color-muted-inverse)] sm:px-8 lg:px-12">
         <li>
-          <Link className="inline-flex min-h-11 items-center hover:text-white" href={`/${locale}`}>
+          <Link className="inline-flex min-h-11 items-center hover:text-white" href={`${pathPrefix}/${locale}`}>
             {labels.home}
           </Link>
         </li>
@@ -88,7 +90,7 @@ export function Breadcrumbs({
             <li>
               <Link
                 className="inline-flex min-h-11 items-center hover:text-white"
-                href={`/${locale}/${collection}`}
+                href={`${pathPrefix}/${locale}/${collection}`}
               >
                 {collectionLabel}
               </Link>
@@ -104,7 +106,7 @@ export function Breadcrumbs({
   );
 }
 
-export function QuoteCta({ locale }: { locale: SupportedLocale }) {
+export function QuoteCta({ locale, pathPrefix = "" }: { locale: SupportedLocale; pathPrefix?: string }) {
   const labels = getPublicCopy(locale);
   return (
     <section className="bg-[var(--color-teal)] px-5 py-12 text-[var(--color-carbon)] sm:px-8 lg:px-12">
@@ -114,7 +116,7 @@ export function QuoteCta({ locale }: { locale: SupportedLocale }) {
         </h2>
         <Link
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 bg-[var(--color-carbon)] px-5 font-semibold text-white transition-transform duration-[var(--motion-fast)] motion-safe:hover:-translate-y-px"
-          href={`/${locale}/quote`}
+          href={`${pathPrefix}/${locale}/quote`}
         >
           {labels.quoteAction}
           <ArrowRight aria-hidden="true" className="size-5" />
@@ -128,10 +130,12 @@ export function PublicCollectionPage({
   collection,
   items,
   locale,
+  pathPrefix = "",
 }: {
   collection: PublicCollection;
   items: readonly PublicItem[];
   locale: SupportedLocale;
+  pathPrefix?: string;
 }) {
   const labels = getPublicCopy(locale);
   const section = labels.collections[collection];
@@ -168,7 +172,7 @@ export function PublicCollectionPage({
                     <p className="mt-3 min-h-24 leading-7 text-black/65">{item.summary}</p>
                     <Link
                       className="mt-5 inline-flex min-h-11 items-center gap-2 font-semibold text-[var(--color-teal-ink)]"
-                      href={`/${locale}/${collection}/${encodeURIComponent(item.slug)}`}
+                      href={`${pathPrefix}/${locale}/${collection}/${encodeURIComponent(item.slug)}`}
                     >
                       <span>{labels.learnMore}</span>
                       <span className="sr-only">: {item.title}</span>
@@ -189,7 +193,7 @@ export function PublicCollectionPage({
           )}
         </div>
       </section>
-      <QuoteCta locale={locale} />
+      <QuoteCta locale={locale} pathPrefix={pathPrefix} />
     </main>
   );
 }
@@ -199,11 +203,13 @@ export function PublicDetailPage({
   item,
   locale,
   process,
+  pathPrefix = "",
 }: {
   collection: PublicCollection;
   item: PublicItem;
   locale: SupportedLocale;
   process?: React.ReactNode;
+  pathPrefix?: string;
 }) {
   const labels = getPublicCopy(locale);
   const isArticle = collection === "insights" || collection === "case-studies";
@@ -211,7 +217,7 @@ export function PublicDetailPage({
   return (
     <main>
       <div className="bg-[var(--color-carbon)] text-white">
-        <Breadcrumbs collection={collection} current={item.title} locale={locale} />
+        <Breadcrumbs collection={collection} current={item.title} locale={locale} pathPrefix={pathPrefix} />
         <header className="px-5 pb-12 pt-12 sm:px-8 lg:px-12 lg:pb-20 lg:pt-16">
           <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:items-center">
             <div>
@@ -249,7 +255,7 @@ export function PublicDetailPage({
         </div>
       </section>
       {process}
-      <QuoteCta locale={locale} />
+      <QuoteCta locale={locale} pathPrefix={pathPrefix} />
     </main>
   );
 }
@@ -257,15 +263,17 @@ export function PublicDetailPage({
 export function StaticContentPage({
   item,
   locale,
+  pathPrefix = "",
 }: {
   item: PublicItem;
   locale: SupportedLocale;
+  pathPrefix?: string;
 }) {
   const labels = getPublicCopy(locale);
   return (
     <main>
       <div className="bg-[var(--color-carbon)] text-white">
-        <Breadcrumbs current={item.title} locale={locale} />
+        <Breadcrumbs current={item.title} locale={locale} pathPrefix={pathPrefix} />
         <header className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
           <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:items-center">
             <div>
@@ -291,7 +299,7 @@ export function StaticContentPage({
           </div>
         </div>
       </section>
-      <QuoteCta locale={locale} />
+      <QuoteCta locale={locale} pathPrefix={pathPrefix} />
     </main>
   );
 }

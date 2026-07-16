@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/settings": {
         parameters: {
             query?: never;
@@ -78,6 +94,70 @@ export interface paths {
         get: operations["listAdminContactChannels"];
         put: operations["replaceAdminContactChannels"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminBackups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/backups/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runAdminBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/backups/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verifyAdminBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/backups/{id}/stage-restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stageAdminBackupRestore"];
         delete?: never;
         options?: never;
         head?: never;
@@ -196,6 +276,326 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/{collection}/{id}/translations/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateAdminContentTranslations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/translations/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminTranslationJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminPreviews"];
+        put?: never;
+        post: operations["createAdminPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews/tokens/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeAdminPreviewToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publishAdminPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["scheduleAdminPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/previews/{id}/schedule/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelAdminPreviewSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectAdminContentReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminInquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminInquiryAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["exportAdminInquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminInquiry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assignAdminInquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateAdminInquiryPriority"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateAdminInquiryStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addAdminInquiryNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/notifications/{deliveryId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retryAdminInquiryNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media": {
         parameters: {
             query?: never;
@@ -260,6 +660,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStaff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getStaff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStaffRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disableStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["enableStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateStaffRoles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{id}/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeStaffSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/audit/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminAuditEvent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/content/home/{locale}": {
         parameters: {
             query?: never;
@@ -316,6 +860,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPublicContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/preview/{token}/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPublicPreview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -406,6 +966,56 @@ export interface components {
             };
             requestId: string;
         };
+        AdminDashboardResponse: {
+            data: components["schemas"]["AdminDashboard"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminDashboard: {
+            newInquiries: number;
+            highPriorityInquiries: number;
+            reviewPending: number;
+            translationPending: number;
+            publishedThisWeek: number;
+            tasks: {
+                inquiries: {
+                    id: string;
+                    name: string;
+                    company: string;
+                    /** @enum {string} */
+                    priority: "low" | "normal" | "high" | "urgent";
+                    /** @enum {string} */
+                    status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                    updatedAt: number;
+                }[];
+                reviews: {
+                    id: string;
+                    entityType: string;
+                    entityId: string;
+                    sourceVersion: number;
+                    submittedBy: string;
+                    /** Format: date-time */
+                    submittedAt: string;
+                }[];
+            };
+            recentAuditEvents: {
+                id: string;
+                actorId: string;
+                action: string;
+                entityType: string;
+                entityId: string;
+                detail: {
+                    [key: string]: unknown;
+                };
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            /** @enum {string} */
+            systemHealth: "normal" | "warning" | "unavailable";
+            systemHealthIssues: string[];
+        };
         AdminSettingsResponse: {
             data: components["schemas"]["SiteSettings"];
             /** @enum {object|null} */
@@ -443,6 +1053,16 @@ export interface components {
                 enquiriesEnabled: boolean;
                 caseStudiesEnabled: boolean;
                 insightsEnabled: boolean;
+            };
+            backup?: {
+                enabled: boolean;
+                intervalHours: number;
+                retentionDays: number;
+                /** @enum {string} */
+                target: "local" | "cos";
+                cosBucket: string;
+                cosRegion: string;
+                encryptionConfigured: boolean;
             };
         };
         SaveAdminSettingsResponse: {
@@ -483,6 +1103,15 @@ export interface components {
                 caseStudiesEnabled: boolean;
                 insightsEnabled: boolean;
             };
+            backup?: {
+                enabled: boolean;
+                intervalHours: number;
+                retentionDays: number;
+                /** @enum {string} */
+                target: "local" | "cos";
+                cosBucket: string;
+                cosRegion: string;
+            };
         };
         AdminContactChannelsResponse: {
             data: components["schemas"]["AdminContactChannel"][];
@@ -510,6 +1139,22 @@ export interface components {
         SaveContactChannelsInput: {
             channels: components["schemas"]["AdminContactChannel"][];
         };
+        AdminBackupRun: {
+            id: string;
+            /** @enum {string} */
+            status: "running" | "succeeded" | "failed" | "verified";
+            /** @enum {string} */
+            target: "local" | "cos";
+            storageKey: string | null;
+            sizeBytes: number | null;
+            sha256: string | null;
+            actorId: string;
+            startedAt: number;
+            completedAt: number | null;
+            verifiedAt: number | null;
+            restoreStagedAt: number | null;
+            error: string | null;
+        };
         AdminContentListResponse: {
             data: components["schemas"]["AdminContentItem"][];
             /** @enum {object|null} */
@@ -533,6 +1178,16 @@ export interface components {
                 en?: components["schemas"]["AdminContentTranslation"];
                 zh?: components["schemas"]["AdminContentTranslation"];
                 ru?: components["schemas"]["AdminContentTranslation"];
+            };
+            workflow: {
+                /** @enum {string} */
+                state: "draft" | "translation_pending" | "review_pending" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+                ownerId: string | null;
+                version: number;
+                /** Format: date-time */
+                submittedAt: string | null;
+                /** Format: date-time */
+                updatedAt: string;
             };
         };
         AdminContentTranslation: components["schemas"]["AdminContentTranslationInput"] & {
@@ -575,10 +1230,7 @@ export interface components {
             requestId: string;
         };
         CreateAdminContentInput: {
-            code: string;
-            sortOrder?: number;
-            verified?: boolean;
-            verificationSource?: string | null;
+            titleZh: string;
         };
         SaveAdminContentDraftResponse: {
             data: components["schemas"]["AdminContentItem"];
@@ -640,6 +1292,220 @@ export interface components {
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
             requestId: string;
+        };
+        GenerateAdminTranslationsResponse: {
+            data: {
+                sourceVersion: number;
+                jobs: components["schemas"]["AdminTranslationJob"][];
+                item: components["schemas"]["AdminContentItem"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminTranslationJob: {
+            id: string;
+            entityType: string;
+            entityId: string;
+            sourceVersion: number;
+            /** @enum {string} */
+            targetLocale: "en" | "ru";
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed";
+            attempts: number;
+            lastError: string | null;
+            /** Format: date-time */
+            createdAt: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        GenerateAdminTranslationsInput: {
+            targets: ("en" | "ru")[];
+            sourceVersion?: number;
+        };
+        AdminTranslationJobsResponse: {
+            data: components["schemas"]["AdminTranslationJob"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CreateAdminPreviewResponse: {
+            data: {
+                snapshotId: string;
+                tokenId: string;
+                rawToken: string;
+                contentHash: string;
+                sourceVersions: {
+                    entityType: string;
+                    entityId: string;
+                    version: number;
+                }[];
+                /** Format: date-time */
+                createdAt: string | null;
+                /** Format: date-time */
+                expiresAt: string | null;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CreateAdminPreviewInput: {
+            /** @default 24 */
+            expiresInHours: number;
+        };
+        AdminPreviewsResponse: {
+            data: {
+                id: string;
+                contentHash: string;
+                sourceVersions: {
+                    entityType: string;
+                    entityId: string;
+                    version: number;
+                }[];
+                createdBy: string;
+                /** Format: date-time */
+                createdAt: string | null;
+                /** Format: date-time */
+                expiresAt: string | null;
+                /** Format: date-time */
+                scheduledAt: string | null;
+                /** Format: date-time */
+                scheduleClaimedAt: string | null;
+                scheduleClaimedBy: string | null;
+                /** Format: date-time */
+                publishedAt: string | null;
+                payload: {
+                    [key: string]: unknown;
+                };
+            }[];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        RevokeAdminPreviewResponse: {
+            data: {
+                /** @enum {boolean} */
+                revoked: true;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        PublishAdminPreviewResponse: {
+            data: {
+                snapshotId: string;
+                contentHash: string;
+                /** Format: date-time */
+                publishedAt: string | null;
+                publishedChanges: number;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        ScheduleAdminPreviewResponse: {
+            data: {
+                snapshotId: string;
+                contentHash: string;
+                /** Format: date-time */
+                scheduledAt: string | null;
+                changes: number;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        CancelAdminPreviewScheduleResponse: {
+            data: {
+                snapshotId: string;
+                /** @enum {boolean} */
+                cancelled: true;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminReviewsResponse: {
+            data: components["schemas"]["AdminContentReview"][];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContentReview: {
+            id: string;
+            entityType: string;
+            entityId: string;
+            sourceVersion: number;
+            submittedBy: string;
+            reviewerId: string | null;
+            /** @enum {string} */
+            decision: "pending" | "approved" | "changes_requested";
+            reason: string | null;
+            /** Format: date-time */
+            submittedAt: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+        };
+        SubmitAdminReviewResponse: {
+            data: components["schemas"]["AdminContentReview"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        SubmitAdminReviewInput: {
+            /** @enum {string} */
+            collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+            id: string;
+            expectedVersion: number;
+        };
+        ApproveAdminReviewResponse: {
+            data: {
+                review: components["schemas"]["AdminContentReview"];
+                workflow: components["schemas"]["AdminContentWorkflow"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminContentWorkflow: {
+            entityType: string;
+            entityId: string;
+            /** @enum {string} */
+            state: "draft" | "translation_pending" | "review_pending" | "changes_requested" | "approved" | "scheduled" | "published" | "archived";
+            ownerId: string | null;
+            version: number;
+            /** Format: date-time */
+            submittedAt: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        ApproveAdminReviewInput: {
+            expectedVersion: number;
+        };
+        RejectAdminReviewResponse: {
+            data: {
+                review: components["schemas"]["AdminContentReview"];
+                workflow: components["schemas"]["AdminContentWorkflow"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        RejectAdminReviewInput: {
+            expectedVersion: number;
+            reason: string;
         };
         AdminMediaListResponse: {
             data: components["schemas"]["AdminMediaAsset"][];
@@ -756,6 +1622,37 @@ export interface components {
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
             requestId: string;
         };
+        AdminAuditEventsResponse: {
+            data: {
+                items: components["schemas"]["AdminAuditEvent"][];
+                page: number;
+                pageSize: number;
+                total: number;
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminAuditEvent: {
+            id: string;
+            actorId: string;
+            action: string;
+            entityType: string;
+            entityId: string;
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string | null;
+        };
+        AdminAuditEventResponse: {
+            data: components["schemas"]["AdminAuditEvent"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
         PublicHomeEnvelope: {
             data: components["schemas"]["PublicHome"];
             /** @enum {object|null} */
@@ -839,6 +1736,26 @@ export interface components {
         PublicCollection: "services" | "trade-lanes" | "special-cargo" | "insights" | "case-studies" | "pages";
         PublicItemEnvelope: {
             data: components["schemas"]["PublicContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        PublicPreviewResponse: {
+            data: {
+                snapshotId: string;
+                home: components["schemas"]["PublicHome"];
+                collections: {
+                    services: components["schemas"]["PublicContentItem"][];
+                    "trade-lanes": components["schemas"]["PublicContentItem"][];
+                    "special-cargo": components["schemas"]["PublicContentItem"][];
+                    insights: components["schemas"]["PublicContentItem"][];
+                    "case-studies": components["schemas"]["PublicContentItem"][];
+                    pages: components["schemas"]["PublicContentItem"][];
+                };
+                /** Format: date-time */
+                expiresAt: string | null;
+            };
             /** @enum {object|null} */
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
@@ -945,6 +1862,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenResponse"];
+                };
+            };
+        };
+    };
+    getAdminDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Real operational summary for the authenticated employee. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -1123,6 +2069,412 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminBackups: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 备份运行历史 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminBackupRun"][];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无系统设置权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份配置或运行状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份运行或验证失败 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    runAdminBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 备份已完成 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminBackupRun"];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无系统设置权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份记录不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份配置或运行状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份运行或验证失败 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    verifyAdminBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 备份已在隔离目录验证 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminBackupRun"];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无系统设置权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份记录不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份配置或运行状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份运行或验证失败 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    stageAdminBackupRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已准备经过验证的离线恢复包 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminBackupRun"];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无系统设置权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份记录不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份配置或运行状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 备份运行或验证失败 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
                 };
             };
         };
@@ -1674,6 +3026,1455 @@ export interface operations {
             };
         };
     };
+    generateAdminContentTranslations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateAdminTranslationsInput"];
+            };
+        };
+        responses: {
+            /** @description Generated editable translation drafts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateAdminTranslationsResponse"];
+                };
+            };
+            /** @description Chinese source content is incomplete. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content write permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminTranslationJobs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Translation generation jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTranslationJobsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content read permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminPreviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview snapshot history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPreviewsResponse"];
+                };
+            };
+        };
+    };
+    createAdminPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description Immutable preview snapshot and one-time raw share token. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAdminPreviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Preview creation permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revokeAdminPreviewToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview token revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAdminPreviewResponse"];
+                };
+            };
+        };
+    };
+    publishAdminPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedHash: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已按确认的快照版本原子发布 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishAdminPreviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content publish permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Snapshot is stale, expired, or not publishable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    scheduleAdminPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedHash: string;
+                    /** Format: date-time */
+                    scheduledAt: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已安排不可变预览快照定时发布 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleAdminPreviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content publish permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Snapshot cannot be scheduled. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancelAdminPreviewSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已取消预览快照定时发布 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelAdminPreviewScheduleResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content publish permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Snapshot has no cancellable schedule. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminReviews: {
+        parameters: {
+            query?: {
+                decision?: "pending" | "approved" | "changes_requested";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Content review queue. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReviewsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submitAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Content submitted for review. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmitAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    approveAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Review approved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rejectAdminContentReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectAdminReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Changes requested. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectAdminReviewResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Workflow version or state conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminInquiries: {
+        parameters: {
+            query?: {
+                status?: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                priority?: "low" | "normal" | "high" | "urgent";
+                assigneeId?: string;
+                search?: string;
+                from?: number | null;
+                to?: number | null;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    listAdminInquiryAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 可分配的启用员工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            /** Format: email */
+                            email: string;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    exportAdminInquiries: {
+        parameters: {
+            query?: {
+                status?: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                priority?: "low" | "normal" | "high" | "urgent";
+                assigneeId?: string;
+                search?: string;
+                from?: number | null;
+                to?: number | null;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘 CSV 文件 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                            notes: {
+                                id: string;
+                                inquiryId: string;
+                                authorId: string;
+                                body: string;
+                                createdAt: number;
+                            }[];
+                            history: {
+                                id: string;
+                                inquiryId: string;
+                                actorId: string | null;
+                                assigneeId: string | null;
+                                fromStatus: string | null;
+                                toStatus: string;
+                                createdAt: number;
+                            }[];
+                            notifications: {
+                                id: string;
+                                inquiryId: string;
+                                status: string;
+                                attempts: number;
+                                nextAttemptAt: number;
+                                workerId: string | null;
+                                claimedAt: number | null;
+                                sentAt: number | null;
+                                lastError: string | null;
+                                idempotencyKey: string;
+                            }[];
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    assignAdminInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    assigneeId: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateAdminInquiryPriority: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    priority: "low" | "normal" | "high" | "urgent";
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateAdminInquiryStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    addAdminInquiryNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            inquiryId: string;
+                            authorId: string;
+                            body: string;
+                            createdAt: number;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    retryAdminInquiryNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 通知已重新排队 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            inquiryId: string;
+                            status: string;
+                            attempts: number;
+                            nextAttemptAt: number;
+                            workerId: string | null;
+                            claimedAt: number | null;
+                            sentAt: number | null;
+                            lastError: string | null;
+                            idempotencyKey: string;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 通知不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 通知当前不可重试 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
     listAdminMedia: {
         parameters: {
             query?: never;
@@ -2068,6 +4869,675 @@ export interface operations {
             };
         };
     };
+    listStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            email: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            createdAt: string | null;
+                            roles: string | null;
+                            roleIds: string[];
+                            roleNames: string[];
+                            isSuperAdmin: boolean;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    getStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            email: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            createdAt: string | null;
+                            roles: {
+                                id: string;
+                                name: string;
+                            }[];
+                            isSuperAdmin: boolean;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    listStaffRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 角色模板 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            permissions: string[];
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    disableStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工状态已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工状态受保护 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    enableStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工状态已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工状态受保护 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateStaffRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    roleIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description 员工角色已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 角色修改受保护 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    revokeStaffSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 员工会话已撤销 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            updated: true;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 会话撤销受保护 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    listAdminAuditEvents: {
+        parameters: {
+            query?: {
+                actorId?: string;
+                action?: string;
+                entityType?: string;
+                entityId?: string;
+                from?: string;
+                to?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered audit history with sensitive detail redacted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Audit permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getAdminAuditEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redacted audit event detail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventResponse"];
+                };
+            };
+            /** @description Audit event not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getPublicHome: {
         parameters: {
             query?: never;
@@ -2183,6 +5653,38 @@ export interface operations {
                 };
             };
             /** @description No published item exists in the requested locale. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getPublicPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                locale: components["schemas"]["PublicLocale"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One locale from an immutable preview snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPreviewResponse"];
+                };
+            };
+            /** @description Preview expired, revoked, or missing. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -10,6 +10,7 @@ import {
   errorEnvelopeSchema,
 } from "../../content/public-contract.js";
 import type { AppEnv } from "../../http/context.js";
+import { workflowStates } from "../../db/schema/workflow.js";
 import {
   adminContentCollectionSchema,
   adminContentIdSchema,
@@ -62,7 +63,7 @@ const AdminContentTranslationSchema = AdminTranslationInputSchema.extend({
   updatedAt: z.string().datetime(),
 }).openapi("AdminContentTranslation");
 
-const AdminContentItemSchema = z
+export const AdminContentItemSchema = z
   .object({
     id: adminContentIdSchema,
     code: z.string(),
@@ -79,6 +80,13 @@ const AdminContentItemSchema = z
         ru: AdminContentTranslationSchema.optional(),
       })
       .strict(),
+    workflow: z.object({
+      state: z.enum(workflowStates),
+      ownerId: z.string().nullable(),
+      version: z.number().int().positive(),
+      submittedAt: z.string().datetime().nullable(),
+      updatedAt: z.string().datetime(),
+    }).strict(),
   })
   .openapi("AdminContentItem");
 
@@ -460,53 +468,21 @@ export function registerContentRoutes(
   });
 
   app.openapi(publishRoute, async (context) => {
-    const { collection, id, locale } = context.req.valid("param");
-    const input = context.req.valid("json");
-    try {
-      return context.json(
-        successEnvelope(
-          context,
-          await dependencies.contentRepository.publish(
-            collection,
-            id,
-            locale,
-            input,
-            actorId(context),
-          ),
-        ),
-        200,
-      );
-    } catch (error) {
-      if (!(error instanceof ContentRepositoryError)) throw error;
-      return error.code === "CONTENT_NOT_FOUND"
-        ? context.json(contentErrorEnvelope(context, error), 404)
-        : context.json(contentErrorEnvelope(context, error), 409);
-    }
+    return context.json(
+      {
+        data: null,
+        error: {
+          code: "SNAPSHOT_PUBLISH_REQUIRED",
+          message: "请在“预览与发布”中检查三语页面后发布已审核版本",
+        },
+        requestId: context.get("requestId"),
+      },
+      409,
+    );
   });
 
   app.openapi(scheduleRoute, async (context) => {
-    const { collection, id, locale } = context.req.valid("param");
-    const input = context.req.valid("json");
-    try {
-      return context.json(
-        successEnvelope(
-          context,
-          await dependencies.contentRepository.schedule(
-            collection,
-            id,
-            locale,
-            input,
-            actorId(context),
-          ),
-        ),
-        200,
-      );
-    } catch (error) {
-      if (!(error instanceof ContentRepositoryError)) throw error;
-      return error.code === "CONTENT_NOT_FOUND"
-        ? context.json(contentErrorEnvelope(context, error), 404)
-        : context.json(contentErrorEnvelope(context, error), 409);
-    }
+    return context.json({ data: null, error: { code: "SNAPSHOT_SCHEDULE_REQUIRED", message: "请在“预览与发布”中为整站预览快照设置定时发布" }, requestId: context.get("requestId") }, 409);
   });
 
   app.openapi(verificationRoute, async (context) => {
