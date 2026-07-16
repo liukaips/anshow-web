@@ -15,6 +15,7 @@ import {
 } from "./admin/routes/media.js";
 import { registerStaffRoutes } from "./admin/routes/staff.js";
 import type { StaffRepository } from "./admin/repositories/staff-repository.js";
+import { registerAuditRoutes, type AuditRouteDependencies } from "./admin/routes/audit.js";
 import {
   errorEnvelopeSchema,
   requestIdSchema,
@@ -126,6 +127,7 @@ function errorDiagnostic(error: unknown) {
 export type AppDependencies = AdminSessionDependencies &
   SettingsRouteDependencies &
   ContentRouteDependencies & {
+    auditRepository: AuditRouteDependencies["auditRepository"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -134,6 +136,10 @@ export type AppDependencies = AdminSessionDependencies &
   };
 
 const defaultDependencies: AppDependencies = {
+  auditRepository: {
+    list: () => ({ items: [], page: 1, pageSize: 20, total: 0 }),
+    detail: () => null,
+  },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
   },
@@ -274,6 +280,7 @@ export function createApp(
   registerContentRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
   registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
+  registerAuditRoutes(app, resolvedDependencies);
   registerPublicContentRoutes(app, resolvedDependencies.publicContentRepository);
 
   app.onError((error, context) => {
