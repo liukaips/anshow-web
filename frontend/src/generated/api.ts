@@ -324,6 +324,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/inquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminInquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["exportAdminInquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminInquiry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assignAdminInquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateAdminInquiryPriority"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateAdminInquiryStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addAdminInquiryNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/inquiries/{id}/notifications/{deliveryId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retryAdminInquiryNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media": {
         parameters: {
             query?: never;
@@ -2592,6 +2720,848 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminInquiries: {
+        parameters: {
+            query?: {
+                status?: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                priority?: "low" | "normal" | "high" | "urgent";
+                assigneeId?: string;
+                search?: string;
+                from?: number | null;
+                to?: number | null;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        }[];
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    exportAdminInquiries: {
+        parameters: {
+            query?: {
+                status?: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                priority?: "low" | "normal" | "high" | "urgent";
+                assigneeId?: string;
+                search?: string;
+                from?: number | null;
+                to?: number | null;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘 CSV 文件 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    getAdminInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 询盘详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                            notes: {
+                                id: string;
+                                inquiryId: string;
+                                authorId: string;
+                                body: string;
+                                createdAt: number;
+                            }[];
+                            history: {
+                                id: string;
+                                inquiryId: string;
+                                actorId: string | null;
+                                assigneeId: string | null;
+                                fromStatus: string | null;
+                                toStatus: string;
+                                createdAt: number;
+                            }[];
+                            notifications: {
+                                id: string;
+                                inquiryId: string;
+                                status: string;
+                                attempts: number;
+                                nextAttemptAt: number;
+                                workerId: string | null;
+                                claimedAt: number | null;
+                                sentAt: number | null;
+                                lastError: string | null;
+                                idempotencyKey: string;
+                            }[];
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    assignAdminInquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    assigneeId: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateAdminInquiryPriority: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    priority: "low" | "normal" | "high" | "urgent";
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateAdminInquiryStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            company: string;
+                            email: string;
+                            phone: string;
+                            transportNeed: string;
+                            message: string;
+                            locale: string;
+                            sourceUrl: string;
+                            referrer: string | null;
+                            utmSource: string | null;
+                            utmMedium: string | null;
+                            utmCampaign: string | null;
+                            privacyVersion: string;
+                            consentedAt: number;
+                            assigneeId: string | null;
+                            /** @enum {string} */
+                            priority: "low" | "normal" | "high" | "urgent";
+                            /** @enum {string} */
+                            status: "new" | "pending_follow_up" | "in_progress" | "waiting_customer" | "completed" | "closed" | "spam";
+                            createdAt: number;
+                            updatedAt: number;
+                            closedAt: number | null;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    addAdminInquiryNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 询盘已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            inquiryId: string;
+                            authorId: string;
+                            body: string;
+                            createdAt: number;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 询盘当前状态不允许此操作 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    retryAdminInquiryNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 通知已重新排队 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            inquiryId: string;
+                            status: string;
+                            attempts: number;
+                            nextAttemptAt: number;
+                            workerId: string | null;
+                            claimedAt: number | null;
+                            sentAt: number | null;
+                            lastError: string | null;
+                            idempotencyKey: string;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无询盘操作权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 通知不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 通知当前不可重试 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
                 };
             };
         };

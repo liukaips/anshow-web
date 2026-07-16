@@ -1,12 +1,6 @@
-export const INQUIRY_STATUSES = [
-  "new",
-  "pending_follow_up",
-  "in_progress",
-  "waiting_customer",
-  "completed",
-  "closed",
-  "spam",
-] as const;
+import { inquiryStatuses } from "../db/schema/inquiries.js";
+
+export const INQUIRY_STATUSES = inquiryStatuses;
 
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 

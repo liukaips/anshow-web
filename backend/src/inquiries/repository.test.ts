@@ -22,6 +22,7 @@ describe("inquiry repository operations", () => {
     try {
       const repository = createInquiryRepository(context.db);
       const created = repository.createWithNotification(input);
+      expect(created).toMatchObject({ priority: "normal", updatedAt: expect.any(Number), closedAt: null });
       expect(repository.assign(created.id, "staff-2", "staff-1").assigneeId).toBe("staff-2");
       expect(repository.updateStatus(created.id, "in_progress", "staff-2").status).toBe("in_progress");
       expect(repository.addNote(created.id, "staff-2", "已电话联系客户").body).toBe("已电话联系客户");

@@ -19,6 +19,7 @@ import { registerAuditRoutes, type AuditRouteDependencies } from "./admin/routes
 import { registerTranslationRoutes, type TranslationRouteDependencies } from "./admin/routes/translation.js";
 import { registerPreviewRoutes, type PreviewRouteDependencies } from "./admin/routes/previews.js";
 import { registerReviewRoutes, type ReviewRouteDependencies } from "./admin/routes/reviews.js";
+import { registerInquiryRoutes, type InquiryRouteDependencies } from "./admin/routes/inquiries.js";
 import { registerPublicPreviewRoutes } from "./public/preview-routes.js";
 import {
   errorEnvelopeSchema,
@@ -135,6 +136,7 @@ export type AppDependencies = AdminSessionDependencies &
     translationService: TranslationRouteDependencies["translationService"];
     previewService: PreviewRouteDependencies["previewService"];
     reviewRepository: ReviewRouteDependencies["reviewRepository"];
+    inquiryRepository: InquiryRouteDependencies["inquiryRepository"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -163,6 +165,16 @@ const defaultDependencies: AppDependencies = {
     approve: () => { throw new Error("Review repository is not configured"); },
     reject: () => { throw new Error("Review repository is not configured"); },
     workflow: () => undefined,
+  },
+  inquiryRepository: {
+    list: () => [],
+    detail: () => null,
+    assign: () => { throw new Error("Inquiry repository is not configured"); },
+    setPriority: () => { throw new Error("Inquiry repository is not configured"); },
+    transition: () => { throw new Error("Inquiry repository is not configured"); },
+    addNote: () => { throw new Error("Inquiry repository is not configured"); },
+    retryNotification: () => { throw new Error("Inquiry repository is not configured"); },
+    exportCsv: () => "",
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -310,6 +322,7 @@ export function createApp(
   registerTranslationRoutes(app, resolvedDependencies);
   registerPreviewRoutes(app, resolvedDependencies);
   registerReviewRoutes(app, resolvedDependencies);
+  registerInquiryRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
   registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
   registerAuditRoutes(app, resolvedDependencies);
