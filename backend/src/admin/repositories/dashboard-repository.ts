@@ -5,6 +5,7 @@ import {
   eq,
   gte,
   inArray,
+  sql,
   notInArray,
 } from "drizzle-orm";
 
@@ -99,10 +100,22 @@ export function createDashboardRepository(
         .where(eq(contentWorkflow.state, "review_pending"))
         .get()?.value ?? 0;
       const translationPending = database
-        .select({ value: count() })
+        .select({
+          entityType: translationJobs.entityType,
+          entityId: translationJobs.entityId,
+        })
         .from(translationJobs)
+        .innerJoin(
+          contentWorkflow,
+          and(
+            eq(contentWorkflow.entityType, translationJobs.entityType),
+            eq(contentWorkflow.entityId, translationJobs.entityId),
+            eq(contentWorkflow.version, translationJobs.sourceVersion),
+          ),
+        )
         .where(inArray(translationJobs.status, pendingTranslationStatuses))
-        .get()?.value ?? 0;
+        .groupBy(translationJobs.entityType, translationJobs.entityId)
+        .all().length;
       const weekStart = startOfShanghaiWeek(now());
       const publishedThisWeek = publicationTables.reduce(
         (total, table) =>
@@ -130,7 +143,10 @@ export function createDashboardRepository(
             notInArray(inquiries.status, terminalInquiryStatuses),
           ),
         )
-        .orderBy(desc(inquiries.priority), desc(inquiries.updatedAt))
+        .orderBy(
+          desc(sql<number>`case ${inquiries.priority} when 'urgent' then 4 when 'high' then 3 when 'normal' then 2 else 1 end`),
+          desc(inquiries.updatedAt),
+        )
         .limit(10)
         .all();
       const reviewTasks = database
@@ -155,6 +171,14 @@ export function createDashboardRepository(
       const failedTranslations = database
         .select({ value: count() })
         .from(translationJobs)
+        .innerJoin(
+          contentWorkflow,
+          and(
+            eq(contentWorkflow.entityType, translationJobs.entityType),
+            eq(contentWorkflow.entityId, translationJobs.entityId),
+            eq(contentWorkflow.version, translationJobs.sourceVersion),
+          ),
+        )
         .where(eq(translationJobs.status, "failed"))
         .get()?.value ?? 0;
       const failedNotifications = database

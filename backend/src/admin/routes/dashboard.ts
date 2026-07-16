@@ -109,7 +109,20 @@ export function registerDashboardRoutes(
         401,
       );
     }
-    const permissions = await dependencies.getPermissions(session.user.id);
+    let permissions: readonly PermissionKey[];
+    try {
+      permissions = await dependencies.getPermissions(session.user.id);
+    } catch (error) {
+      console.error({
+        event: "dashboard.permissions_unavailable",
+        requestId: context.get("requestId"),
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return context.json(
+        { data: unavailableSummary, error: null, requestId: context.get("requestId") },
+        200,
+      );
+    }
     context.set("actor", {
       user: session.user,
       permissions: [...permissions],
@@ -123,7 +136,12 @@ export function registerDashboardRoutes(
     try {
       await dependencies.checkReadiness();
       summary = dependencies.dashboardRepository.summary(actor.user.id);
-    } catch {
+    } catch (error) {
+      console.error({
+        event: "dashboard.summary_unavailable",
+        requestId: context.get("requestId"),
+        error: error instanceof Error ? error.message : String(error),
+      });
       return context.json(
         {
           data: unavailableSummary,

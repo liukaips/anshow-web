@@ -16,6 +16,63 @@ import { createDashboardRepository } from "./dashboard-repository.js";
 const now = new Date("2026-07-16T04:00:00.000Z");
 
 describe("dashboard repository", () => {
+  it("orders assigned inquiries by business priority rather than text", () => {
+    const context = createTestDatabase();
+    try {
+      const rows = (["low", "normal", "high", "urgent"] as const).map((priority, index) => ({
+        id: `priority-${priority}`,
+        name: priority,
+        company: "Priority Co",
+        email: `${priority}@example.test`,
+        phone: "",
+        transportNeed: "rail",
+        message: "priority order",
+        locale: "en" as const,
+        sourceUrl: "/en/quote",
+        privacyVersion: "2026-01",
+        consentedAt: now.getTime(),
+        assigneeId: "staff-1",
+        priority,
+        status: "in_progress" as const,
+        createdAt: now.getTime(),
+        updatedAt: now.getTime() + index,
+      }));
+      context.db.insert(inquiries).values(rows).run();
+
+      expect(
+        createDashboardRepository(context.db, { now: () => now })
+          .summary("staff-1")
+          .tasks.inquiries.map((item) => item.priority),
+      ).toEqual(["urgent", "high", "normal", "low"]);
+    } finally {
+      context.close();
+    }
+  });
+
+  it("counts current translation work once per content item and ignores stale failures", () => {
+    const context = createTestDatabase();
+    try {
+      context.db.insert(contentWorkflow).values({
+        entityType: "services",
+        entityId: "service-1",
+        state: "translation_pending",
+        version: 2,
+        updatedAt: now,
+      }).run();
+      context.db.insert(translationJobs).values([
+        { id: "current-en", entityType: "services", entityId: "service-1", sourceVersion: 2, targetLocale: "en", status: "queued", createdAt: now, updatedAt: now },
+        { id: "current-ru", entityType: "services", entityId: "service-1", sourceVersion: 2, targetLocale: "ru", status: "running", createdAt: now, updatedAt: now },
+        { id: "stale-failed", entityType: "services", entityId: "service-1", sourceVersion: 1, targetLocale: "en", status: "failed", createdAt: now, updatedAt: now },
+      ]).run();
+
+      expect(
+        createDashboardRepository(context.db, { now: () => now }).summary("staff-1"),
+      ).toMatchObject({ translationPending: 1, systemHealth: "normal" });
+    } finally {
+      context.close();
+    }
+  });
+
   it("summarizes real operations and returns the current employee's tasks", () => {
     const context = createTestDatabase();
     try {
@@ -158,6 +215,13 @@ describe("dashboard repository", () => {
       const context = createTestDatabase();
       try {
         if (failedOperation === "translation") {
+          context.db.insert(contentWorkflow).values({
+            entityType: "services",
+            entityId: "service-1",
+            state: "translation_pending",
+            version: 1,
+            updatedAt: now,
+          }).run();
           context.db.insert(translationJobs).values({
             id: "translation-failed",
             entityType: "services",

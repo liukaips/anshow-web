@@ -122,4 +122,23 @@ describe("admin dashboard route", () => {
       systemHealth: "unavailable",
     });
   });
+
+  it("returns an unavailable summary when permission lookup fails", async () => {
+    const app = createApp({
+      checkReadiness: () => undefined,
+      dashboardRepository: { summary: vi.fn(() => dashboardSummary) } as DashboardRepository,
+      getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }),
+      getPermissions: () => { throw new Error("permission database unavailable"); },
+    });
+
+    const response = await app.request("/api/admin/dashboard");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: {
+        tasks: { inquiries: [], reviews: [] },
+        recentAuditEvents: [],
+        systemHealth: "unavailable",
+      },
+    });
+  });
 });
