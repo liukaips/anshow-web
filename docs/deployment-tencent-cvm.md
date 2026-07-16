@@ -131,7 +131,13 @@ docker run --rm \
   alpine sh -eu -c '
     test -f "/restore/.staging/restore-${RUN_ID}/anshow.db"
     cp -a /data/anshow.db "/data/anshow.db.pre-restore"
+    for suffix in -wal -shm; do
+      if [ -f "/data/anshow.db${suffix}" ]; then
+        cp -a "/data/anshow.db${suffix}" "/data/anshow.db${suffix}.pre-restore"
+      fi
+    done
     tar -czf /data/media.pre-restore.tgz -C /media .
+    rm -f /data/anshow.db-wal /data/anshow.db-shm
     cp "/restore/.staging/restore-${RUN_ID}/anshow.db" /data/anshow.db
     if [ -d "/restore/.staging/restore-${RUN_ID}/media" ]; then
       rm -rf /media/*
@@ -148,7 +154,7 @@ curl -fsS "https://${SITE_HOST}/api/health/ready"
 unset RUN_ID
 ```
 
-确认网站、Admin、图片和关键内容正常后，再删除 `anshow.db.pre-restore` 和 `media.pre-restore.tgz`。如需回滚，停止 `frontend/backend/worker`，恢复这两个文件后重新启动。
+确认网站、Admin、图片和关键内容正常后，再删除 `anshow.db.pre-restore`、可能存在的 `anshow.db-wal.pre-restore` / `anshow.db-shm.pre-restore` 和 `media.pre-restore.tgz`。如需回滚，停止 `frontend/backend/worker`，删除当前 `anshow.db-wal` / `anshow.db-shm`，恢复主数据库、对应的 WAL/SHM 回滚文件和媒体压缩包后重新启动。
 
 ## 7. 更新发布
 
