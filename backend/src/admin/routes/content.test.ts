@@ -215,14 +215,11 @@ describe("administration content routes", () => {
         translationInput,
       ),
     );
-    expect(publishResponse.status).toBe(200);
-    expect(repository.publish).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "ru",
-      translationInput,
-      "staff-1",
-    );
+    expect(publishResponse.status).toBe(409);
+    expect(await publishResponse.json()).toMatchObject({
+      error: { code: "SNAPSHOT_PUBLISH_REQUIRED" },
+    });
+    expect(repository.publish).not.toHaveBeenCalled();
 
     const archiveResponse = await app.request(
       jsonRequest(
@@ -314,7 +311,7 @@ describe("administration content routes", () => {
     });
   });
 
-  it("returns the exact proof conflict from the publish endpoint", async () => {
+  it("requires proof content to use the reviewed snapshot publish flow", async () => {
     const repository = createFakeRepository();
     repository.publish.mockRejectedValueOnce(
       new ContentRepositoryError(
@@ -335,12 +332,13 @@ describe("administration content routes", () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({
       data: null,
-      error: { code: "PROOF_NOT_VERIFIED" },
+      error: { code: "SNAPSHOT_PUBLISH_REQUIRED" },
       requestId: response.headers.get("x-request-id"),
     });
+    expect(repository.publish).not.toHaveBeenCalled();
   });
 
-  it("allows a content.publish-only actor to publish submitted content", async () => {
+  it("rejects direct publication even for a content.publish actor", async () => {
     const repository = createFakeRepository();
     const app = createAuthorizedApp(repository, ["content.publish"]);
 
@@ -352,14 +350,9 @@ describe("administration content routes", () => {
       ),
     );
 
-    expect(response.status).toBe(200);
-    expect(repository.publish).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "en",
-      translationInput,
-      "staff-1",
-    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: "SNAPSHOT_PUBLISH_REQUIRED" } });
+    expect(repository.publish).not.toHaveBeenCalled();
     expect(repository.saveDraft).not.toHaveBeenCalled();
   });
 

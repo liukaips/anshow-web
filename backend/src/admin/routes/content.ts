@@ -468,28 +468,17 @@ export function registerContentRoutes(
   });
 
   app.openapi(publishRoute, async (context) => {
-    const { collection, id, locale } = context.req.valid("param");
-    const input = context.req.valid("json");
-    try {
-      return context.json(
-        successEnvelope(
-          context,
-          await dependencies.contentRepository.publish(
-            collection,
-            id,
-            locale,
-            input,
-            actorId(context),
-          ),
-        ),
-        200,
-      );
-    } catch (error) {
-      if (!(error instanceof ContentRepositoryError)) throw error;
-      return error.code === "CONTENT_NOT_FOUND"
-        ? context.json(contentErrorEnvelope(context, error), 404)
-        : context.json(contentErrorEnvelope(context, error), 409);
-    }
+    return context.json(
+      {
+        data: null,
+        error: {
+          code: "SNAPSHOT_PUBLISH_REQUIRED",
+          message: "请在“预览与发布”中检查三语页面后发布已审核版本",
+        },
+        requestId: context.get("requestId"),
+      },
+      409,
+    );
   });
 
   app.openapi(scheduleRoute, async (context) => {
