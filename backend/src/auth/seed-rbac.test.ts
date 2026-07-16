@@ -11,6 +11,29 @@ import { PERMISSION_KEYS } from "./permissions.js";
 import { ROLE_PRESETS, roleIdForName, seedRbac } from "./seed-rbac.js";
 
 describe("RBAC presets", () => {
+  it("grants workflow capabilities according to operational responsibility", () => {
+    expect(ROLE_PRESETS["Content Editor"]).toEqual(
+      expect.arrayContaining(["content.submit", "preview.create"]),
+    );
+    expect(ROLE_PRESETS["Content Editor"]).not.toContain("content.review");
+    expect(ROLE_PRESETS["Content Reviewer"]).toEqual(
+      expect.arrayContaining([
+        "content.review",
+        "preview.create",
+        "preview.share",
+        "preview.revoke",
+      ]),
+    );
+    expect(ROLE_PRESETS["System Administrator"]).toEqual(
+      expect.arrayContaining([
+        "staff.manage",
+        "settings.manage",
+        "audit.read",
+      ]),
+    );
+    expect(ROLE_PRESETS["Super Administrator"]).toEqual(PERMISSION_KEYS);
+  });
+
   it("seeds every role and permission idempotently", () => {
     const testDatabase = createTestDatabase();
 

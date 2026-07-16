@@ -1,7 +1,12 @@
 export const PERMISSION_KEYS = [
   "content.read",
   "content.write",
+  "content.submit",
+  "content.review",
   "content.publish",
+  "preview.create",
+  "preview.share",
+  "preview.revoke",
   "media.read",
   "media.write",
   "inquiry.read",

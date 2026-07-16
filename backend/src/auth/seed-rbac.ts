@@ -15,15 +15,30 @@ export const ROLE_PRESETS: Readonly<
   Publisher: [
     "content.read",
     "content.write",
+    "content.submit",
+    "content.review",
     "content.publish",
+    "preview.create",
+    "preview.share",
+    "preview.revoke",
     "media.read",
     "media.write",
   ],
   "Content Editor": [
     "content.read",
     "content.write",
+    "content.submit",
+    "preview.create",
     "media.read",
     "media.write",
+  ],
+  "Content Reviewer": [
+    "content.read",
+    "content.review",
+    "preview.create",
+    "preview.share",
+    "preview.revoke",
+    "media.read",
   ],
   Sales: [
     "inquiry.read",
@@ -34,6 +49,14 @@ export const ROLE_PRESETS: Readonly<
     "inquiry.export",
   ],
   Viewer: ["content.read", "media.read", "inquiry.read", "audit.read"],
+  "System Administrator": [
+    "content.read",
+    "media.read",
+    "inquiry.read",
+    "staff.manage",
+    "settings.manage",
+    "audit.read",
+  ],
 };
 
 export function roleIdForName(name: string): string {
