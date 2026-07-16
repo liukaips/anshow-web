@@ -28,6 +28,13 @@ import {
   requestAdminNavigation,
 } from "./admin-navigation";
 import { LocaleTabs } from "./locale-tabs";
+import { AdvancedSettings } from "./content/editor/advanced-settings";
+import { ChineseContentStep } from "./content/editor/chinese-content-step";
+import {
+  firstContentErrorField,
+  validatePublishableContent,
+  type TranslationField,
+} from "./content/editor/content-validation";
 
 type ContentEditorProps = {
   canPublish: boolean;
@@ -36,7 +43,6 @@ type ContentEditorProps = {
   initialItem: AdminContentItem;
 };
 
-type TranslationField = keyof AdminContentTranslationInput;
 type EditorField = TranslationField | "scheduledAt";
 type FieldErrors = Partial<Record<EditorField, string>>;
 type Command = "archive" | "publish" | "save" | "schedule" | "verification";
@@ -115,28 +121,19 @@ function itemScheduleDrafts(item: AdminContentItem) {
 }
 
 function publishErrors(input: AdminContentTranslationInput): FieldErrors {
-  const errors: FieldErrors = {};
-  for (const field of Object.keys(fieldLabels) as TranslationField[]) {
-    if (!input[field].trim()) {
-      errors[field] = `发布前必须填写${fieldLabels[field]}。`;
-    }
-  }
-  if (input.slug && !/^[a-z0-9-]+$/.test(input.slug)) {
-    errors.slug = "Slug must use lowercase letters, numbers, and hyphens.";
-  }
-  if (input.seoTitle.length > 60) {
-    errors.seoTitle = "SEO title must be 60 characters or fewer.";
-  }
-  if (input.seoDescription.length > 160) {
-    errors.seoDescription = "SEO description must be 160 characters or fewer.";
-  }
-  return errors;
+  const errors = validatePublishableContent(input);
+  return Object.fromEntries(
+    Object.entries(errors).map(([field, message]) => [
+      field,
+      field === "title" || field === "summary" || field === "body" || field === "altText"
+        ? `发布前必须填写${fieldLabels[field as TranslationField]}。`
+        : message,
+    ]),
+  ) as FieldErrors;
 }
 
 function firstErrorField(errors: FieldErrors): TranslationField | undefined {
-  return (Object.keys(fieldLabels) as TranslationField[]).find(
-    (field) => errors[field],
-  );
+  return firstContentErrorField(errors);
 }
 
 function commandMessage(error: unknown): string {
@@ -578,77 +575,19 @@ export function ContentEditor({
           </a>
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-          <Field
+        <div className="grid min-w-0 grid-cols-1 gap-5">
+          <ChineseContentStep
             disabled={fieldsDisabled}
-            error={errors.title}
-            field="title"
-            label="标题"
+            errors={errors}
             onChange={updateField}
-            value={activeDraft.title}
+            value={activeDraft}
           />
-          <Field
+          <AdvancedSettings
             disabled={fieldsDisabled}
-            error={errors.slug}
-            field="slug"
-            label="别名"
+            errors={errors}
             onChange={updateField}
-            value={activeDraft.slug}
+            value={activeDraft}
           />
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.summary}
-            field="summary"
-            label="摘要"
-            multiline
-            onChange={updateField}
-            value={activeDraft.summary}
-          />
-          <Field
-            disabled={fieldsDisabled}
-            error={errors.altText}
-            field="altText"
-            label="替代文本"
-            onChange={updateField}
-            value={activeDraft.altText}
-          />
-          <div className="min-w-0 lg:col-span-2">
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.body}
-              field="body"
-              label="正文"
-              multiline
-              onChange={updateField}
-              rows={10}
-              value={activeDraft.body}
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-neutral-200 pt-6">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">搜索元数据</h2>
-          <div className="mt-4 grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.seoTitle}
-              field="seoTitle"
-              label="SEO 标题"
-              maxLength={60}
-              onChange={updateField}
-              value={activeDraft.seoTitle}
-            />
-            <Field
-              disabled={fieldsDisabled}
-              error={errors.seoDescription}
-              field="seoDescription"
-              label="SEO 描述"
-              maxLength={160}
-              multiline
-              onChange={updateField}
-              value={activeDraft.seoDescription}
-            />
-          </div>
         </div>
 
         <div className="mt-8 border-t border-neutral-200 pt-6">
@@ -771,62 +710,6 @@ export function ContentEditor({
           {activeDraft.summary || "尚未填写摘要。"}
         </p>
       </section>
-    </div>
-  );
-}
-
-function Field({
-  disabled,
-  error,
-  field,
-  label,
-  maxLength,
-  multiline = false,
-  onChange,
-  rows = 3,
-  value,
-}: {
-  disabled: boolean;
-  error?: string;
-  field: TranslationField;
-  label: string;
-  maxLength?: number;
-  multiline?: boolean;
-  onChange: (field: TranslationField, value: string) => void;
-  rows?: number;
-  value: string;
-}) {
-  const inputId = `translation-${field}`;
-  const errorId = `${inputId}-error`;
-  const className = `mt-2 min-h-11 w-full rounded-[var(--radius-control)] border bg-white px-3 py-2 text-base text-[var(--color-text)] outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:ring-2 ${
-    error
-      ? "border-[var(--color-danger)] focus:ring-red-100"
-      : "border-neutral-300 focus:border-[var(--color-cyan-ink)] focus:ring-sky-100"
-  }`;
-  const shared = {
-    "aria-describedby": error ? errorId : undefined,
-    "aria-invalid": error ? (true as const) : undefined,
-    className,
-    disabled,
-    id: inputId,
-    maxLength,
-    onChange: (
-      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => onChange(field, event.target.value),
-    value,
-  };
-
-  return (
-    <div className="min-w-0">
-      <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor={inputId}>
-        {label}
-      </label>
-      {multiline ? <textarea {...shared} rows={rows} /> : <input {...shared} type="text" />}
-      {error ? (
-        <p className="mt-1 text-sm text-[var(--color-danger)]" id={errorId}>
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }
