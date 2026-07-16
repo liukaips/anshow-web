@@ -18,6 +18,9 @@ await initializeRuntime(process.env, async (environment) => {
     { createDrizzleContentStore },
     { createPublicRepository },
     { createStaffRepository },
+    { createTranslationProvider },
+    { createTranslationService },
+    { createAuditQueryRepository },
   ] = await Promise.all([
     import("./app.js"),
     import("./admin/repositories/content-repository.js"),
@@ -33,14 +36,31 @@ await initializeRuntime(process.env, async (environment) => {
     import("./content/drizzle-content-store.js"),
     import("./content/public-repository.js"),
     import("./admin/repositories/staff-repository.js"),
+    import("./translation/translation-provider.js"),
+    import("./translation/translation-service.js"),
+    import("./admin/repositories/audit-query-repository.js"),
   ]);
   const { auth, handleAuthRequest } = createAuthRuntime(db, environment);
+  const contentRepository = createContentRepository(db);
+  const translationService = environment.TRANSLATION_API_URL && environment.TRANSLATION_API_KEY && environment.TRANSLATION_MODEL
+    ? createTranslationService(
+        db,
+        contentRepository,
+        createTranslationProvider({
+          apiUrl: environment.TRANSLATION_API_URL,
+          apiKey: environment.TRANSLATION_API_KEY,
+          model: environment.TRANSLATION_MODEL,
+        }),
+      )
+    : undefined;
   const app = createApp({
     checkReadiness: createDatabaseReadinessCheck(db),
     getPermissions: (userId) => permissionsForUser(db, userId),
     getSession: (headers) => auth.api.getSession({ headers }),
     handleAuthRequest,
-    contentRepository: createContentRepository(db),
+    contentRepository,
+    ...(translationService ? { translationService } : {}),
+    auditRepository: createAuditQueryRepository(db),
     publicContentRepository: createPublicRepository(
       createDrizzleContentStore(db),
     ),

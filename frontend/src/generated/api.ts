@@ -196,6 +196,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/{collection}/{id}/translations/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateAdminContentTranslations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{collection}/{id}/translations/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminTranslationJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/media": {
         parameters: {
             query?: never;
@@ -791,6 +823,44 @@ export interface components {
         };
         ArchiveAdminContentResponse: {
             data: components["schemas"]["AdminContentItem"];
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        GenerateAdminTranslationsResponse: {
+            data: {
+                sourceVersion: number;
+                jobs: components["schemas"]["AdminTranslationJob"][];
+                item: components["schemas"]["AdminContentItem"];
+            };
+            /** @enum {object|null} */
+            error: never | null;
+            /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
+            requestId: string;
+        };
+        AdminTranslationJob: {
+            id: string;
+            entityType: string;
+            entityId: string;
+            sourceVersion: number;
+            /** @enum {string} */
+            targetLocale: "en" | "ru";
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed";
+            attempts: number;
+            lastError: string | null;
+            /** Format: date-time */
+            createdAt: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        GenerateAdminTranslationsInput: {
+            targets: ("en" | "ru")[];
+            sourceVersion?: number;
+        };
+        AdminTranslationJobsResponse: {
+            data: components["schemas"]["AdminTranslationJob"][];
             /** @enum {object|null} */
             error: never | null;
             /** @example 71ec11f9-4be5-4305-b164-a9c30ad6207c */
@@ -1851,6 +1921,101 @@ export interface operations {
             };
             /** @description The requested content state conflicts with publishing rules. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    generateAdminContentTranslations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateAdminTranslationsInput"];
+            };
+        };
+        responses: {
+            /** @description Generated editable translation drafts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateAdminTranslationsResponse"];
+                };
+            };
+            /** @description Chinese source content is incomplete. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content write permission required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAdminTranslationJobs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection: "pages" | "hero-slides" | "services" | "trade-lanes" | "cargo-types" | "case-studies" | "articles" | "partners" | "certificates" | "proof-metrics" | "navigation-items";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Translation generation jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTranslationJobsResponse"];
+                };
+            };
+            /** @description Authentication required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Content read permission required. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

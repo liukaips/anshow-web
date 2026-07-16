@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Eye,
   LoaderCircle,
+  Languages,
   Save,
   Send,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   archiveAdminContent,
+  generateAdminContentTranslations,
   publishAdminContentTranslation,
   saveAdminContentDraft,
   scheduleAdminContentTranslation,
@@ -45,7 +47,7 @@ type ContentEditorProps = {
 
 type EditorField = TranslationField | "scheduledAt";
 type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "publish" | "save" | "schedule" | "verification";
+type Command = "archive" | "publish" | "save" | "schedule" | "translate" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 const proofCollections: readonly ProofContentCollection[] = [
@@ -439,6 +441,29 @@ export function ContentEditor({
     }
   }
 
+  async function generateTranslations() {
+    if (dirty) {
+      setMessage({ kind: "error", text: "请先保存当前修改，再自动生成翻译。" });
+      return;
+    }
+    setPending("translate");
+    setMessage(null);
+    try {
+      const result = await generateAdminContentTranslations(collection, item.id, {
+        targets: ["en", "ru"],
+        sourceVersion: item.workflow.version,
+      });
+      setItem(result.item);
+      setDrafts(itemDrafts(result.item));
+      setScheduleDrafts(itemScheduleDrafts(result.item));
+      setMessage({ kind: "success", text: "英文和俄文草稿已生成，请检查后再提交审核。" });
+    } catch (error) {
+      handleCommandError(error);
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function publish() {
     if (!validatePublish()) return;
     setPending("publish");
@@ -566,6 +591,10 @@ export function ContentEditor({
               {activeDirty ? " · Unsaved changes" : ""}
             </p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          {canWrite ? (
+            <CommandButton disabled={pending !== null || dirty} icon={Languages} label="自动生成英文和俄文" onClick={generateTranslations} pending={pending === "translate"} />
+          ) : null}
           <a
             className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-neutral-300 bg-white px-4 text-sm font-semibold text-[var(--color-text)] transition-[background-color,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:bg-neutral-50"
             href="#content-preview"
@@ -573,6 +602,7 @@ export function ContentEditor({
             <Eye aria-hidden="true" className="size-4" />
             预览
           </a>
+          </div>
         </div>
 
         <div className="grid min-w-0 grid-cols-1 gap-5">

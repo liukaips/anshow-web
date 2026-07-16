@@ -1486,6 +1486,167 @@
           "requestId"
         ]
       },
+      "GenerateAdminTranslationsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "sourceVersion": {
+                "type": "number"
+              },
+              "jobs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminTranslationJob"
+                }
+              },
+              "item": {
+                "$ref": "#/components/schemas/AdminContentItem"
+              }
+            },
+            "required": [
+              "sourceVersion",
+              "jobs",
+              "item"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
+      "AdminTranslationJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "targetLocale": {
+            "type": "string",
+            "enum": [
+              "en",
+              "ru"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "entityType",
+          "entityId",
+          "sourceVersion",
+          "targetLocale",
+          "status",
+          "attempts",
+          "lastError",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "GenerateAdminTranslationsInput": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "en",
+                "ru"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 2
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "targets"
+        ],
+        "additionalProperties": false
+      },
+      "AdminTranslationJobsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTranslationJob"
+            }
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "example": "71ec11f9-4be5-4305-b164-a9c30ad6207c"
+          }
+        },
+        "required": [
+          "data",
+          "error",
+          "requestId"
+        ]
+      },
       "AdminMediaListResponse": {
         "type": "object",
         "properties": {
@@ -3509,6 +3670,190 @@
           },
           "409": {
             "description": "The requested content state conflicts with publishing rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/translations/generate": {
+      "post": {
+        "operationId": "generateAdminContentTranslations",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pages",
+                "hero-slides",
+                "services",
+                "trade-lanes",
+                "cargo-types",
+                "case-studies",
+                "articles",
+                "partners",
+                "certificates",
+                "proof-metrics",
+                "navigation-items"
+              ]
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateAdminTranslationsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated editable translation drafts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateAdminTranslationsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Chinese source content is incomplete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Content write permission required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/content/{collection}/{id}/translations/jobs": {
+      "get": {
+        "operationId": "listAdminTranslationJobs",
+        "tags": [
+          "Administration Content"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pages",
+                "hero-slides",
+                "services",
+                "trade-lanes",
+                "cargo-types",
+                "case-studies",
+                "articles",
+                "partners",
+                "certificates",
+                "proof-metrics",
+                "navigation-items"
+              ]
+            },
+            "required": true,
+            "name": "collection",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ]
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Translation generation jobs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTranslationJobsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Content read permission required.",
             "content": {
               "application/json": {
                 "schema": {

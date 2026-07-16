@@ -9,6 +9,7 @@ type DraftOperation = paths["/api/admin/content/{collection}/{id}/translations/{
 type PublishOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/publish"]["post"];
 type ScheduleOperation = paths["/api/admin/content/{collection}/{id}/translations/{locale}/schedule"]["post"];
 type VerificationOperation = paths["/api/admin/content/{collection}/{id}/verification"]["put"];
+type GenerateOperation = paths["/api/admin/content/{collection}/{id}/translations/generate"]["post"];
 
 export type AdminContentCollection =
   ListOperation["parameters"]["path"]["collection"];
@@ -32,6 +33,11 @@ export type AdminContentVerificationInput =
   VerificationOperation["requestBody"]["content"]["application/json"];
 export type ProofContentCollection =
   VerificationOperation["parameters"]["path"]["collection"];
+export type GenerateAdminTranslationsInput =
+  GenerateOperation["requestBody"]["content"]["application/json"];
+export type GenerateAdminTranslationsResult = NonNullable<
+  GenerateOperation["responses"][200]["content"]["application/json"]["data"]
+>;
 
 export const ADMIN_CONTENT_COLLECTIONS = [
   "pages",
@@ -70,6 +76,17 @@ export function createAdminContent(
 ): Promise<AdminContentItem> {
   return getEnvelope<AdminContentItem>(
     `/api/admin/content/${segment(collection)}`,
+    commandInit("POST", input),
+  );
+}
+
+export function generateAdminContentTranslations(
+  collection: AdminContentCollection,
+  id: string,
+  input: GenerateAdminTranslationsInput,
+): Promise<GenerateAdminTranslationsResult> {
+  return getEnvelope<GenerateAdminTranslationsResult>(
+    `/api/admin/content/${segment(collection)}/${segment(id)}/translations/generate`,
     commandInit("POST", input),
   );
 }

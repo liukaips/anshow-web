@@ -7,12 +7,14 @@ import { ApiError } from "../../api/http";
 
 const {
   archiveContent,
+  generateTranslations,
   publishTranslation,
   saveDraft,
   scheduleTranslation,
   updateVerification,
 } = vi.hoisted(() => ({
   archiveContent: vi.fn(),
+  generateTranslations: vi.fn(),
   publishTranslation: vi.fn(),
   saveDraft: vi.fn(),
   scheduleTranslation: vi.fn(),
@@ -24,6 +26,7 @@ vi.mock("../../api/admin-content", async (importOriginal) => {
   return {
     ...actual,
     archiveAdminContent: archiveContent,
+    generateAdminContentTranslations: generateTranslations,
     publishAdminContentTranslation: publishTranslation,
     saveAdminContentDraft: saveDraft,
     scheduleAdminContentTranslation: scheduleTranslation,
@@ -70,6 +73,7 @@ beforeEach(() => {
   scheduleTranslation.mockResolvedValue(ITEM);
   archiveContent.mockResolvedValue(ITEM);
   updateVerification.mockResolvedValue(ITEM);
+  generateTranslations.mockResolvedValue({ sourceVersion: 1, jobs: [], item: ITEM });
 });
 
 afterEach(() => {
@@ -78,6 +82,13 @@ afterEach(() => {
 });
 
 describe("ContentEditor", () => {
+  it("generates editable English and Russian drafts from Chinese content", async () => {
+    render(<ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />);
+    fireEvent.click(screen.getByRole("button", { name: "自动生成英文和俄文" }));
+    await waitFor(() => expect(generateTranslations).toHaveBeenCalledWith("services", "content-1", { targets: ["en", "ru"], sourceVersion: 1 }));
+    expect(await screen.findByText("英文和俄文草稿已生成，请检查后再提交审核。")).toBeVisible();
+  });
+
   it("warns on unload and locale changes while dirty, then clears dirty state after save", async () => {
     render(
       <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,

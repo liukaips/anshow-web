@@ -63,7 +63,7 @@ const AdminContentTranslationSchema = AdminTranslationInputSchema.extend({
   updatedAt: z.string().datetime(),
 }).openapi("AdminContentTranslation");
 
-const AdminContentItemSchema = z
+export const AdminContentItemSchema = z
   .object({
     id: adminContentIdSchema,
     code: z.string(),

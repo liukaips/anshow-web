@@ -16,6 +16,7 @@ import {
 import { registerStaffRoutes } from "./admin/routes/staff.js";
 import type { StaffRepository } from "./admin/repositories/staff-repository.js";
 import { registerAuditRoutes, type AuditRouteDependencies } from "./admin/routes/audit.js";
+import { registerTranslationRoutes, type TranslationRouteDependencies } from "./admin/routes/translation.js";
 import {
   errorEnvelopeSchema,
   requestIdSchema,
@@ -128,6 +129,7 @@ export type AppDependencies = AdminSessionDependencies &
   SettingsRouteDependencies &
   ContentRouteDependencies & {
     auditRepository: AuditRouteDependencies["auditRepository"];
+    translationService: TranslationRouteDependencies["translationService"];
     mediaService: MediaRouteDependencies["mediaService"];
     checkReadiness: ReadinessCheck;
     handleAuthRequest: (request: Request) => Promise<Response>;
@@ -139,6 +141,10 @@ const defaultDependencies: AppDependencies = {
   auditRepository: {
     list: () => ({ items: [], page: 1, pageSize: 20, total: 0 }),
     detail: () => null,
+  },
+  translationService: {
+    generate: async () => { throw new Error("Translation service is not configured"); },
+    listJobs: () => [],
   },
   checkReadiness: () => {
     throw new Error("Readiness check is not configured");
@@ -278,6 +284,7 @@ export function createApp(
   registerAdminSessionRoute(app, resolvedDependencies);
   registerSettingsRoutes(app, resolvedDependencies);
   registerContentRoutes(app, resolvedDependencies);
+  registerTranslationRoutes(app, resolvedDependencies);
   registerMediaRoutes(app, resolvedDependencies);
   registerStaffRoutes(app, resolvedDependencies.staffRepository, resolvedDependencies);
   registerAuditRoutes(app, resolvedDependencies);
