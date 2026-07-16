@@ -2,7 +2,6 @@
 
 import {
   Archive,
-  CalendarClock,
   Eye,
   LoaderCircle,
   Languages,
@@ -17,7 +16,6 @@ import {
   archiveAdminContent,
   generateAdminContentTranslations,
   saveAdminContentDraft,
-  scheduleAdminContentTranslation,
   updateAdminContentVerification,
   type AdminContentCollection,
   type AdminContentItem,
@@ -36,7 +34,6 @@ import { AdvancedSettings } from "./content/editor/advanced-settings";
 import { ChineseContentStep } from "./content/editor/chinese-content-step";
 import {
   firstContentErrorField,
-  validatePublishableContent,
   type TranslationField,
 } from "./content/editor/content-validation";
 
@@ -47,9 +44,8 @@ type ContentEditorProps = {
   initialItem: AdminContentItem;
 };
 
-type EditorField = TranslationField | "scheduledAt";
-type FieldErrors = Partial<Record<EditorField, string>>;
-type Command = "archive" | "save" | "schedule" | "submit" | "translate" | "verification";
+type FieldErrors = Partial<Record<TranslationField, string>>;
+type Command = "archive" | "save" | "submit" | "translate" | "verification";
 
 const locales: readonly AdminContentLocale[] = ["en", "zh", "ru"];
 const proofCollections: readonly ProofContentCollection[] = [
@@ -107,41 +103,12 @@ function isProofCollection(
   );
 }
 
-function toLocalDateTime(value: string | null | undefined): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 16);
-}
-
-function itemScheduleDrafts(item: AdminContentItem) {
-  return Object.fromEntries(
-    locales.map((locale) => [
-      locale,
-      toLocalDateTime(item.translations[locale]?.scheduledAt),
-    ]),
-  ) as Record<AdminContentLocale, string>;
-}
-
-function publishErrors(input: AdminContentTranslationInput): FieldErrors {
-  const errors = validatePublishableContent(input);
-  return Object.fromEntries(
-    Object.entries(errors).map(([field, message]) => [
-      field,
-      field === "title" || field === "summary" || field === "body" || field === "altText"
-        ? `发布前必须填写${fieldLabels[field as TranslationField]}。`
-        : message,
-    ]),
-  ) as FieldErrors;
-}
-
 function firstErrorField(errors: FieldErrors): TranslationField | undefined {
   return firstContentErrorField(errors);
 }
 
 function commandMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "The command failed.";
+  return error instanceof Error ? error.message : "操作失败，请稍后重试。";
 }
 
 export function ContentEditor({
@@ -156,12 +123,6 @@ export function ContentEditor({
   const [dirtyLocales, setDirtyLocales] = useState<Set<AdminContentLocale>>(
     () => new Set(),
   );
-  const [scheduleDrafts, setScheduleDrafts] = useState(() =>
-    itemScheduleDrafts(initialItem),
-  );
-  const [scheduleDirtyLocales, setScheduleDirtyLocales] = useState<
-    Set<AdminContentLocale>
-  >(() => new Set());
   const [verified, setVerified] = useState(initialItem.verified);
   const [verificationSource, setVerificationSource] = useState(
     initialItem.verificationSource ?? "",
@@ -177,16 +138,11 @@ export function ContentEditor({
     text: string;
   } | null>(null);
 
-  const dirty =
-    dirtyLocales.size > 0 ||
-    scheduleDirtyLocales.size > 0 ||
-    verificationDirty;
+  const dirty = dirtyLocales.size > 0 || verificationDirty;
   const canEdit = canWrite || canPublish;
   const fieldsDisabled = pending !== null || !canEdit;
   const activeDraft = drafts[activeLocale];
-  const activeScheduledAt = scheduleDrafts[activeLocale];
-  const activeDirty =
-    dirtyLocales.has(activeLocale) || scheduleDirtyLocales.has(activeLocale);
+  const activeDirty = dirtyLocales.has(activeLocale);
   const activeState = item.translations[activeLocale]?.status ?? "draft";
   const tabTranslations = useMemo(
     () =>
@@ -204,15 +160,9 @@ export function ContentEditor({
 
   useEffect(() => {
     if (pending !== null) return;
-    const first =
-      firstErrorField(errors) ??
-      (errors.scheduledAt ? "scheduledAt" : undefined);
+    const first = firstErrorField(errors);
     if (!first) return;
-    document
-      .getElementById(
-        first === "scheduledAt" ? "scheduled-at" : `translation-${first}`,
-      )
-      ?.focus();
+    document.getElementById(`translation-${first}`)?.focus();
   }, [errors, pending]);
 
   useEffect(() => {
@@ -236,7 +186,7 @@ export function ContentEditor({
     };
 
     const guardNavigationRequest = (event: Event) => {
-      if (!window.confirm("This item has unsaved changes. Leave this page?")) {
+      if (!window.confirm("当前内容尚未保存，确定离开此页面吗？")) {
         event.preventDefault();
       }
     };
@@ -319,9 +269,7 @@ export function ContentEditor({
     setItem(nextItem);
     if (command === "archive") {
       setDrafts(itemDrafts(nextItem));
-      setScheduleDrafts(itemScheduleDrafts(nextItem));
       setDirtyLocales(new Set());
-      setScheduleDirtyLocales(new Set());
       setVerified(nextItem.verified);
       setVerificationSource(nextItem.verificationSource ?? "");
       setVerificationDirty(false);
@@ -356,19 +304,6 @@ export function ContentEditor({
       return next;
     });
 
-    const preserveDirtySchedule =
-      command === "save" && scheduleDirtyLocales.has(locale);
-    if (!preserveDirtySchedule) {
-      setScheduleDrafts((current) => ({
-        ...current,
-        [locale]: toLocalDateTime(persistedTranslation?.scheduledAt),
-      }));
-      setScheduleDirtyLocales((current) => {
-        const next = new Set(current);
-        next.delete(locale);
-        return next;
-      });
-    }
     if (!verificationDirty) {
       setVerified(nextItem.verified);
       setVerificationSource(nextItem.verificationSource ?? "");
@@ -391,7 +326,7 @@ export function ContentEditor({
     if (
       locale !== activeLocale &&
       activeDirty &&
-      !window.confirm("This translation has unsaved changes. Change language anyway?")
+      !window.confirm("当前语言内容尚未保存，确定切换语言吗？")
     ) {
       return;
     }
@@ -405,10 +340,9 @@ export function ContentEditor({
       const nextErrors: FieldErrors = {};
       for (const [field, messages] of Object.entries(error.fields)) {
         if (
-          (field in fieldLabels || field === "scheduledAt") &&
-          messages[0]
+          field in fieldLabels && messages[0]
         ) {
-          nextErrors[field as EditorField] = messages[0];
+          nextErrors[field as TranslationField] = messages[0];
         }
       }
       if (Object.keys(nextErrors).length > 0) {
@@ -416,12 +350,6 @@ export function ContentEditor({
       }
     }
     setMessage({ kind: "error", text: commandMessage(error) });
-  }
-
-  function validatePublish(): boolean {
-    const nextErrors = publishErrors(activeDraft);
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
   }
 
   async function save() {
@@ -457,7 +385,6 @@ export function ContentEditor({
       });
       setItem(result.item);
       setDrafts(itemDrafts(result.item));
-      setScheduleDrafts(itemScheduleDrafts(result.item));
       setMessage({ kind: "success", text: "英文和俄文草稿已生成，请检查后再提交审核。" });
     } catch (error) {
       handleCommandError(error);
@@ -484,42 +411,10 @@ export function ContentEditor({
     }
   }
 
-  async function schedule() {
-    if (!validatePublish()) return;
-    const date = new Date(activeScheduledAt);
-    if (
-      !activeScheduledAt ||
-      Number.isNaN(date.getTime()) ||
-      date <= new Date()
-    ) {
-      setMessage({
-        kind: "error",
-        text: "Choose a future publication date and time.",
-      });
-      return;
-    }
-    setPending("schedule");
-    setMessage(null);
-    try {
-      const scheduled = await scheduleAdminContentTranslation(
-        collection,
-        item.id,
-        activeLocale,
-        { ...activeDraft, scheduledAt: date.toISOString() },
-      );
-      reconcileResponse(scheduled, "schedule", activeLocale);
-      setMessage({ kind: "success", text: "翻译已设置定时发布。" });
-    } catch (error) {
-      handleCommandError(error);
-    } finally {
-      setPending(null);
-    }
-  }
-
   async function archive() {
     const warning = dirty
-      ? "Archive this item and leave unsaved changes behind?"
-      : "Archive this content item?";
+      ? "归档后未保存的修改将丢失，确定继续吗？"
+      : "确定归档这条内容吗？";
     if (!window.confirm(warning)) return;
     setPending("archive");
     setMessage(null);
@@ -539,7 +434,7 @@ export function ContentEditor({
     if (verified && !verificationSource.trim()) {
       setMessage({
         kind: "error",
-        text: "Enter an official verification source.",
+        text: "请填写官方核验来源。",
       });
       return;
     }
@@ -584,11 +479,11 @@ export function ContentEditor({
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
           <div>
             <p className="text-sm font-semibold uppercase text-neutral-500">
-              {activeLocale} translation
+              {activeLocale === "zh" ? "中文内容" : activeLocale === "en" ? "英文内容" : "俄文内容"}
             </p>
             <p className="mt-1 text-sm text-neutral-600">
               状态：<span className="font-semibold capitalize text-[var(--color-text)]">{activeState === "published" ? "已发布" : activeState === "scheduled" ? "已定时" : "草稿"}</span>
-              {activeDirty ? " · Unsaved changes" : ""}
+              {activeDirty ? " · 未保存" : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -618,40 +513,6 @@ export function ContentEditor({
             onChange={updateField}
             value={activeDraft}
           />
-        </div>
-
-        <div className="mt-8 border-t border-neutral-200 pt-6">
-          <label className="block max-w-md text-sm font-semibold text-[var(--color-text)]" htmlFor="scheduled-at">
-            发布时间
-          </label>
-          <input
-            aria-describedby={errors.scheduledAt ? "scheduled-at-error" : undefined}
-            aria-invalid={errors.scheduledAt ? true : undefined}
-            className={`${fieldClass} max-w-md ${errors.scheduledAt ? "border-[var(--color-danger)]" : "border-neutral-300"}`}
-            disabled={pending !== null || !canPublish}
-            id="scheduled-at"
-            onChange={(event) => {
-              if (pending !== null || !canPublish) return;
-              setScheduleDrafts((current) => ({
-                ...current,
-                [activeLocale]: event.target.value,
-              }));
-              setScheduleDirtyLocales((current) =>
-                new Set(current).add(activeLocale),
-              );
-              setErrors((current) => ({
-                ...current,
-                scheduledAt: undefined,
-              }));
-            }}
-            type="datetime-local"
-            value={activeScheduledAt}
-          />
-          {errors.scheduledAt ? (
-            <p className="mt-1 text-sm text-[var(--color-danger)]" id="scheduled-at-error">
-              {errors.scheduledAt}
-            </p>
-          ) : null}
         </div>
 
         {canWrite && isProofCollection(collection) ? (
@@ -709,7 +570,6 @@ export function ContentEditor({
           {canWrite ? (
             <CommandButton disabled={pending !== null} icon={Save} label="保存草稿" onClick={save} pending={pending === "save"} />
           ) : null}
-          <CommandButton disabled={pending !== null || !canPublish} icon={CalendarClock} label="定时发布" onClick={schedule} pending={pending === "schedule"} />
           {canPublish ? (
             <Link
               className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-cyan-ink)]"

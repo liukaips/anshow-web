@@ -6,11 +6,7 @@ vi.mock("next/headers", () => ({
   headers: vi.fn(async () => requestHeaders),
 }));
 
-import {
-  publishAdminContentTranslation,
-  saveAdminContentDraft,
-  scheduleAdminContentTranslation,
-} from "./admin-content";
+import { saveAdminContentDraft } from "./admin-content";
 import * as adminContent from "./admin-content";
 import { listAdminContent } from "./admin-content.server";
 
@@ -71,40 +67,16 @@ describe("administration content API", () => {
     };
 
     await saveAdminContentDraft("services", "content-1", "ru", input);
-    await publishAdminContentTranslation("services", "content-1", "ru", input);
-    await scheduleAdminContentTranslation("services", "content-1", "ru", {
-      ...input,
-      scheduledAt: "2026-07-16T04:00:00.000Z",
-    });
-
     expect(fetchMock.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
       [
         "/api/admin/content/services/content-1/translations/ru",
         "PUT",
-      ],
-      [
-        "/api/admin/content/services/content-1/translations/ru/publish",
-        "POST",
-      ],
-      [
-        "/api/admin/content/services/content-1/translations/ru/schedule",
-        "POST",
       ],
     ]);
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       body: JSON.stringify(input),
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-    });
-    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
-      body: JSON.stringify(input),
-      headers: { "content-type": "application/json" },
-    });
-    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
-      body: JSON.stringify({
-        ...input,
-        scheduledAt: "2026-07-16T04:00:00.000Z",
-      }),
     });
   });
 

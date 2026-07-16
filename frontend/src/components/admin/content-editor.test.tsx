@@ -7,14 +7,12 @@ const {
   archiveContent,
   generateTranslations,
   saveDraft,
-  scheduleTranslation,
   submitReview,
   updateVerification,
 } = vi.hoisted(() => ({
   archiveContent: vi.fn(),
   generateTranslations: vi.fn(),
   saveDraft: vi.fn(),
-  scheduleTranslation: vi.fn(),
   submitReview: vi.fn(),
   updateVerification: vi.fn(),
 }));
@@ -26,7 +24,6 @@ vi.mock("../../api/admin-content", async (importOriginal) => {
     archiveAdminContent: archiveContent,
     generateAdminContentTranslations: generateTranslations,
     saveAdminContentDraft: saveDraft,
-    scheduleAdminContentTranslation: scheduleTranslation,
     updateAdminContentVerification: updateVerification,
   };
 });
@@ -67,7 +64,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   confirm.mockReturnValue(false);
   saveDraft.mockResolvedValue(ITEM);
-  scheduleTranslation.mockResolvedValue(ITEM);
   archiveContent.mockResolvedValue(ITEM);
   updateVerification.mockResolvedValue(ITEM);
   generateTranslations.mockResolvedValue({ sourceVersion: 1, jobs: [], item: ITEM });
@@ -137,7 +133,6 @@ describe("ContentEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
     await waitFor(() => expect(saveDraft).toHaveBeenCalled());
     expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "定时发布" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "前往预览发布" })).toHaveAttribute(
       "href",
       "/admin/publish",
@@ -176,7 +171,6 @@ describe("ContentEditor", () => {
     await waitFor(() => expect(saveDraft).toHaveBeenCalledOnce());
 
     expect(title).toBeDisabled();
-    expect(screen.getByLabelText("发布时间")).toBeDisabled();
     expect(screen.getByRole("tab", { name: /俄文/i })).toBeDisabled();
     fireEvent.change(title, { target: { value: "Newer local title" } });
     expect(title).toHaveValue(" Submitted title ");
@@ -289,163 +283,6 @@ describe("ContentEditor", () => {
     window.removeEventListener("popstate", downstreamPopstate);
   });
 
-  it("keeps an edited schedule time dirty after saving the translation", async () => {
-    render(
-      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
-    );
-    fireEvent.change(screen.getByLabelText("发布时间"), {
-      target: { value: "2099-07-16T12:00" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
-    await screen.findByText("草稿已保存。");
-
-    const afterSave = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(afterSave);
-    expect(afterSave.defaultPrevented).toBe(true);
-  });
-
-  it("clears a clean persisted schedule and applies canonical draft values on save", async () => {
-    const scheduledAt = "2099-07-16T12:00:00.000Z";
-    const scheduledItem: AdminContentItem = {
-      ...ITEM,
-      translations: {
-        ...ITEM.translations,
-        en: {
-          ...ITEM.translations.en!,
-          scheduledAt,
-          status: "scheduled",
-        },
-      },
-    };
-    const savedItem: AdminContentItem = {
-      ...scheduledItem,
-      translations: {
-        ...scheduledItem.translations,
-        en: {
-          ...scheduledItem.translations.en!,
-          scheduledAt: null,
-          status: "draft",
-          title: "Server-trimmed title",
-        },
-      },
-    };
-    saveDraft.mockResolvedValueOnce(savedItem);
-    render(
-      <ContentEditor
-        canPublish
-        canWrite
-        collection="services"
-        initialItem={scheduledItem}
-      />,
-    );
-    expect(screen.getByLabelText("发布时间")).not.toHaveValue(
-      "",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
-    await screen.findByText("草稿已保存。");
-
-    expect(screen.getByLabelText("标题")).toHaveValue("Server-trimmed title");
-    expect(screen.getByLabelText("发布时间")).toHaveValue("");
-  });
-
-  it("preserves an independently dirty schedule while reconciling a save", async () => {
-    const persisted: AdminContentItem = {
-      ...ITEM,
-      translations: {
-        ...ITEM.translations,
-        en: { ...ITEM.translations.en!, title: "Canonical save", scheduledAt: null },
-      },
-    };
-    saveDraft.mockResolvedValueOnce(persisted);
-    render(
-      <ContentEditor
-        canPublish
-        canWrite
-        collection="services"
-        initialItem={ITEM}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("标题"), {
-      target: { value: " Canonical save " },
-    });
-    fireEvent.change(screen.getByLabelText("发布时间"), {
-      target: { value: "2099-07-16T12:00" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
-    await screen.findByText("草稿已保存。");
-
-    expect(screen.getByLabelText("标题")).toHaveValue("Canonical save");
-    expect(screen.getByLabelText("发布时间")).toHaveValue(
-      "2099-07-16T12:00",
-    );
-    const beforeUnload = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(beforeUnload);
-    expect(beforeUnload.defaultPrevented).toBe(true);
-  });
-
-  it("clears translation and schedule dirtiness only after schedule succeeds", async () => {
-    render(
-      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
-    );
-    fireEvent.change(screen.getByLabelText("标题"), {
-      target: { value: "Scheduled title" },
-    });
-    fireEvent.change(screen.getByLabelText("发布时间"), {
-      target: { value: "2099-07-16T12:00" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "定时发布" }));
-    await screen.findByText("翻译已设置定时发布。");
-
-    const afterSchedule = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(afterSchedule);
-    expect(afterSchedule.defaultPrevented).toBe(false);
-  });
-
-  it("keeps the schedule time dirty when scheduling fails", async () => {
-    scheduleTranslation.mockRejectedValueOnce(new Error("定时发布失败。"));
-    render(
-      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
-    );
-    fireEvent.change(screen.getByLabelText("发布时间"), {
-      target: { value: "2099-07-16T12:00" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "定时发布" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "定时发布失败。",
-    );
-
-    const afterFailure = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(afterFailure);
-    expect(afterFailure.defaultPrevented).toBe(true);
-  });
-
-  it("prompts for dirty schedule times and keeps a draft per locale", () => {
-    confirm.mockReturnValue(true);
-    render(
-      <ContentEditor canPublish canWrite collection="services" initialItem={ITEM} />,
-    );
-    const scheduledAt = screen.getByLabelText("发布时间");
-    fireEvent.change(scheduledAt, {
-      target: { value: "2099-07-16T12:00" },
-    });
-
-    fireEvent.click(screen.getByRole("tab", { name: /俄文/i }));
-    expect(confirm).toHaveBeenCalledOnce();
-    expect(scheduledAt).toHaveValue("");
-    fireEvent.change(scheduledAt, {
-      target: { value: "2099-08-17T13:30" },
-    });
-
-    fireEvent.click(screen.getByRole("tab", { name: /英文/i }));
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(scheduledAt).toHaveValue("2099-07-16T12:00");
-  });
-
   it("labels a dirty persisted publication as an unpublished preview", () => {
     const publishedItem: AdminContentItem = {
       ...ITEM,
@@ -485,11 +322,12 @@ describe("ContentEditor", () => {
     expect(screen.queryByRole("button", { name: "保存草稿" })).toBeNull();
     expect(screen.queryByRole("button", { name: "归档" })).toBeNull();
     expect(screen.queryByRole("link", { name: "前往预览发布" })).toBeNull();
-    expect(screen.getByRole("button", { name: "定时发布" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "定时发布" })).toBeNull();
+    expect(screen.queryByLabelText("发布时间")).toBeNull();
     expect(screen.getByText("需要 content.publish 权限才能发布。")).toBeVisible();
   });
 
-  it("lets a publish-only actor edit atomic commands without draft actions", () => {
+  it("routes a publish-only actor to snapshot publication without legacy locale scheduling", () => {
     render(
       <ContentEditor
         canPublish
@@ -506,7 +344,8 @@ describe("ContentEditor", () => {
       "href",
       "/admin/publish",
     );
-    expect(screen.getByRole("button", { name: "定时发布" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "定时发布" })).toBeNull();
+    expect(screen.queryByLabelText("发布时间")).toBeNull();
   });
 
   it("updates official proof verification for writers", async () => {
