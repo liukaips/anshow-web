@@ -59,6 +59,22 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...validEnvironment, TRANSLATION_API_KEY: "secret" })).toThrow(/TRANSLATION_API_URL/);
   });
 
+  it("accepts complete SMTP notification configuration", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PORT: "587",
+      SMTP_USER: "mailer",
+      SMTP_PASSWORD: "secret",
+      SMTP_FROM: "notifications@example.com",
+      SALES_EMAIL: "sales@example.com",
+    })).toMatchObject({ SMTP_PORT: 587, SALES_EMAIL: "sales@example.com" });
+  });
+
+  it("requires SMTP notification values together", () => {
+    expect(() => parseEnv({ ...validEnvironment, SMTP_HOST: "smtp.example.com" })).toThrow(/SMTP_USER/);
+  });
+
   it("requires HTTPS for the production site URL", () => {
     expect(() =>
       parseEnv({ ...validEnvironment, SITE_URL: "http://example.com" }),

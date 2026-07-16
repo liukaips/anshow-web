@@ -87,6 +87,26 @@ const RuntimeEnvSchema = z
         }
       }
     }
+
+    const smtpKeys = [
+      "SMTP_HOST",
+      "SMTP_PORT",
+      "SMTP_USER",
+      "SMTP_PASSWORD",
+      "SMTP_FROM",
+      "SALES_EMAIL",
+    ] as const;
+    if (smtpKeys.some((key) => environment[key] !== undefined)) {
+      for (const key of smtpKeys) {
+        if (environment[key] === undefined) {
+          context.addIssue({
+            code: "custom",
+            message: `${key} is required when SMTP notifications are configured`,
+            path: [key],
+          });
+        }
+      }
+    }
   });
 
 export type RuntimeEnv = z.infer<typeof RuntimeEnvSchema>;

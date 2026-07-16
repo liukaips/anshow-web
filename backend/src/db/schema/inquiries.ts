@@ -1,6 +1,7 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const inquiryPriorities = ["low", "normal", "high", "urgent"] as const;
+export const inquiryLocales = ["en", "zh", "ru"] as const;
 export const inquiryStatuses = [
   "new",
   "pending_follow_up",
@@ -14,7 +15,7 @@ export const inquiryStatuses = [
 export const inquiries = sqliteTable("inquiries", {
   id: text("id").primaryKey(), name: text("name").notNull(), company: text("company").notNull(),
   email: text("email").notNull(), phone: text("phone").notNull(), transportNeed: text("transport_need").notNull(),
-  message: text("message").notNull(), locale: text("locale").notNull(), sourceUrl: text("source_url").notNull(),
+  message: text("message").notNull(), locale: text("locale", { enum: inquiryLocales }).notNull(), sourceUrl: text("source_url").notNull(),
   referrer: text("referrer"), utmSource: text("utm_source"), utmMedium: text("utm_medium"), utmCampaign: text("utm_campaign"),
   privacyVersion: text("privacy_version").notNull(), consentedAt: integer("consented_at").notNull(),
   assigneeId: text("assignee_id"), priority: text("priority", { enum: inquiryPriorities }).notNull().default("normal"),
