@@ -63,9 +63,9 @@ describe("MediaLibrary", () => {
     expect(screen.getByText("Truck at warehouse")).toBeVisible();
     expect(screen.getByText("仓库中的卡车")).toBeVisible();
     expect(screen.getByText("Грузовик на складе")).toBeVisible();
-    expect(screen.queryByRole("button", { name: /upload/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /delete/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /save metadata/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "上传媒体" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "删除图片" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "保存图片信息" })).toBeNull();
   });
 
   it("offers upload from the empty state and filters without changing view controls", () => {
@@ -100,18 +100,18 @@ describe("MediaLibrary", () => {
     fireEvent.change(screen.getByLabelText("图片文件"), {
       target: { files: [new File(["image"], "yard.jpg", { type: "image/jpeg" })] },
     });
-    fireEvent.change(screen.getByLabelText("替代文本（EN）"), { target: { value: "Truck" } });
-    fireEvent.change(screen.getByLabelText("替代文本（ZH）"), { target: { value: "卡车" } });
-    fireEvent.change(screen.getByLabelText("替代文本（RU）"), { target: { value: "Грузовик" } });
+    fireEvent.change(screen.getByLabelText("新图片英文图片说明"), { target: { value: "Truck" } });
+    fireEvent.change(screen.getByLabelText("新图片中文图片说明"), { target: { value: "卡车" } });
+    fireEvent.change(screen.getByLabelText("新图片俄文图片说明"), { target: { value: "Грузовик" } });
     fireEvent.click(screen.getByRole("button", { name: "上传媒体" }));
 
-    await waitFor(() => expect(screen.getByText("Uploading 45%")).toBeVisible());
-    expect(screen.getByText("Uploading 45%")).toHaveClass("text-base");
+    await waitFor(() => expect(screen.getByText("正在上传 45%")).toBeVisible());
+    expect(screen.getByText("正在上传 45%")).toHaveClass("text-base");
     expect(screen.getByRole("button", { name: "上传媒体" })).toBeDisabled();
 
     resolveUpload(asset);
-    await waitFor(() => expect(screen.getByText("Saved")).toBeVisible());
-    expect(screen.getByLabelText("Alt text (EN)")).toHaveValue(
+    await waitFor(() => expect(screen.getByText("上传完成")).toBeVisible());
+    expect(screen.getByLabelText("英文图片说明")).toHaveValue(
       "Truck at warehouse",
     );
   });
@@ -122,11 +122,11 @@ describe("MediaLibrary", () => {
     fireEvent.change(screen.getByLabelText("图片文件"), {
       target: { files: [new File(["image"], "yard.jpg", { type: "image/jpeg" })] },
     });
-    fireEvent.change(screen.getByLabelText("替代文本（EN）"), { target: { value: "Truck" } });
-    fireEvent.change(screen.getByLabelText("替代文本（ZH）"), { target: { value: "卡车" } });
-    fireEvent.change(screen.getByLabelText("替代文本（RU）"), { target: { value: "Грузовик" } });
-    fireEvent.change(screen.getByLabelText("上传焦点 X"), { target: { value: "0.2" } });
-    fireEvent.change(screen.getByLabelText("上传焦点 Y"), { target: { value: "0.8" } });
+    fireEvent.change(screen.getByLabelText("新图片英文图片说明"), { target: { value: "Truck" } });
+    fireEvent.change(screen.getByLabelText("新图片中文图片说明"), { target: { value: "卡车" } });
+    fireEvent.change(screen.getByLabelText("新图片俄文图片说明"), { target: { value: "Грузовик" } });
+    fireEvent.change(screen.getByLabelText("新图片横向主体位置"), { target: { value: "0.2" } });
+    fireEvent.change(screen.getByLabelText("新图片纵向主体位置"), { target: { value: "0.8" } });
 
     fireEvent.click(screen.getByRole("button", { name: "上传媒体" }));
 
@@ -138,11 +138,11 @@ describe("MediaLibrary", () => {
 
   it("focuses the first invalid localized metadata field", async () => {
     render(<MediaLibrary canWrite initialItems={[asset]} />);
-    const english = screen.getByLabelText("Alt text (EN)");
+    const english = screen.getByLabelText("英文图片说明");
     fireEvent.change(english, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save metadata" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存图片信息" }));
 
-    expect(await screen.findByText("English alt text is required.")).toBeVisible();
+    expect(await screen.findByText("请填写英文图片说明。")).toBeVisible();
     expect(english).toHaveFocus();
     expect(mediaApi.update).not.toHaveBeenCalled();
   });
@@ -163,12 +163,11 @@ describe("MediaLibrary", () => {
       />,
     );
 
-    expect(screen.getByText("hero-slide / hero-1 / image")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Delete media" })).toBeDisabled();
+    expect(screen.getByText("首页轮播图 · 图片")).toBeVisible();
+    expect(screen.getByRole("button", { name: "删除图片" })).toBeDisabled();
   });
 
   it("shows references returned by a raced 409 deletion", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     mediaApi.remove.mockRejectedValue(
       new ApiError({
         status: 409,
@@ -183,12 +182,13 @@ describe("MediaLibrary", () => {
     );
     render(<MediaLibrary canWrite initialItems={[asset]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete media" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除图片" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
 
-    expect(await screen.findByText("article / article-2 / leadImage")).toBeVisible();
-    const deleteButton = screen.getByRole("button", { name: "Delete media" });
+    expect(await screen.findByText("文章 · 主图")).toBeVisible();
+    const deleteButton = screen.getByRole("button", { name: "删除图片" });
     expect(deleteButton).toBeDisabled();
-    expect(deleteButton).toHaveAttribute("title", "Remove references before deleting");
+    expect(deleteButton).toHaveAttribute("title", "请先解除内容引用");
     fireEvent.click(deleteButton);
     expect(mediaApi.remove).toHaveBeenCalledTimes(1);
   });
@@ -205,12 +205,23 @@ describe("MediaLibrary", () => {
       />,
     );
 
-    expect(screen.getAllByText("0.5", { selector: "dd" })).toHaveLength(2);
-    for (const focalValue of screen.getAllByText("0.5", { selector: "dd" })) {
-      expect(focalValue).toHaveClass("text-base");
-    }
+    expect(screen.getByText("主体位置：水平居中、垂直居中")).toHaveClass("text-base");
     expect(screen.getByText("Truck at warehouse")).toHaveClass("text-base");
-    expect(screen.getByText("article / article-1 / leadImage")).toHaveClass("text-base");
-    expect(screen.getByText("1200 x 800 · JPEG")).toHaveClass("text-base");
+    expect(screen.getByText("文章 · 主图")).toHaveClass("text-base");
+    expect(screen.getByText("1200 × 800 · JPEG")).toHaveClass("text-base");
+  });
+
+  it("uses natural-language range controls for the image subject position", () => {
+    render(<MediaLibrary canWrite initialItems={[asset]} />);
+
+    const horizontal = screen.getByLabelText("横向主体位置");
+    const vertical = screen.getByLabelText("纵向主体位置");
+    expect(horizontal).toHaveAttribute("type", "range");
+    expect(vertical).toHaveAttribute("type", "range");
+
+    fireEvent.change(horizontal, { target: { value: "0.2" } });
+    fireEvent.change(vertical, { target: { value: "0.8" } });
+    expect(screen.getByText("当前：偏左")).toBeVisible();
+    expect(screen.getByText("当前：偏下")).toBeVisible();
   });
 });
