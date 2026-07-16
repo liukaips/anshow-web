@@ -34,16 +34,24 @@ export function AdminFormField({
 }: AdminFormFieldProps) {
   const helpId = help ? `${htmlFor}-help` : undefined;
   const errorId = error ? `${htmlFor}-error` : undefined;
-  const describedBy = [helpId, errorId].filter(Boolean).join(" ") || undefined;
+  const countId = count ? `${htmlFor}-count` : undefined;
   const child = Children.only(children);
+  const describedBy = [
+    child.props["aria-describedby"],
+    helpId,
+    countId,
+    errorId,
+  ]
+    .filter(Boolean)
+    .join(" ") || undefined;
   const control = isValidElement<FormControlProps>(child)
     ? cloneElement(child, {
         "aria-label":
           child.props["aria-label"] ??
           (typeof label === "string" ? label : undefined),
         "aria-describedby": describedBy,
-        "aria-invalid": error ? true : undefined,
-        "aria-required": required || undefined,
+        "aria-invalid": error ? true : child.props["aria-invalid"],
+        "aria-required": required ? true : child.props["aria-required"],
       })
     : child;
 
@@ -62,7 +70,10 @@ export function AdminFormField({
           ) : null}
         </label>
         {count ? (
-          <span className="shrink-0 text-xs tabular-nums text-neutral-500">
+          <span
+            className="shrink-0 text-xs tabular-nums text-neutral-500"
+            id={countId}
+          >
             {count.current}/{count.maximum}
           </span>
         ) : null}

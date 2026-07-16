@@ -8,7 +8,15 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+} from "react";
+
+const focusableSelector =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function AdminLoadingState({ label = "正在加载" }: Readonly<{ label?: string }>) {
   return (
@@ -135,9 +143,47 @@ export function AdminConfirmDialog({
   open: boolean;
   title: string;
 }>) {
+  const generatedId = useId();
+  const dialogRef = useRef<HTMLElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const titleId = `admin-confirm-title-${generatedId}`;
+  const descriptionId = `admin-confirm-description-${generatedId}`;
+
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    cancelRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [onCancel, open]);
+
   if (!open) return null;
-  const titleId = "admin-confirm-title";
-  const descriptionId = "admin-confirm-description";
 
   return (
     <div className="fixed inset-0 z-100 grid place-items-center bg-black/50 p-4">
@@ -146,6 +192,7 @@ export function AdminConfirmDialog({
         aria-labelledby={titleId}
         aria-modal="true"
         className="w-full max-w-md border border-neutral-200 bg-white p-5 shadow-2xl"
+        ref={dialogRef}
         role="alertdialog"
       >
         <h2 className="text-lg font-semibold text-neutral-950" id={titleId}>
@@ -158,6 +205,7 @@ export function AdminConfirmDialog({
           <button
             className="min-h-11 rounded border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
             onClick={onCancel}
+            ref={cancelRef}
             type="button"
           >
             {cancelLabel}

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminDataTable } from "./admin-data-table";
@@ -75,10 +76,45 @@ describe("Admin UI primitives", () => {
     );
   });
 
+  it("preserves control ARIA state and merges every description", () => {
+    render(
+      <>
+        <p id="existing-help">已有说明</p>
+        <AdminFormField
+          count={{ current: 2, maximum: 10 }}
+          help="补充说明"
+          htmlFor="existing-field"
+          label="已有字段"
+        >
+          <input
+            aria-describedby="existing-help"
+            aria-invalid="false"
+            aria-required="true"
+            id="existing-field"
+          />
+        </AdminFormField>
+      </>,
+    );
+
+    const input = screen.getByLabelText("已有字段");
+    expect(input.getAttribute("aria-describedby")?.split(" ")).toEqual([
+      "existing-help",
+      "existing-field-help",
+      "existing-field-count",
+    ]);
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(input).toHaveAttribute("aria-required", "true");
+  });
+
   it("renders a semantic desktop table and a readable mobile equivalent", () => {
     const rows = [{ id: "service-1", title: "海运服务", owner: "李华" }];
     const columns = [
-      { key: "title", header: "内容名称", render: (row: typeof rows[number]) => row.title },
+      {
+        hideOnMobile: true,
+        key: "title",
+        header: "内容名称",
+        render: (row: typeof rows[number]) => row.title,
+      },
       { key: "owner", header: "负责人", render: (row: typeof rows[number]) => row.owner },
     ];
 
@@ -87,14 +123,19 @@ describe("Admin UI primitives", () => {
         columns={columns}
         getRowKey={(row) => row.id}
         mobileLabel={(row) => row.title}
+        mobileListLabel="服务内容列表"
         rows={rows}
+        tableLabel="服务内容表格"
       />,
     );
 
-    expect(screen.getByRole("table")).toBeVisible();
+    expect(screen.getByRole("table", { name: "服务内容表格" })).toBeVisible();
     expect(screen.getByRole("columnheader", { name: "内容名称" })).toBeVisible();
     expect(screen.getAllByText("海运服务")).toHaveLength(2);
-    expect(screen.getByRole("list", { name: "内容列表" })).toBeVisible();
+    expect(screen.getByRole("list", { name: "服务内容列表" })).toBeVisible();
+    expect(screen.getByRole("table").parentElement).toHaveClass(
+      "overflow-x-auto",
+    );
   });
 
   it("supports custom responsive rows without losing list semantics", () => {
@@ -142,5 +183,67 @@ describe("Admin UI primitives", () => {
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     expect(confirm).toHaveBeenCalledOnce();
     expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("keeps confirmation focus inside the dialog and restores the trigger", () => {
+    function ConfirmHarness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)} type="button">
+            打开确认
+          </button>
+          <AdminConfirmDialog
+            description="发布后立即生效。"
+            onCancel={() => setOpen(false)}
+            onConfirm={() => undefined}
+            open={open}
+            title="确认发布"
+          />
+        </>
+      );
+    }
+
+    render(<ConfirmHarness />);
+    const trigger = screen.getByRole("button", { name: "打开确认" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByRole("button", { name: "取消" })).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("uses unique accessible IDs for simultaneous confirmation dialogs", () => {
+    render(
+      <>
+        <AdminConfirmDialog
+          description="第一条说明"
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+          open
+          title="第一条确认"
+        />
+        <AdminConfirmDialog
+          description="第二条说明"
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+          open
+          title="第二条确认"
+        />
+      </>,
+    );
+
+    const first = screen.getByRole("alertdialog", { name: "第一条确认" });
+    const second = screen.getByRole("alertdialog", { name: "第二条确认" });
+    expect(first).not.toHaveAttribute(
+      "aria-labelledby",
+      second.getAttribute("aria-labelledby"),
+    );
+    expect(first).not.toHaveAttribute(
+      "aria-describedby",
+      second.getAttribute("aria-describedby"),
+    );
   });
 });
