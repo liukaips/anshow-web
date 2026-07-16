@@ -1,6 +1,6 @@
 export default function AdminContentLoading() {
   return (
-    <main aria-busy="true" className="px-4 py-7 sm:px-8 sm:py-9" id="admin-main">
+    <div aria-busy="true" aria-label="正在加载内容列表" className="px-4 py-7 sm:px-8 sm:py-9" role="status">
       <p className="sr-only" role="status">
         正在加载内容
       </p>
@@ -10,6 +10,6 @@ export default function AdminContentLoading() {
         <div className="mt-8 h-16 w-full bg-neutral-200" />
         <div className="mt-4 h-52 w-full bg-neutral-200" />
       </div>
-    </main>
+    </div>
   );
 }
