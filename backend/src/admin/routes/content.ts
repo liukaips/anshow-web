@@ -482,28 +482,7 @@ export function registerContentRoutes(
   });
 
   app.openapi(scheduleRoute, async (context) => {
-    const { collection, id, locale } = context.req.valid("param");
-    const input = context.req.valid("json");
-    try {
-      return context.json(
-        successEnvelope(
-          context,
-          await dependencies.contentRepository.schedule(
-            collection,
-            id,
-            locale,
-            input,
-            actorId(context),
-          ),
-        ),
-        200,
-      );
-    } catch (error) {
-      if (!(error instanceof ContentRepositoryError)) throw error;
-      return error.code === "CONTENT_NOT_FOUND"
-        ? context.json(contentErrorEnvelope(context, error), 404)
-        : context.json(contentErrorEnvelope(context, error), 409);
-    }
+    return context.json({ data: null, error: { code: "SNAPSHOT_SCHEDULE_REQUIRED", message: "请在“预览与发布”中为整站预览快照设置定时发布" }, requestId: context.get("requestId") }, 409);
   });
 
   app.openapi(verificationRoute, async (context) => {

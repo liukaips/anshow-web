@@ -49,9 +49,10 @@ function addApprovedService(
 function addSnapshot(
   database: ReturnType<typeof createTestDatabase>["db"],
   versions: { entityType: string; entityId: string; version: number }[],
+  id = "snapshot-1",
 ) {
   database.insert(previewSnapshots).values({
-    id: "snapshot-1",
+    id,
     payload: {},
     contentHash,
     sourceVersions: versions,
@@ -130,9 +131,56 @@ describe("snapshot publisher", () => {
     const context = createTestDatabase();
     try {
       addSnapshot(context.db, []);
-      const publisher = createSnapshotPublisher(context.db, { now: () => publishedAt });
+      const publisher = createSnapshotPublisher(context.db, { now: () => createdAt });
       expect(() => publisher.publish({ snapshotId: "snapshot-1", expectedHash: "b".repeat(64), actorId: "publisher-1" })).toThrowError(expect.objectContaining({ code: "SNAPSHOT_HASH_MISMATCH" }));
       expect(() => publisher.publish({ snapshotId: "snapshot-1", expectedHash: contentHash, actorId: "publisher-1" })).toThrowError(expect.objectContaining({ code: "SNAPSHOT_NO_APPROVED_CHANGES" }));
+    } finally {
+      context.close();
+    }
+  });
+
+  it("schedules a future immutable snapshot only when the approved source set is current", () => {
+    const context = createTestDatabase();
+    try {
+      addApprovedService(context.db, "service-1", 3);
+      addSnapshot(context.db, [{ entityType: "services", entityId: "service-1", version: 3 }]);
+      const scheduledAt = new Date("2026-07-16T06:00:00.000Z");
+      const publisher = createSnapshotPublisher(context.db, { now: () => publishedAt });
+      const result = publisher.schedule({ snapshotId: "snapshot-1", expectedHash: contentHash, scheduledAt, actorId: "publisher-1" });
+
+      expect(result).toMatchObject({ snapshotId: "snapshot-1", scheduledAt });
+      expect(context.db.select().from(previewSnapshots).get()).toMatchObject({ scheduledAt, publishedAt: null });
+      expect(context.db.select().from(auditLogs).get()).toMatchObject({ action: "preview.snapshot.schedule", actorId: "publisher-1" });
+    } finally {
+      context.close();
+    }
+  });
+
+  it("rejects a non-future schedule and a changed approved source set", () => {
+    const context = createTestDatabase();
+    try {
+      addApprovedService(context.db, "service-1", 3);
+      addSnapshot(context.db, [{ entityType: "services", entityId: "service-1", version: 3 }]);
+      const publisher = createSnapshotPublisher(context.db, { now: () => publishedAt });
+      expect(() => publisher.schedule({ snapshotId: "snapshot-1", expectedHash: contentHash, scheduledAt: publishedAt, actorId: "publisher-1" })).toThrowError(expect.objectContaining({ code: "SNAPSHOT_SCHEDULE_NOT_FUTURE" }));
+      addApprovedService(context.db, "service-2", 1);
+      expect(() => publisher.schedule({ snapshotId: "snapshot-1", expectedHash: contentHash, scheduledAt: new Date("2026-07-16T06:00:00.000Z"), actorId: "publisher-1" })).toThrowError(expect.objectContaining({ code: "SNAPSHOT_SOURCE_SET_CHANGED" }));
+    } finally {
+      context.close();
+    }
+  });
+
+  it("claims a due schedule once and clears the claim when execution fails", () => {
+    const context = createTestDatabase();
+    try {
+      addApprovedService(context.db, "service-1", 3);
+      addSnapshot(context.db, [{ entityType: "services", entityId: "service-1", version: 3 }]);
+      const publisher = createSnapshotPublisher(context.db, { now: () => createdAt });
+      publisher.schedule({ snapshotId: "snapshot-1", expectedHash: contentHash, scheduledAt: new Date("2026-07-16T04:30:00.000Z"), actorId: "publisher-1" });
+      expect(publisher.claimDue("worker-1", publishedAt)).toMatchObject({ id: "snapshot-1", scheduleClaimedBy: "worker-1" });
+      expect(publisher.claimDue("worker-2", publishedAt)).toBeNull();
+      publisher.releaseClaim("snapshot-1", "worker-1");
+      expect(context.db.select().from(previewSnapshots).get()).toMatchObject({ scheduleClaimedAt: null, scheduleClaimedBy: null });
     } finally {
       context.close();
     }

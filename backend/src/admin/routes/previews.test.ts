@@ -8,9 +8,13 @@ const payload = { homes: { en: { locale: "en" as const, headline: "Preview", sli
 function service(): PreviewService {
   return {
     createSnapshot: vi.fn(async () => ({ snapshotId: "snapshot-1", tokenId: "token-1", rawToken: "raw-token", contentHash: "a".repeat(64), sourceVersions: [], createdAt: new Date(), expiresAt: new Date(Date.now() + 3_600_000) })),
-    readSnapshot: vi.fn(() => ({ id: "snapshot-1", payload, contentHash: "a".repeat(64), sourceVersions: [], createdBy: "staff-1", createdAt: new Date(), expiresAt: new Date(Date.now() + 3_600_000), publishedAt: null })),
+    readSnapshot: vi.fn(() => ({ id: "snapshot-1", payload, contentHash: "a".repeat(64), sourceVersions: [], createdBy: "staff-1", createdAt: new Date(), expiresAt: new Date(Date.now() + 3_600_000), scheduledAt: null, scheduleClaimedAt: null, scheduleClaimedBy: null, publishedAt: null })),
     revoke: vi.fn(),
     publishSnapshot: vi.fn(() => ({ snapshotId: "snapshot-1", contentHash: "a".repeat(64), publishedAt: new Date(), publishedChanges: 1 })),
+    schedule: vi.fn(() => ({ snapshotId: "snapshot-1", contentHash: "a".repeat(64), scheduledAt: new Date(Date.now() + 3_600_000), changes: 1 })),
+    cancelSchedule: vi.fn(() => ({ snapshotId: "snapshot-1", cancelled: true as const })),
+    claimDue: vi.fn(() => null),
+    releaseClaim: vi.fn(),
     list: vi.fn(() => []),
   };
 }
@@ -57,5 +61,16 @@ describe("preview routes", () => {
       expectedHash: "a".repeat(64),
       actorId: "publisher-1",
     });
+  });
+
+  it("schedules and cancels only with content.publish permission", async () => {
+    const previewService = service();
+    const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedHash: "a".repeat(64), scheduledAt: "2099-07-16T04:00:00.000Z" }) };
+    const blocked = createApp({ previewService, getSession: async () => ({ user: { id: "staff-1", email: "staff@example.test" } }), getPermissions: () => ["preview.create"] });
+    expect((await blocked.request("/api/admin/previews/snapshot-1/schedule", request)).status).toBe(403);
+    const allowed = createApp({ previewService, getSession: async () => ({ user: { id: "publisher-1", email: "publisher@example.test" } }), getPermissions: () => ["content.publish"] });
+    expect((await allowed.request("/api/admin/previews/snapshot-1/schedule", request)).status).toBe(200);
+    expect(previewService.schedule).toHaveBeenCalledWith({ snapshotId: "snapshot-1", expectedHash: "a".repeat(64), scheduledAt: new Date("2099-07-16T04:00:00.000Z"), actorId: "publisher-1" });
+    expect((await allowed.request("/api/admin/previews/snapshot-1/schedule/cancel", { method: "POST" })).status).toBe(200);
   });
 });

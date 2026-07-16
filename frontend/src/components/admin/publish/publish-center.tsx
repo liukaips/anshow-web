@@ -4,7 +4,7 @@ import { CheckCircle2, ExternalLink, LoaderCircle, ScanEye, Send } from "lucide-
 import Link from "next/link";
 import { useState } from "react";
 
-import { createAdminPreview, publishAdminPreview, type CreateAdminPreviewResult } from "../../../api/admin-previews";
+import { createAdminPreview, publishAdminPreview, scheduleAdminPreview, cancelScheduleAdminPreview, type CreateAdminPreviewResult } from "../../../api/admin-previews";
 
 const locales = [
   ["zh", "中文"],
@@ -19,6 +19,8 @@ export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: bo
   const [confirmed, setConfirmed] = useState(false);
   const [publishPending, setPublishPending] = useState(false);
   const [publishedCount, setPublishedCount] = useState<number | null>(null);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [schedulePending, setSchedulePending] = useState(false);
 
   async function create() {
     setPending(true);
@@ -27,10 +29,39 @@ export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: bo
       setPreview(await createAdminPreview({ expiresInHours: 24 }));
       setConfirmed(false);
       setPublishedCount(null);
+      setScheduledAt("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "生成预览失败，请重试。");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function schedule() {
+    if (!preview || !scheduledAt) return;
+    setSchedulePending(true);
+    setError(null);
+    try {
+      await scheduleAdminPreview(preview.snapshotId, { expectedHash: preview.contentHash, scheduledAt: new Date(scheduledAt).toISOString() });
+      setError(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "定时发布失败，请重新生成预览。");
+    } finally {
+      setSchedulePending(false);
+    }
+  }
+
+  async function cancelSchedule() {
+    if (!preview) return;
+    setSchedulePending(true);
+    setError(null);
+    try {
+      await cancelScheduleAdminPreview(preview.snapshotId);
+      setScheduledAt("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "取消定时失败，请刷新后重试。");
+    } finally {
+      setSchedulePending(false);
     }
   }
 
@@ -88,6 +119,17 @@ export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: bo
                   {publishPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <Send aria-hidden="true" className="size-4" />}
                   {publishPending ? "正在发布..." : "发布已确认版本"}
                 </button>
+              </div>
+              <div className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+                <label className="grid gap-2 text-sm font-medium text-neutral-800" htmlFor="snapshot-scheduled-at">
+                  定时发布时间
+                  <input className="min-h-11 border border-neutral-300 px-3" disabled={schedulePending || publishPending || publishedCount !== null} id="snapshot-scheduled-at" onChange={(event) => setScheduledAt(event.target.value)} type="datetime-local" value={scheduledAt} />
+                </label>
+                <button className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-300 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" disabled={!scheduledAt || schedulePending || publishPending || publishedCount !== null} onClick={schedule} type="button">
+                  {schedulePending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : null}
+                  安排定时发布
+                </button>
+                <button className="inline-flex min-h-11 items-center justify-center border border-neutral-300 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" disabled={!scheduledAt || schedulePending || publishPending || publishedCount !== null} onClick={cancelSchedule} type="button">取消定时</button>
               </div>
               {publishedCount !== null ? <p className="flex items-center gap-2 text-sm font-medium text-emerald-800" role="status"><CheckCircle2 aria-hidden="true" className="size-4" />已成功发布 {publishedCount} 项内容变更</p> : null}
             </div>

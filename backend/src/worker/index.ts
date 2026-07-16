@@ -1,12 +1,29 @@
 import { initializeRuntime } from "../runtime-bootstrap.js";
-import { createEncryptedBackup } from "../backup/backup-service.js";
 import { processInquiryNotification } from "./notification-worker.js";
 
 await initializeRuntime(process.env, async (environment) => {
-  const [{ db }, { createInquiryRepository }, { createMailer }] = await Promise.all([
+  const [
+    { db },
+    { createInquiryRepository },
+    { createMailer },
+    { createSettingsRepository },
+    { createRuntimeBackupManager },
+    { runBackupScheduleTick },
+    { createDrizzleContentStore },
+    { createPublicRepository },
+    { createPreviewService },
+    { processDueScheduledSnapshots },
+  ] = await Promise.all([
     import("../db/client.js"),
     import("../inquiries/repository.js"),
     import("./mailer.js"),
+    import("../admin/repositories/settings-repository.js"),
+    import("../backup/backup-runtime.js"),
+    import("../backup/backup-scheduler.js"),
+    import("../content/drizzle-content-store.js"),
+    import("../content/public-repository.js"),
+    import("../preview/preview-service.js"),
+    import("../preview/scheduled-publish-worker.js"),
   ]);
   const keepAlive = setInterval(() => undefined, 60_000);
   const inquiryRepository = createInquiryRepository(db);
@@ -53,21 +70,48 @@ await initializeRuntime(process.env, async (environment) => {
     ? setInterval(() => void processNotifications(), 5_000)
     : undefined;
   void processNotifications();
-  const backupTimer = environment.BACKUP_ENCRYPTION_KEY
-    ? setInterval(() => void createEncryptedBackup({ databasePath: environment.DATABASE_PATH, mediaDir: "/media", outputDir: environment.BACKUP_DIR ?? "data/backups", encryptionKey: environment.BACKUP_ENCRYPTION_KEY! }).catch((error) => console.error("Backup failed", error)), (environment.BACKUP_INTERVAL_HOURS ?? 24) * 3_600_000)
-    : undefined;
+  const backupManager = createRuntimeBackupManager({
+    database: db,
+    settingsRepository: createSettingsRepository(db, {
+      encryptionConfigured: Boolean(environment.BACKUP_ENCRYPTION_KEY),
+    }),
+    environment,
+  });
+  const processBackups = () => runBackupScheduleTick(backupManager);
+  const backupTimer = setInterval(() => void processBackups(), 5 * 60_000);
+  void processBackups();
+  const previewService = createPreviewService(
+    db,
+    createPublicRepository(createDrizzleContentStore(db, { includeDrafts: true })),
+  );
+  let publicationRunning = false;
+  const processScheduledPublications = async () => {
+    if (publicationRunning) return;
+    publicationRunning = true;
+    try {
+      await processDueScheduledSnapshots(previewService, workerId);
+    } catch (error) {
+      console.error("Scheduled preview publication worker failed", error);
+    } finally {
+      publicationRunning = false;
+    }
+  };
+  const publicationTimer = setInterval(() => void processScheduledPublications(), 5_000);
+  void processScheduledPublications();
 
   function shutdown(signal: NodeJS.Signals): void {
     console.info(`Received ${signal}; stopping AnShow worker.`);
     clearInterval(keepAlive);
     if (notificationTimer) clearInterval(notificationTimer);
-    if (backupTimer) clearInterval(backupTimer);
+    clearInterval(backupTimer);
+    clearInterval(publicationTimer);
     process.exitCode = 0;
   }
 
   console.info("AnShow worker is ready", {
-    encryptedBackups: backupTimer ? "enabled" : "disabled",
+    encryptedBackups: environment.BACKUP_ENCRYPTION_KEY ? "configured" : "not-configured",
     inquiryNotifications: notificationTimer ? "enabled" : "disabled",
+    scheduledPreviewPublication: "enabled",
   });
 
   process.once("SIGINT", () => shutdown("SIGINT"));

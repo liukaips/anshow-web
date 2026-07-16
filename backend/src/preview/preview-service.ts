@@ -101,6 +101,18 @@ export function createPreviewService(database: AppDatabase, content: PublicConte
     publishSnapshot(input: { snapshotId: string; expectedHash: string; actorId: string }) {
       return publisher.publish(input);
     },
+    schedule(input: { snapshotId: string; expectedHash: string; scheduledAt: Date; actorId: string }) {
+      return publisher.schedule(input);
+    },
+    cancelSchedule(input: { snapshotId: string; actorId: string }) {
+      return publisher.cancelSchedule(input);
+    },
+    claimDue(workerId: string, at = now()) {
+      return publisher.claimDue(workerId, at);
+    },
+    releaseClaim(snapshotId: string, workerId: string) {
+      return publisher.releaseClaim(snapshotId, workerId);
+    },
     list() {
       return database.select().from(previewSnapshots).orderBy(desc(previewSnapshots.createdAt)).all();
     },

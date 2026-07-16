@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import type { AdminContentCollection } from "../admin/content/content-schema.js";
 import type { AppDatabase } from "../db/client.js";
@@ -29,6 +29,7 @@ import {
   tradeLanes,
   tradeLaneTranslations,
 } from "../db/schema/index.js";
+import type { PreviewSourceVersion } from "../db/schema/workflow.js";
 import { ContentVersionConflictError } from "../workflow/content-workflow.js";
 
 type BaseTable = typeof services;
@@ -66,6 +67,12 @@ export const SNAPSHOT_PUBLISH_ERROR_CODES = [
   "SNAPSHOT_SOURCE_INCOMPLETE",
   "SNAPSHOT_SOURCE_UNVERIFIED",
   "SNAPSHOT_SOURCE_UNSUPPORTED",
+  "SNAPSHOT_SCHEDULE_NOT_FUTURE",
+  "SNAPSHOT_SCHEDULE_EXPIRED",
+  "SNAPSHOT_SOURCE_SET_CHANGED",
+  "SNAPSHOT_ALREADY_SCHEDULED",
+  "SNAPSHOT_NOT_SCHEDULED",
+  "SNAPSHOT_CLAIMED",
 ] as const;
 
 export class SnapshotPublishError extends Error {
@@ -136,6 +143,27 @@ function validateSource(
   return config;
 }
 
+function sourceKey(source: { entityType: string; entityId: string; version: number }): string {
+  return `${source.entityType}:${source.entityId}:${source.version}`;
+}
+
+function approvedSources(transaction: Transaction) {
+  return transaction
+    .select({ entityType: contentWorkflow.entityType, entityId: contentWorkflow.entityId, version: contentWorkflow.version })
+    .from(contentWorkflow)
+    .where(eq(contentWorkflow.state, "approved"))
+    .orderBy(asc(contentWorkflow.entityType), asc(contentWorkflow.entityId))
+    .all();
+}
+
+function assertApprovedSourceSet(transaction: Transaction, sourceVersions: PreviewSourceVersion[]): void {
+  const expected = sourceVersions.map(sourceKey).sort();
+  const current = approvedSources(transaction).map(sourceKey).sort();
+  if (expected.length !== current.length || expected.some((value, index) => value !== current[index])) {
+    throw new SnapshotPublishError("SNAPSHOT_SOURCE_SET_CHANGED", "审核通过的内容已变化，请重新生成预览快照");
+  }
+}
+
 export function createSnapshotPublisher(
   database: AppDatabase,
   options: { createId?: () => string; now?: () => Date } = {},
@@ -162,6 +190,12 @@ export function createSnapshotPublisher(
         if (snapshot.publishedAt) {
           throw new SnapshotPublishError("SNAPSHOT_ALREADY_PUBLISHED", "该预览快照已经发布");
         }
+        if (snapshot.scheduledAt && snapshot.scheduledAt > timestamp) {
+          throw new SnapshotPublishError("SNAPSHOT_ALREADY_SCHEDULED", "该快照已安排定时发布，请先取消定时任务");
+        }
+        if (snapshot.scheduleClaimedBy && snapshot.scheduleClaimedBy !== input.actorId) {
+          throw new SnapshotPublishError("SNAPSHOT_CLAIMED", "该定时发布正在由其他工作进程执行");
+        }
         if (snapshot.sourceVersions.length === 0) {
           throw new SnapshotPublishError("SNAPSHOT_NO_APPROVED_CHANGES", "当前预览没有已审核且可发布的变更");
         }
@@ -170,6 +204,7 @@ export function createSnapshotPublisher(
           source,
           config: validateSource(transaction, source),
         }));
+        assertApprovedSourceSet(transaction, snapshot.sourceVersions);
 
         for (const { source, config } of validated) {
           transaction
@@ -199,7 +234,7 @@ export function createSnapshotPublisher(
 
         transaction
           .update(previewSnapshots)
-          .set({ publishedAt: timestamp })
+          .set({ publishedAt: timestamp, scheduledAt: null, scheduleClaimedAt: null, scheduleClaimedBy: null })
           .where(eq(previewSnapshots.id, snapshot.id))
           .run();
         transaction.insert(auditLogs).values({
@@ -219,6 +254,50 @@ export function createSnapshotPublisher(
           publishedChanges: validated.length,
         };
       });
+    },
+    schedule(input: { snapshotId: string; expectedHash: string; scheduledAt: Date; actorId: string }) {
+      return database.transaction((transaction) => {
+        const snapshot = transaction.select().from(previewSnapshots).where(eq(previewSnapshots.id, input.snapshotId)).get();
+        if (!snapshot) throw new SnapshotPublishError("SNAPSHOT_NOT_FOUND", "预览快照不存在");
+        if (snapshot.contentHash !== input.expectedHash) throw new SnapshotPublishError("SNAPSHOT_HASH_MISMATCH", "预览校验值不一致，请重新生成预览");
+        const timestamp = now();
+        if (input.scheduledAt <= timestamp) throw new SnapshotPublishError("SNAPSHOT_SCHEDULE_NOT_FUTURE", "定时发布时间必须晚于当前时间");
+        if (snapshot.expiresAt && input.scheduledAt >= snapshot.expiresAt) throw new SnapshotPublishError("SNAPSHOT_SCHEDULE_EXPIRED", "定时发布时间必须早于预览快照过期时间");
+        if (snapshot.expiresAt && snapshot.expiresAt <= timestamp) throw new SnapshotPublishError("SNAPSHOT_EXPIRED", "预览快照已过期，请重新生成");
+        if (snapshot.publishedAt) throw new SnapshotPublishError("SNAPSHOT_ALREADY_PUBLISHED", "该预览快照已经发布");
+        if (snapshot.scheduledAt) throw new SnapshotPublishError("SNAPSHOT_ALREADY_SCHEDULED", "该预览快照已经设置定时发布");
+        if (snapshot.sourceVersions.length === 0) throw new SnapshotPublishError("SNAPSHOT_NO_APPROVED_CHANGES", "当前预览没有已审核且可发布的变更");
+        snapshot.sourceVersions.forEach((source) => validateSource(transaction, source));
+        assertApprovedSourceSet(transaction, snapshot.sourceVersions);
+        transaction.update(previewSnapshots).set({ scheduledAt: input.scheduledAt }).where(eq(previewSnapshots.id, snapshot.id)).run();
+        transaction.insert(auditLogs).values({
+          id: createId(), actorId: input.actorId, action: "preview.snapshot.schedule", entityType: "preview", entityId: snapshot.id,
+          detail: JSON.stringify({ contentHash: snapshot.contentHash, scheduledAt: input.scheduledAt.toISOString(), changes: snapshot.sourceVersions.length }), createdAt: timestamp,
+        }).run();
+        return { snapshotId: snapshot.id, contentHash: snapshot.contentHash, scheduledAt: input.scheduledAt, changes: snapshot.sourceVersions.length };
+      });
+    },
+    cancelSchedule(input: { snapshotId: string; actorId: string }) {
+      return database.transaction((transaction) => {
+        const snapshot = transaction.select().from(previewSnapshots).where(eq(previewSnapshots.id, input.snapshotId)).get();
+        if (!snapshot) throw new SnapshotPublishError("SNAPSHOT_NOT_FOUND", "预览快照不存在");
+        if (!snapshot.scheduledAt) throw new SnapshotPublishError("SNAPSHOT_NOT_SCHEDULED", "该预览快照没有定时任务");
+        if (snapshot.scheduleClaimedBy) throw new SnapshotPublishError("SNAPSHOT_CLAIMED", "该定时发布正在执行，暂不能取消");
+        const timestamp = now();
+        transaction.update(previewSnapshots).set({ scheduledAt: null }).where(eq(previewSnapshots.id, snapshot.id)).run();
+        transaction.insert(auditLogs).values({ id: createId(), actorId: input.actorId, action: "preview.snapshot.schedule-cancel", entityType: "preview", entityId: snapshot.id, detail: JSON.stringify({ contentHash: snapshot.contentHash }), createdAt: timestamp }).run();
+        return { snapshotId: snapshot.id, cancelled: true as const };
+      });
+    },
+    claimDue(workerId: string, at = now()) {
+      const claimedAt = at;
+      const candidate = database.select().from(previewSnapshots).where(and(lte(previewSnapshots.scheduledAt, at), isNull(previewSnapshots.publishedAt), isNull(previewSnapshots.scheduleClaimedAt))).orderBy(asc(previewSnapshots.scheduledAt), asc(previewSnapshots.createdAt)).get();
+      if (!candidate) return null;
+      const changed = database.update(previewSnapshots).set({ scheduleClaimedAt: claimedAt, scheduleClaimedBy: workerId }).where(and(eq(previewSnapshots.id, candidate.id), lte(previewSnapshots.scheduledAt, at), isNull(previewSnapshots.publishedAt), isNull(previewSnapshots.scheduleClaimedAt))).run();
+      return changed.changes === 1 ? database.select().from(previewSnapshots).where(eq(previewSnapshots.id, candidate.id)).get() ?? null : null;
+    },
+    releaseClaim(snapshotId: string, workerId: string) {
+      database.update(previewSnapshots).set({ scheduleClaimedAt: null, scheduleClaimedBy: null }).where(and(eq(previewSnapshots.id, snapshotId), eq(previewSnapshots.scheduleClaimedBy, workerId))).run();
     },
   };
 }

@@ -164,6 +164,9 @@ export const previewSnapshots = sqliteTable(
     createdBy: text("created_by").notNull(),
     createdAt: requiredTimestamp("created_at"),
     expiresAt: timestamp("expires_at"),
+    scheduledAt: timestamp("scheduled_at"),
+    scheduleClaimedAt: timestamp("schedule_claimed_at"),
+    scheduleClaimedBy: text("schedule_claimed_by"),
     publishedAt: timestamp("published_at"),
   },
   (table) => [
@@ -174,6 +177,14 @@ export const previewSnapshots = sqliteTable(
     check(
       "preview_snapshots_expiry_check",
       sql`${table.expiresAt} is null or ${table.expiresAt} > ${table.createdAt}`,
+    ),
+    check(
+      "preview_snapshots_schedule_claim_check",
+      sql`(${table.scheduleClaimedAt} is null and ${table.scheduleClaimedBy} is null) or (${table.scheduleClaimedAt} is not null and ${table.scheduleClaimedBy} is not null)`,
+    ),
+    check(
+      "preview_snapshots_schedule_before_expiry_check",
+      sql`${table.scheduledAt} is null or ${table.expiresAt} is null or ${table.scheduledAt} < ${table.expiresAt}`,
     ),
     index("preview_snapshots_created_idx").on(table.createdAt),
   ],

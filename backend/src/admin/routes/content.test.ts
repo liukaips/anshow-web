@@ -150,7 +150,7 @@ describe("administration content routes", () => {
     expect(repository.publish).not.toHaveBeenCalled();
   });
 
-  it("supports list, detail, create, draft, schedule, publish, and archive with the actor", async () => {
+  it("supports list, detail, create, draft, publish, and archive with the actor", async () => {
     const repository = createFakeRepository();
     const app = createAuthorizedApp(repository);
 
@@ -191,22 +191,16 @@ describe("administration content routes", () => {
       "staff-1",
     );
 
-    const scheduledAt = "2026-07-16T04:00:00.000Z";
     const scheduleResponse = await app.request(
       jsonRequest(
         `/api/admin/content/services/${CONTENT_ID}/translations/ru/schedule`,
         "POST",
-        { ...translationInput, scheduledAt },
+        { ...translationInput, scheduledAt: "2026-07-16T04:00:00.000Z" },
       ),
     );
-    expect(scheduleResponse.status).toBe(200);
-    expect(repository.schedule).toHaveBeenCalledWith(
-      "services",
-      CONTENT_ID,
-      "ru",
-      { ...translationInput, scheduledAt },
-      "staff-1",
-    );
+    expect(scheduleResponse.status).toBe(409);
+    expect(await scheduleResponse.json()).toMatchObject({ error: { code: "SNAPSHOT_SCHEDULE_REQUIRED" } });
+    expect(repository.schedule).not.toHaveBeenCalled();
 
     const publishResponse = await app.request(
       jsonRequest(
