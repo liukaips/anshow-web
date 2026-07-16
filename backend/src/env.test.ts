@@ -20,6 +20,22 @@ describe("parseEnv", () => {
     });
   });
 
+  it("treats blank optional Compose variables as not configured", () => {
+    expect(parseEnv({
+      ...validEnvironment,
+      BACKUP_ENCRYPTION_KEY: "",
+      COS_BUCKET: "",
+      SMTP_HOST: "",
+      TRANSLATION_API_URL: "",
+      TRANSLATION_API_KEY: "",
+      TRANSLATION_MODEL: "",
+    })).toEqual({
+      ...validEnvironment,
+      MEDIA_DRIVER: "local",
+      PORT: 4000,
+    });
+  });
+
   it("accepts an explicit COS media driver and port", () => {
     expect(
       parseEnv({ ...validEnvironment, MEDIA_DRIVER: "cos", PORT: "8080", COS_BUCKET: "b", COS_REGION: "r", COS_PUBLIC_BASE_URL: "https://cdn.example.com", COS_SECRET_ID: "id", COS_SECRET_KEY: "key" }),

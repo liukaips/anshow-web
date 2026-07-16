@@ -94,5 +94,11 @@ export type RuntimeEnv = z.infer<typeof RuntimeEnvSchema>;
 export function parseEnv(
   environment: Readonly<Record<string, string | undefined>>,
 ): RuntimeEnv {
-  return RuntimeEnvSchema.parse(environment);
+  const normalized = Object.fromEntries(
+    Object.entries(environment).map(([key, value]) => [
+      key,
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    ]),
+  );
+  return RuntimeEnvSchema.parse(normalized);
 }
