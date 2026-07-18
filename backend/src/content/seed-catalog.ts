@@ -44,6 +44,7 @@ type CopyInput = {
   summary: string;
   sections?: StructuredContentSection[];
   altText?: string;
+  seoTitle?: string;
 };
 
 type LocalizedCopy = Record<Locale, CopyInput>;
@@ -53,9 +54,9 @@ function copy(
   slug: string,
   summary: string,
   sections?: StructuredContentSection[],
-  altText?: string,
+  options: { altText?: string; seoTitle?: string } = {},
 ): CopyInput {
-  return { title, slug, summary, sections, altText };
+  return { title, slug, summary, sections, ...options };
 }
 
 function serializeBody(
@@ -96,7 +97,7 @@ function item(
             locale,
             value.sections ?? [{ type: "paragraph", text: value.summary }],
           ),
-          seoTitle: `${value.title} | AnShow`,
+          seoTitle: value.seoTitle ?? `${value.title} | AnShow`,
           seoDescription: value.summary,
           altText: value.altText ?? `${value.title}. ${value.summary}`,
         },
@@ -176,7 +177,7 @@ const services: SeedItem[] = [
     ["海运服务", "hai-yun-fu-wu", "为常规及专业货物提供海运代理，清晰协同订舱与交接。", ["整箱与拼箱", "特种柜及项目货物", "订舱、单证与目的港交接"]],
     ["Морские перевозки", "morskie-perevozki", "Экспедирование стандартных и специальных грузов с координацией бронирования и передачи.", ["FCL и LCL", "Специальные контейнеры и проектные грузы", "Бронирование, документы и передача в пункте назначения"]]),
   service("air-freight", "service-air", "transit",
-    ["Air Freight", "air-freight", "Air forwarding for urgent, controlled, and time-sensitive cargo.", ["Priority flight planning", "Document and handling readiness", "Milestone and arrival coordination"]],
+    ["Air Freight for Time-Critical Cargo", "air-freight", "Air forwarding for urgent, controlled, and time-sensitive cargo.", ["Priority flight planning", "Document and handling readiness", "Milestone and arrival coordination"]],
     ["空运服务", "kong-yun-fu-wu", "为紧急、受控及高时效货物提供空运代理。", ["优先航班方案", "单证与操作准备", "节点跟踪与到港协同"]],
     ["Авиаперевозки", "aviaperevozki", "Авиаэкспедирование срочных, контролируемых и чувствительных ко срокам грузов.", ["Подбор приоритетного рейса", "Подготовка документов и обработки", "Контроль этапов и прибытия"]]),
   service("rail-freight", "service-rail", "transit",
@@ -334,6 +335,7 @@ function caseCopy(
   challenge: string,
   execution: string,
   result: string,
+  options: { seoTitle?: string } = {},
 ) {
   const processTitles = {
     en: ["Project challenge", "Execution plan", "Project result"],
@@ -354,7 +356,7 @@ function caseCopy(
       { title: processTitles[1], text: execution },
       { title: processTitles[2], text: result },
     ] },
-  ]);
+  ], options);
 }
 
 function fact(
@@ -475,7 +477,7 @@ const caseStudies: SeedItem[] = [
     return item("case-studies", "semiconductor-import-clearance", "case-semiconductor-clearance", {
       en: caseCopy("en", "Used Semiconductor Equipment Import Clearance", "used-semiconductor-import-clearance", "Representative import-clearance project for used semiconductor equipment, with the identified issue resolved in about five days.", facts, "Used equipment records required reconciliation before inspection and customs communication could proceed.", "The team coordinated document comparison, equipment data clarification, inspection support, and customs-facing communication.", "The identified clearance issue was resolved in about five days for this project."),
       zh: caseCopy("zh", "二手半导体设备进口清关", "er-shou-ban-dao-ti-she-bei-qing-guan", "代表性项目：二手半导体设备进口清关，发现的问题约 5 天完成处理。", facts, "二手设备资料需要核对一致后，方可推进查验及关务沟通。", "团队协同单证比对、设备信息澄清、查验支持及关务沟通。", "该项目发现的清关问题约 5 天完成处理。"),
-      ru: caseCopy("ru", "Импортное оформление бывшего в эксплуатации полупроводникового оборудования", "importnoe-oformlenie-poluprovodnikovogo-oborudovaniya", "Представительный проект импортного оформления бывшего в эксплуатации полупроводникового оборудования; выявленный вопрос решен примерно за пять дней.", facts, "До досмотра и взаимодействия с таможней требовалось сверить сведения о бывшем в эксплуатации оборудовании.", "Команда координировала сопоставление документов, уточнение данных, поддержку досмотра и коммуникацию с таможней.", "Выявленный вопрос оформления был решен примерно за пять дней в рамках этого проекта."),
+      ru: caseCopy("ru", "Импортное оформление бывшего в эксплуатации полупроводникового оборудования", "importnoe-oformlenie-poluprovodnikovogo-oborudovaniya", "Представительный проект импортного оформления бывшего в эксплуатации полупроводникового оборудования; выявленный вопрос решен примерно за пять дней.", facts, "До досмотра и взаимодействия с таможней требовалось сверить сведения о бывшем в эксплуатации оборудовании.", "Команда координировала сопоставление документов, уточнение данных, поддержку досмотра и коммуникацию с таможней.", "Выявленный вопрос оформления был решен примерно за пять дней в рамках этого проекта.", { seoTitle: "Импортное оформление оборудования | AnShow" }),
     }, { processStageId: "customs" });
   })(),
 ];

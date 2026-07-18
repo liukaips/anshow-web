@@ -25,12 +25,13 @@ import {
   tradeLanes,
   tradeLaneTranslations,
 } from "../db/schema/index.js";
-import { seedCatalog } from "./seed-catalog.js";
-import { seedPublicContent } from "./seed.js";
+import { seedCatalog, type SeedCollection } from "./seed-catalog.js";
+import { seedCollectionRoutes, seedPublicContent } from "./seed.js";
 import { structuredContentBodySchema } from "./structured-body.js";
 import { LOCALES } from "./types.js";
 
 const SEEDED_AT = new Date("2026-07-14T12:00:00.000Z");
+const RESEEDED_AT = new Date("2026-08-14T12:00:00.000Z");
 
 const EXPECTED_CODES = {
   "hero-slides": ["ocean", "air", "rail", "road"],
@@ -85,7 +86,19 @@ const EXPECTED_CODES = {
     "terms",
     "cookies",
   ],
-} as const;
+} as const satisfies Record<SeedCollection, readonly string[]>;
+
+const FORBIDDEN_CLAIM_PATTERNS = [
+  /100\s*%\s*(?:satisfaction|满意|удовлетвор\p{L}*)/iu,
+  /guaranteed\s+satisfaction|satisfaction\s+guaranteed|unconditional\s+satisfaction|保证满意|绝对满意|满意度保证|(?:гарантированн\p{L}*|абсолютн\p{L}*)(?:\s+\p{L}+){0,3}\s+удовлетвор\p{L}*/iu,
+  /zero[-\s]*(?:risk|violations?)|零(?:风险|违规)|нулев\p{L}*\s+(?:риск|нарушен\p{L}*)|ноль\s+риска|без\s+(?:риска|нарушен\p{L}*)/iu,
+  /200\s*\+\s*countries(?:\s+and\s+regions)?|200多个国家(?:和地区)?|200\s*\+\s*стран|более\s+200\s+стран/iu,
+  /全球(?:无死角|全覆盖)|complete\s+global\s+coverage|worldwide\s+without\s+gaps|пол\p{L}*\s+покрыт\p{L}*\s+по\s+всему\s+миру|пол\p{L}*\s+(?:глобальн\p{L}*|всемирн\p{L}*|миров\p{L}*)\s+покрыт\p{L}*|(?:всемирн\p{L}*\s+)?покрыт\p{L}*\s+без\s+пробел\p{L}*|по\s+всему\s+миру\s+без\s+пробел\p{L}*/iu,
+] as const;
+
+function containsForbiddenClaim(value: string) {
+  return FORBIDDEN_CLAIM_PATTERNS.some((pattern) => pattern.test(value));
+}
 
 function structuredBody(itemCode: string, locale: string, body: string) {
   return structuredContentBodySchema.parse(JSON.parse(body), {
@@ -109,6 +122,7 @@ function canonicalFacts(body: string) {
 describe("public content seed", () => {
   it("contains the complete approved catalog in all three locales", () => {
     expect(seedCatalog).toHaveLength(54);
+    expect(Object.keys(seedCollectionRoutes)).toEqual(Object.keys(EXPECTED_CODES));
     for (const [collection, codes] of Object.entries(EXPECTED_CODES)) {
       expect(
         seedCatalog
@@ -126,6 +140,10 @@ describe("public content seed", () => {
         expect(copy.body, `${item.code}/${locale} body`).not.toBe("");
         expect(copy.seoTitle, `${item.code}/${locale} SEO title`).not.toBe("");
         expect(
+          copy.seoTitle.length,
+          `${item.code}/${locale} SEO title length`,
+        ).toBeLessThanOrEqual(70);
+        expect(
           copy.seoDescription,
           `${item.code}/${locale} SEO description`,
         ).not.toBe("");
@@ -142,6 +160,13 @@ describe("public content seed", () => {
       seedCatalog.find((item) => item.collection === "hero-slides" && item.code === "rail")
         ?.desiredMediaId,
     ).toBe("hero-rail");
+    const airFreight = seedCatalog.find(
+      (item) => item.collection === "services" && item.code === "air-freight",
+    );
+    expect(airFreight?.translations.en.title).toBe("Air Freight for Time-Critical Cargo");
+    expect(airFreight?.translations.en.seoTitle).toBe(
+      "Air Freight for Time-Critical Cargo | AnShow",
+    );
   });
 
   it("publishes the exact representative cases with locale-invariant facts", () => {
@@ -233,11 +258,31 @@ describe("public content seed", () => {
       .flatMap((item) => LOCALES.map((locale) => Object.values(item.translations[locale]).join(" ")))
       .join("\n");
 
-    expect(publishedCopy).not.toMatch(/100\s*%\s*(?:satisfaction|满意|удовлетвор\w*)?/iu);
-    expect(publishedCopy).not.toMatch(/guaranteed\s+satisfaction|satisfaction\s+guaranteed|unconditional\s+satisfaction|保证满意|绝对满意|满意度保证|(?:гарантированн\w*|абсолютн\w*)(?:\s+\w+){0,3}\s+удовлетвор\w*/iu);
-    expect(publishedCopy).not.toMatch(/zero[-\s]*(?:risk|violations?)|零(?:风险|违规)|нулев\w*\s+(?:риск|нарушен\w*)|ноль\s+риска|без\s+(?:риска|нарушен\w*)/iu);
-    expect(publishedCopy).not.toMatch(/200\s*\+\s*countries(?:\s+and\s+regions)?|200多个国家(?:和地区)?|200\s*\+\s*стран|более\s+200\s+стран/iu);
-    expect(publishedCopy).not.toMatch(/全球(?:无死角|全覆盖)|complete\s+global\s+coverage|worldwide\s+without\s+gaps|пол\w*\s+покрыт\w*\s+по\s+всему\s+миру|пол\w*\s+(?:глобальн\w*|всемирн\w*|миров\w*)\s+покрыт\w*|(?:всемирн\w*\s+)?покрыт\w*\s+без\s+пробел\w*|по\s+всему\s+миру\s+без\s+пробел\w*/iu);
+    expect(containsForbiddenClaim(publishedCopy)).toBe(false);
+  });
+
+  it("rejects absolute satisfaction claims without banning factual percentages", () => {
+    const prohibited = [
+      "100% satisfaction",
+      "Satisfaction guaranteed",
+      "保证满意",
+      "гарантированная удовлетворенность",
+      "complete global coverage",
+      "全球无死角",
+      "полное покрытие по всему миру",
+    ];
+    const permitted = [
+      "100% of the drums were counted for this project.",
+      "该项目文件复核完成率为 100%。",
+      "В этом проекте проверено 100% документов.",
+    ];
+
+    for (const value of prohibited) {
+      expect(containsForbiddenClaim(value), value).toBe(true);
+    }
+    for (const value of permitted) {
+      expect(containsForbiddenClaim(value), value).toBe(false);
+    }
   });
 
   it("inserts base records and translations idempotently", () => {
@@ -245,7 +290,54 @@ describe("public content seed", () => {
 
     try {
       seedPublicContent(testDatabase.db, { now: SEEDED_AT });
-      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      const originalBaseTimestamps = testDatabase.db
+        .select({ updatedAt: caseStudies.updatedAt })
+        .from(caseStudies)
+        .where(eq(caseStudies.id, "un1263-hamburg"))
+        .get();
+      const originalTranslationTimestamps = testDatabase.db
+        .select({
+          updatedAt: caseStudyTranslations.updatedAt,
+          publishedAt: caseStudyTranslations.publishedAt,
+        })
+        .from(caseStudyTranslations)
+        .where(
+          and(
+            eq(caseStudyTranslations.ownerId, "un1263-hamburg"),
+            eq(caseStudyTranslations.locale, "en"),
+          ),
+        )
+        .get();
+
+      seedPublicContent(testDatabase.db, { now: RESEEDED_AT });
+
+      expect(originalBaseTimestamps).toEqual({ updatedAt: SEEDED_AT });
+      expect(originalTranslationTimestamps).toEqual({
+        updatedAt: SEEDED_AT,
+        publishedAt: SEEDED_AT,
+      });
+      expect(
+        testDatabase.db
+          .select({ updatedAt: caseStudies.updatedAt })
+          .from(caseStudies)
+          .where(eq(caseStudies.id, "un1263-hamburg"))
+          .get(),
+      ).toEqual(originalBaseTimestamps);
+      expect(
+        testDatabase.db
+          .select({
+            updatedAt: caseStudyTranslations.updatedAt,
+            publishedAt: caseStudyTranslations.publishedAt,
+          })
+          .from(caseStudyTranslations)
+          .where(
+            and(
+              eq(caseStudyTranslations.ownerId, "un1263-hamburg"),
+              eq(caseStudyTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual(originalTranslationTimestamps);
 
       const tableCounts = [
         [heroSlides, 4],
@@ -275,6 +367,38 @@ describe("public content seed", () => {
           testDatabase.db.select({ value: count() }).from(table).get()?.value,
         ).toBe(expected);
       }
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("persists published structured case facts in SQLite", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+
+      const storedCase = testDatabase.db
+        .select({
+          status: caseStudyTranslations.status,
+          body: caseStudyTranslations.body,
+        })
+        .from(caseStudyTranslations)
+        .where(
+          and(
+            eq(caseStudyTranslations.ownerId, "un1263-hamburg"),
+            eq(caseStudyTranslations.locale, "en"),
+          ),
+        )
+        .get();
+
+      expect(storedCase?.status).toBe("published");
+      expect(canonicalFacts(storedCase?.body ?? "")).toEqual(expect.arrayContaining([
+        { key: "un", value: "UN1263", unit: null },
+        { key: "hazardClass", value: "3", unit: null },
+        { key: "weight", value: "12", unit: "t" },
+        { key: "duration", value: "28", unit: "days" },
+      ]));
     } finally {
       testDatabase.close();
     }

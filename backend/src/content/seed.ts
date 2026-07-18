@@ -32,10 +32,59 @@ type ContentTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
 
+type SeedCollectionRoute =
+  | { baseTable: typeof articles; translationTable: typeof articleTranslations }
+  | { baseTable: typeof cargoTypes; translationTable: typeof cargoTypeTranslations }
+  | { baseTable: typeof caseStudies; translationTable: typeof caseStudyTranslations }
+  | { baseTable: typeof certificates; translationTable: typeof certificateTranslations }
+  | { baseTable: typeof heroSlides; translationTable: typeof heroSlideTranslations }
+  | { baseTable: typeof navigationItems; translationTable: typeof navigationItemTranslations }
+  | { baseTable: typeof pages; translationTable: typeof pageTranslations }
+  | { baseTable: typeof proofMetrics; translationTable: typeof proofMetricTranslations }
+  | { baseTable: typeof services; translationTable: typeof serviceTranslations }
+  | { baseTable: typeof tradeLanes; translationTable: typeof tradeLaneTranslations };
+
+type LocalizedBaseTable = SeedCollectionRoute["baseTable"];
+type LocalizedTranslationTable = SeedCollectionRoute["translationTable"];
+
+export const seedCollectionRoutes = {
+  "hero-slides": {
+    baseTable: heroSlides,
+    translationTable: heroSlideTranslations,
+  },
+  services: { baseTable: services, translationTable: serviceTranslations },
+  "trade-lanes": {
+    baseTable: tradeLanes,
+    translationTable: tradeLaneTranslations,
+  },
+  "cargo-types": {
+    baseTable: cargoTypes,
+    translationTable: cargoTypeTranslations,
+  },
+  pages: { baseTable: pages, translationTable: pageTranslations },
+  "case-studies": {
+    baseTable: caseStudies,
+    translationTable: caseStudyTranslations,
+  },
+  articles: { baseTable: articles, translationTable: articleTranslations },
+  certificates: {
+    baseTable: certificates,
+    translationTable: certificateTranslations,
+  },
+  "proof-metrics": {
+    baseTable: proofMetrics,
+    translationTable: proofMetricTranslations,
+  },
+  "navigation-items": {
+    baseTable: navigationItems,
+    translationTable: navigationItemTranslations,
+  },
+} satisfies Record<SeedCollection, SeedCollectionRoute>;
+
 function insertLocalizedItem(
   tx: ContentTransaction,
-  baseTable: typeof services,
-  translationTable: typeof serviceTranslations,
+  baseTable: LocalizedBaseTable,
+  translationTable: LocalizedTranslationTable,
   seedItem: SeedItem,
   sortOrder: number,
   now: Date,
@@ -83,38 +132,15 @@ export function seedPublicContent(
       const sortOrder = collectionPositions.get(seedItem.collection) ?? 0;
       collectionPositions.set(seedItem.collection, sortOrder + 1);
 
-      switch (seedItem.collection) {
-        case "hero-slides":
-          insertLocalizedItem(tx, heroSlides, heroSlideTranslations, seedItem, sortOrder, now);
-          break;
-        case "services":
-          insertLocalizedItem(tx, services, serviceTranslations, seedItem, sortOrder, now);
-          break;
-        case "trade-lanes":
-          insertLocalizedItem(tx, tradeLanes, tradeLaneTranslations, seedItem, sortOrder, now);
-          break;
-        case "cargo-types":
-          insertLocalizedItem(tx, cargoTypes, cargoTypeTranslations, seedItem, sortOrder, now);
-          break;
-        case "pages":
-          insertLocalizedItem(tx, pages, pageTranslations, seedItem, sortOrder, now);
-          break;
-        case "case-studies":
-          insertLocalizedItem(tx, caseStudies, caseStudyTranslations, seedItem, sortOrder, now);
-          break;
-        case "articles":
-          insertLocalizedItem(tx, articles, articleTranslations, seedItem, sortOrder, now);
-          break;
-        case "certificates":
-          insertLocalizedItem(tx, certificates, certificateTranslations, seedItem, sortOrder, now);
-          break;
-        case "proof-metrics":
-          insertLocalizedItem(tx, proofMetrics, proofMetricTranslations, seedItem, sortOrder, now);
-          break;
-        case "navigation-items":
-          insertLocalizedItem(tx, navigationItems, navigationItemTranslations, seedItem, sortOrder, now);
-          break;
-      }
+      const route = seedCollectionRoutes[seedItem.collection];
+      insertLocalizedItem(
+        tx,
+        route.baseTable,
+        route.translationTable,
+        seedItem,
+        sortOrder,
+        now,
+      );
     }
   });
 }
