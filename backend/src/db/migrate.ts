@@ -1,20 +1,9 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { migrateAndInitializeDatabase } from "./migration-runner.js";
 
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-
-import { initializeRuntime } from "../runtime-bootstrap.js";
-
-const currentDirectory = dirname(fileURLToPath(import.meta.url));
-const migrationsFolder = resolve(currentDirectory, "../../migrations");
-
-await initializeRuntime(process.env, async () => {
-  const { db, sqlite } = await import("./client.js");
-
-  try {
-    migrate(db, { migrationsFolder });
-    console.info(`Applied database migrations from ${migrationsFolder}`);
-  } finally {
-    sqlite.close();
-  }
-});
+try {
+  await migrateAndInitializeDatabase();
+  console.info("Database migration and initialization complete.");
+} catch {
+  console.error("Database migration and initialization failed.");
+  process.exitCode = 1;
+}
