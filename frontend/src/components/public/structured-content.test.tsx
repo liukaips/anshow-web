@@ -74,9 +74,14 @@ describe("StructuredContent", () => {
     );
 
     expect(screen.getByText("A practical route plan.").tagName).toBe("P");
-    expect(screen.getAllByText("Transit time")).toHaveLength(2);
-    expect(screen.getAllByText("Transit time")[0].closest("dl")).toBeVisible();
-    expect(screen.getAllByText("Transit time")[0].tagName).toBe("DT");
+    const duplicateFactLabels = screen.getAllByText("Transit time");
+    expect(duplicateFactLabels).toHaveLength(2);
+    expect(duplicateFactLabels[0].closest("dl")).toBeVisible();
+    expect(duplicateFactLabels[0].tagName).toBe("DT");
+    expect(duplicateFactLabels.map((label) => label.nextElementSibling?.textContent)).toEqual([
+      "30days",
+      "Weekly",
+    ]);
     expect(screen.getByText("30").tagName).toBe("SPAN");
     expect(screen.getByText("days").tagName).toBe("SPAN");
     expect(screen.getAllByRole("heading", { name: "Book cargo" })).toHaveLength(2);

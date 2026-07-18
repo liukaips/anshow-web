@@ -53,8 +53,8 @@ function Section({
     case "fact-list":
       return (
         <dl className="grid gap-x-8 gap-y-5 border-y border-black/10 py-6 sm:grid-cols-2">
-          {section.items.map((item, itemIndex) => (
-            <div key={`fact-${sectionIndex}-${itemIndex}`}>
+          {section.items.map((item) => (
+            <div key={`fact-${sectionIndex}-${item.key}`}>
               <dt className="text-sm font-semibold text-black/65">{item.label}</dt>
               <dd className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xl font-semibold text-black">
                 <span className="tabular-nums">{item.value}</span>
