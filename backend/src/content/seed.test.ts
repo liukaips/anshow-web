@@ -273,6 +273,25 @@ function withTranslationTitle(
   );
 }
 
+function withTranslationBody(
+  catalog: readonly SeedItem[],
+  code: string,
+  locale: Locale,
+  body: string,
+): SeedItem[] {
+  return catalog.map((item) =>
+    item.code === code
+      ? {
+          ...item,
+          translations: {
+            ...item.translations,
+            [locale]: { ...item.translations[locale], body },
+          },
+        }
+      : item,
+  );
+}
+
 function createTestSeeder(catalog: readonly SeedItem[], version: number) {
   return createContentSeeder({
     catalog,
@@ -1198,7 +1217,6 @@ describe("public content seed", () => {
     const testDatabase = createTestDatabase();
 
     try {
-      insertCatalogMedia(testDatabase.db);
       const first = seedPublicContent(testDatabase.db, { now: SEEDED_AT });
       const revisions = testDatabase.db.select().from(contentSeedRevisions).all();
       const currentRows = seedCatalog.length * LOCALES.length;
@@ -1227,7 +1245,7 @@ describe("public content seed", () => {
     }
   });
 
-  it("records catalog-intended media even when the asset is not installed", () => {
+  it("records the effective null media when the desired asset is not installed", () => {
     const testDatabase = createTestDatabase();
 
     try {
@@ -1263,7 +1281,7 @@ describe("public content seed", () => {
             seedItem: ocean,
             sortOrder: 0,
             locale: "en",
-            mediaId: "hero-ocean",
+            mediaId: null,
           }),
         ),
       });
@@ -1615,6 +1633,38 @@ describe("public content seed", () => {
     }
   });
 
+  it("snapshots the validated revision values at factory construction", () => {
+    const testDatabase = createTestDatabase();
+    const catalog = withTranslationTitle(
+      seedCatalog,
+      "air-freight",
+      "en",
+      "Revision snapshot title",
+    );
+    const revision = {
+      version: 3,
+      expectedCatalogDigest: computeSeedCatalogDigest(catalog),
+    };
+    const seeder = createContentSeeder({ catalog, revision });
+    revision.version = 999;
+    revision.expectedCatalogDigest = "mutated";
+
+    try {
+      seeder(testDatabase.db, { now: SEEDED_AT });
+      expect(
+        new Set(
+          testDatabase.db
+            .select({ seedVersion: contentSeedRevisions.seedVersion })
+            .from(contentSeedRevisions)
+            .all()
+            .map(({ seedVersion }) => seedVersion),
+        ),
+      ).toEqual(new Set([3]));
+    } finally {
+      testDatabase.close();
+    }
+  });
+
   it("rolls back equal-version catalog drift even with a matching digest", () => {
     const testDatabase = createTestDatabase();
 
@@ -1711,6 +1761,158 @@ describe("public content seed", () => {
           )
           .get(),
       ).toEqual({ title: "Catalog air v3", updatedAt: RESEEDED_AT });
+      expect(
+        testDatabase.db
+          .select({ mediaId: services.mediaId })
+          .from(services)
+          .where(eq(services.id, "air-freight"))
+          .get(),
+      ).toEqual({ mediaId: "service-air" });
+      expect(
+        testDatabase.db
+          .select({ seedVersion: contentSeedRevisions.seedVersion })
+          .from(contentSeedRevisions)
+          .where(
+            and(
+              eq(contentSeedRevisions.collection, "services"),
+              eq(contentSeedRevisions.ownerId, "air-freight"),
+              eq(contentSeedRevisions.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({ seedVersion: 3 });
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("upgrades seed-owned copy across versions while media remains unavailable", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      const v3Catalog = withTranslationBody(
+        withTranslationTitle(
+          seedCatalog,
+          "air-freight",
+          "en",
+          "Catalog air without media v3",
+        ),
+        "air-freight",
+        "en",
+        "Catalog air body without media v3",
+      );
+
+      createTestSeeder(v3Catalog, 3)(testDatabase.db, { now: RESEEDED_AT });
+
+      expect(
+        testDatabase.db
+          .select({
+            mediaId: services.mediaId,
+            title: serviceTranslations.title,
+            body: serviceTranslations.body,
+          })
+          .from(services)
+          .innerJoin(
+            serviceTranslations,
+            eq(serviceTranslations.ownerId, services.id),
+          )
+          .where(
+            and(
+              eq(services.id, "air-freight"),
+              eq(serviceTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        mediaId: null,
+        title: "Catalog air without media v3",
+        body: "Catalog air body without media v3",
+      });
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("preserves operator media when effective seed media is unavailable", () => {
+    const testDatabase = createTestDatabase();
+    const operatorUpdatedAt = new Date("2026-07-20T12:00:00.000Z");
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      testDatabase.db
+        .insert(mediaAssets)
+        .values({
+          id: "operator-air",
+          storageKey: "seed-test/operator-air",
+          mimeType: "image/webp",
+          width: 1600,
+          height: 900,
+          dominantColor: "#654321",
+          createdAt: operatorUpdatedAt,
+        })
+        .run();
+      testDatabase.db
+        .update(services)
+        .set({ mediaId: "operator-air", updatedAt: operatorUpdatedAt })
+        .where(eq(services.id, "air-freight"))
+        .run();
+      const v3Catalog = withTranslationTitle(
+        seedCatalog,
+        "air-freight",
+        "en",
+        "Catalog air operator-media v3",
+      );
+
+      const result = createTestSeeder(v3Catalog, 3)(testDatabase.db, {
+        now: RESEEDED_AT,
+      });
+
+      expect(result.preserved).toContainEqual({
+        collection: "services",
+        code: "air-freight",
+        locale: "en",
+      });
+      expect(
+        testDatabase.db
+          .select({ mediaId: services.mediaId, updatedAt: services.updatedAt })
+          .from(services)
+          .where(eq(services.id, "air-freight"))
+          .get(),
+      ).toEqual({ mediaId: "operator-air", updatedAt: operatorUpdatedAt });
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("rejects late desired-media hydration under the same seed version", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      testDatabase.db
+        .insert(mediaAssets)
+        .values({
+          id: "service-air",
+          storageKey: "seed-test/service-air-late",
+          mimeType: "image/webp",
+          width: 1600,
+          height: 900,
+          dominantColor: "#123456",
+          createdAt: RESEEDED_AT,
+        })
+        .run();
+
+      expect(() =>
+        seedPublicContent(testDatabase.db, { now: RESEEDED_AT }),
+      ).toThrow("Seed version 2 catalog drift");
+      expect(
+        testDatabase.db
+          .select({ mediaId: services.mediaId })
+          .from(services)
+          .where(eq(services.id, "air-freight"))
+          .get(),
+      ).toEqual({ mediaId: null });
     } finally {
       testDatabase.close();
     }

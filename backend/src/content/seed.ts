@@ -355,7 +355,7 @@ function runContentSeeder(
           seedItem,
           sortOrder,
           locale,
-          mediaId: seedItem.desiredMediaId ?? null,
+          mediaId,
         });
         return {
           locale,
@@ -505,11 +505,17 @@ export function createContentSeeder({
   catalog,
   revision,
 }: ContentSeederConfig): ContentSeeder {
-  assertContentSeedContract(catalog, revision);
+  const version = revision.version;
+  const expectedCatalogDigest = revision.expectedCatalogDigest;
+  const revisionSnapshot: ContentSeedRevision = {
+    version,
+    expectedCatalogDigest,
+  };
+  assertContentSeedContract(catalog, revisionSnapshot);
 
   return (db, options = {}) => {
-    assertContentSeedContract(catalog, revision);
-    return runContentSeeder(db, catalog, revision.version, options);
+    assertContentSeedContract(catalog, revisionSnapshot);
+    return runContentSeeder(db, catalog, version, options);
   };
 }
 

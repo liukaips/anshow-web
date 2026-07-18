@@ -39,8 +39,8 @@ export type SeedItem = {
 };
 
 export type ContentSeedRevision = {
-  version: number;
-  expectedCatalogDigest: string;
+  readonly version: number;
+  readonly expectedCatalogDigest: string;
 };
 
 export const currentContentSeedRevision = {
