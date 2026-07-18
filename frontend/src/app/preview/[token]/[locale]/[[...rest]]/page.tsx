@@ -5,14 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getPublicPreview } from "@/api/preview-content.server";
-import { HeroCarousel } from "@/components/home/hero-carousel";
-import { largestSource } from "@/components/home/types";
-import { ProofStrip } from "@/components/home/proof-strip";
-import { ServiceGrid } from "@/components/home/service-grid";
-import { TradeLanes } from "@/components/home/trade-lanes";
-import { SpecialCargo } from "@/components/home/special-cargo";
-import { TrustScroller } from "@/components/home/trust-scroller";
-import { CaseCarousel } from "@/components/home/case-carousel";
+import { HomepageContent } from "@/components/home/homepage-content";
+import { getHomepageLabels } from "@/components/home/homepage-content.server";
+import { ProcessStory } from "@/components/process/process-story";
 import { PublicCollectionPage, PublicDetailPage, QuotePage, StaticContentPage, VerificationPage } from "@/components/public/public-pages";
 import type { PublicCollection } from "@/components/public/public-copy";
 import { PreviewBanner } from "@/components/preview/preview-banner";
@@ -38,18 +33,18 @@ export default async function PreviewPage({ params }: { params: Promise<{ token:
   const [section, slug] = rest;
 
   if (!section) {
-    const home = await getTranslations({ locale, namespace: "Home" });
-    const common = await getTranslations({ locale, namespace: "Common" });
-    const slides = preview.home.slides.map((slide) => ({ alt: slide.media?.alt || slide.altText, avifSrcSet: slide.media?.avifSrcSet, fallback: slide.media ? largestSource(slide.media.webpSrcSet) : undefined, id: slide.id, mobileAvif: slide.media?.mobileAvif, summary: slide.summary, title: slide.title, webpSrcSet: slide.media?.webpSrcSet }));
-    content = <main>
-      <HeroCarousel eyebrow={home("eyebrow")} headline={home("title")} labels={{ goTo: common("next"), next: common("next"), pause: common("pause"), play: common("play"), previous: common("previous") }} quoteHref={`${prefix}/${locale}/quote`} quoteLabel={home("cta")} slides={slides} />
-      <ServiceGrid eyebrow="ANSHOW / 01" items={preview.home.services} learnMore={common("learnMore")} locale={locale} title={home("services")} />
-      <TradeLanes eyebrow="ANSHOW / 02" items={preview.home.tradeLanes} laneLabel={home("lane")} learnMore={common("learnMore")} locale={locale} title={home("lanes")} />
-      <SpecialCargo eyebrow="ANSHOW / 03" items={preview.home.cargoTypes} learnMore={common("learnMore")} locale={locale} title={home("cargo")} />
-      <ProofStrip items={preview.home.proof} label={home("proof")} />
-      <TrustScroller items={preview.home.verifiedTrust} labels={{ next: common("next"), previous: common("previous") }} title={home("trust")} />
-      <CaseCarousel eyebrow="ANSHOW / 04" items={preview.home.cases} labels={{ next: common("next"), previous: common("previous") }} learnMore={common("learnMore")} locale={locale} title={home("cases")} />
-    </main>;
+    const labels = await getHomepageLabels(locale);
+    content = (
+      <HomepageContent
+        content={preview.home}
+        labels={labels}
+        locale={locale}
+        pathPrefix={prefix}
+        processStory={
+          <ProcessStory heading={labels.process} locale={locale} stageLabel={labels.stage} />
+        }
+      />
+    );
   } else if (collections.has(section as PublicCollection)) {
     const collection = section as PublicCollection;
     const items = preview.collections[collection];

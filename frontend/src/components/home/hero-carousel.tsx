@@ -102,7 +102,7 @@ export function HeroCarousel({
   return (
     <section
       aria-roledescription={hasCarousel ? "carousel" : undefined}
-      className="relative isolate min-h-[clamp(42rem,88svh,58rem)] overflow-hidden bg-[var(--color-carbon)] text-[var(--color-text-inverse)]"
+      className="relative isolate min-h-[clamp(38rem,82svh,52rem)] overflow-hidden bg-[var(--color-carbon)] text-[var(--color-text-inverse)]"
       data-autoplay-active={playing}
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false);
@@ -209,7 +209,7 @@ export function HeroCarousel({
         <div aria-hidden="true" className="absolute inset-0 bg-[var(--color-dark-surface)]" />
       )}
 
-      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[clamp(42rem,88svh,58rem)] w-full max-w-7xl flex-col justify-center px-5 pb-48 pt-28 sm:px-8 lg:px-12">
+      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[clamp(38rem,82svh,52rem)] w-full max-w-7xl flex-col justify-center px-5 pb-48 pt-28 sm:px-8 lg:px-12">
         <div className="max-w-4xl">
           <p className="font-mono text-xs uppercase text-[var(--color-cyan)]">{eyebrow}</p>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl lg:text-7xl">

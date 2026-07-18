@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { ContentMedia } from "./content-media";
 import { SectionHeading } from "./section-heading";
-import type { HomeItem } from "./types";
+import { homeHref, type HomeItem } from "./types";
 
 const icons = [Box, Weight, TriangleAlert, Snowflake] as const;
 
@@ -12,10 +12,11 @@ type SpecialCargoProps = {
   items: readonly HomeItem[];
   learnMore: string;
   locale: string;
+  pathPrefix?: string;
   title: string;
 };
 
-export function SpecialCargo({ eyebrow, items, learnMore, locale, title }: SpecialCargoProps) {
+export function SpecialCargo({ eyebrow, items, learnMore, locale, pathPrefix = "", title }: SpecialCargoProps) {
   if (!items.length) return null;
 
   return (
@@ -39,7 +40,7 @@ export function SpecialCargo({ eyebrow, items, learnMore, locale, title }: Speci
                   <p className="mt-3 max-w-lg leading-7 text-black/65">{item.summary}</p>
                   <Link
                     className="mt-auto inline-flex min-h-11 items-center gap-2 pt-6 font-semibold"
-                    href={`/${locale}/special-cargo/${encodeURIComponent(item.slug)}`}
+                    href={homeHref(pathPrefix, locale, "special-cargo", item.slug)}
                   >
                     {learnMore}
                     <ArrowUpRight aria-hidden="true" className="size-4" />

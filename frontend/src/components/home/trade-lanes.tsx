@@ -2,7 +2,7 @@ import { ArrowRight, MapPin, MoveRight } from "lucide-react";
 import Link from "next/link";
 
 import { SectionHeading } from "./section-heading";
-import type { HomeItem } from "./types";
+import { homeHref, type HomeItem } from "./types";
 
 type TradeLanesProps = {
   eyebrow: string;
@@ -10,10 +10,11 @@ type TradeLanesProps = {
   laneLabel: string;
   learnMore: string;
   locale: string;
+  pathPrefix?: string;
   title: string;
 };
 
-export function TradeLanes({ eyebrow, items, laneLabel, learnMore, locale, title }: TradeLanesProps) {
+export function TradeLanes({ eyebrow, items, laneLabel, learnMore, locale, pathPrefix = "", title }: TradeLanesProps) {
   if (!items.length) return null;
 
   return (
@@ -41,7 +42,7 @@ export function TradeLanes({ eyebrow, items, laneLabel, learnMore, locale, title
               <Link
                 aria-label={`${learnMore}: ${item.title}`}
                 className="inline-flex min-h-11 items-center gap-3 font-semibold text-[var(--color-cyan)]"
-                href={`/${locale}/trade-lanes/${encodeURIComponent(item.slug)}`}
+                href={homeHref(pathPrefix, locale, "trade-lanes", item.slug)}
               >
                 <span className="sm:hidden">{learnMore}</span>
                 <MoveRight
@@ -54,7 +55,7 @@ export function TradeLanes({ eyebrow, items, laneLabel, learnMore, locale, title
         </div>
         <Link
           className="mt-8 inline-flex min-h-11 items-center gap-2 border-b border-[var(--color-cyan)] font-semibold"
-          href={`/${locale}/trade-lanes`}
+          href={homeHref(pathPrefix, locale, "trade-lanes")}
         >
           {title}
           <ArrowRight aria-hidden="true" className="size-4" />

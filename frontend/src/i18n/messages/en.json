@@ -52,14 +52,25 @@
   },
   "Home": {
     "eyebrow": "International freight forwarding",
-    "title": "Move freight. Command certainty.",
-    "cta": "Plan your shipment",
+    "title": "Make complex freight feel certain.",
+    "cta": "Get a freight quote",
+    "compactQuoteTitle": "Share the route and cargo. We will take it from there.",
+    "compactQuoteCases": "View representative projects",
     "services": "Freight solutions built around your cargo",
     "lanes": "Accountable coordination across key trade lanes",
     "cargo": "Professional handling for demanding cargo",
     "process": "From route design to final delivery",
     "cases": "Selected logistics work",
     "insights": "Practical intelligence for global shipping",
+    "insightsEyebrow": "Freight planning guides",
+    "evidenceEyebrow": "Representative projects",
+    "evidenceTitle": "Evidence from real freight work",
+    "evidenceAll": "View all representative projects",
+    "commitmentsEyebrow": "How we work",
+    "commitmentsTitle": "Four commitments that matter to shippers",
+    "trustTitle": "Company facts and qualifications",
+    "trustBasic": "Membership / qualification",
+    "trustVerified": "Verified",
     "contact": "Bring us your next shipping challenge",
     "routeOrigin": "Origin / route",
     "routeDestination": "Destination / control",
@@ -67,7 +78,19 @@
     "lane": "Lane",
     "proof": "Verified facts",
     "trust": "Verified credentials and operating relationships",
-    "nextMove": "Next move"
+    "nextMove": "Next move",
+    "quoteEntry": {
+      "eyebrow": "Start an enquiry",
+      "title": "Prepare the details that shape your freight plan",
+      "summary": "A clear route, cargo profile, and contact help our team assess the next step.",
+      "routeTitle": "Route",
+      "routeText": "Share the origin, destination, and preferred timing.",
+      "cargoTitle": "Cargo",
+      "cargoText": "Describe the cargo, dimensions, weight, and handling needs.",
+      "contactTitle": "Contact",
+      "contactText": "Add the contact details for the person coordinating the shipment.",
+      "cta": "Open the full quote request"
+    }
   },
   "Process": {
     "route": {

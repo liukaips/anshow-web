@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { ContentMedia } from "./content-media";
 import { SectionHeading } from "./section-heading";
-import type { HomeItem } from "./types";
+import { homeHref, type HomeItem } from "./types";
 
 const icons = [Ship, Plane, TrainFront, Container, Boxes, FileCheck2, Warehouse] as const;
 
@@ -12,22 +12,23 @@ type ServiceGridProps = {
   items: readonly HomeItem[];
   learnMore: string;
   locale: string;
+  pathPrefix?: string;
   title: string;
 };
 
-export function ServiceGrid({ eyebrow, items, learnMore, locale, title }: ServiceGridProps) {
+export function ServiceGrid({ eyebrow, items, learnMore, locale, pathPrefix = "", title }: ServiceGridProps) {
   if (!items.length) return null;
 
   return (
     <section className="bg-[var(--color-surface)] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading eyebrow={eyebrow} title={title} />
-        <div className="mt-12 grid grid-cols-1 gap-px bg-black/10 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-px bg-black/10 sm:grid-cols-2 xl:grid-cols-4">
           {items.map((item, index) => {
             const Icon = icons[index % icons.length];
             return (
               <article
-                className={`group relative min-h-80 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7 ${items.length % 2 === 1 && index === items.length - 1 ? "sm:col-span-2 xl:col-span-3" : ""}`}
+                className="group relative min-h-72 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7"
                 key={item.id}
               >
                 {item.media ? (
@@ -45,7 +46,7 @@ export function ServiceGrid({ eyebrow, items, learnMore, locale, title }: Servic
                   <p className="mt-4 max-w-sm leading-7 text-black/65">{item.summary}</p>
                   <Link
                     className="mt-auto inline-flex min-h-11 items-center gap-2 pt-8 font-semibold text-[var(--color-text)]"
-                    href={`/${locale}/services/${encodeURIComponent(item.slug)}`}
+                    href={homeHref(pathPrefix, locale, "services", item.slug)}
                   >
                     {learnMore}
                     <ArrowUpRight

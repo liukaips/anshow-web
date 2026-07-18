@@ -52,14 +52,25 @@
   },
   "Home": {
     "eyebrow": "国际货运代理",
-    "title": "掌控运输，确定抵达。",
-    "cta": "规划您的货运",
+    "title": "让复杂货运，变得确定。",
+    "cta": "获取运输报价",
+    "compactQuoteTitle": "先说明路线与货物，我们从这里开始。",
+    "compactQuoteCases": "查看代表性项目",
     "services": "贴合货物需求的运输方案",
     "lanes": "重点贸易航线的全程协同",
     "cargo": "复杂货物的专业操作",
     "process": "从路径设计到最终交付",
     "cases": "精选物流实践",
     "insights": "面向全球运输的专业洞察",
+    "insightsEyebrow": "运输规划指南",
+    "evidenceEyebrow": "代表性项目",
+    "evidenceTitle": "真实运输项目中的关键事实",
+    "evidenceAll": "查看全部代表性项目",
+    "commitmentsEyebrow": "服务原则",
+    "commitmentsTitle": "客户真正关心的四项服务承诺",
+    "trustTitle": "企业事实与资质",
+    "trustBasic": "会员 / 资质",
+    "trustVerified": "已核实",
     "contact": "告诉我们您的下一项运输需求",
     "routeOrigin": "起点 / 路线",
     "routeDestination": "终点 / 管控",
@@ -67,7 +78,19 @@
     "lane": "航线",
     "proof": "已验证信息",
     "trust": "已验证资质与运营合作关系",
-    "nextMove": "下一步"
+    "nextMove": "下一步",
+    "quoteEntry": {
+      "eyebrow": "开始询价",
+      "title": "准备影响运输方案的关键信息",
+      "summary": "清晰的路线、货物资料和联系方式，有助于团队进一步评估。",
+      "routeTitle": "路线",
+      "routeText": "提供起运地、目的地和期望时间。",
+      "cargoTitle": "货物",
+      "cargoText": "说明品名、尺寸、重量和操作要求。",
+      "contactTitle": "联系",
+      "contactText": "留下负责本次运输的联系人信息。",
+      "cta": "进入完整询价"
+    }
   },
   "Process": {
     "route": {
