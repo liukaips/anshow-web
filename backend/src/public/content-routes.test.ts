@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../app.js";
 import { createDrizzleContentStore } from "../content/drizzle-content-store.js";
+import { homeSchema, publicItemSchema } from "../content/public-contract.js";
 import { createPublicRepository } from "../content/public-repository.js";
+import { seedPublicContent } from "../content/seed.js";
 import { services, serviceTranslations } from "../db/schema/index.js";
 import { createTestDatabase } from "../db/test-db.js";
 
@@ -79,6 +81,21 @@ function createFixture() {
   };
 }
 
+function createSeededFixture() {
+  const testDatabase = createTestDatabase();
+  seedPublicContent(testDatabase.db, {
+    now: new Date("2026-07-13T12:00:00.000Z"),
+  });
+  const publicContentRepository = createPublicRepository(
+    createDrizzleContentStore(testDatabase.db, { now: () => NOW }),
+  );
+
+  return {
+    app: createApp({ publicContentRepository }),
+    close: testDatabase.close,
+  };
+}
+
 describe("public content API", () => {
   it("serves home and collection routes from the injected repository", async () => {
     const fixture = createFixture();
@@ -126,12 +143,57 @@ describe("public content API", () => {
         requestId: string;
       };
       expect(body).toMatchObject({
-        data: { locale: "zh", slug: "hai-yun-fu-wu", title: "海运服务" },
+        data: {
+          locale: "zh",
+          slug: "hai-yun-fu-wu",
+          title: "海运服务",
+          structuredBody: null,
+        },
         error: null,
         requestId,
       });
       expect(Object.keys(body.data).sort()).toEqual(PUBLIC_ITEM_KEYS);
+      expect(publicItemSchema.safeParse(body.data).success).toBe(true);
       expect(requestId).toEqual(expect.any(String));
+    } finally {
+      fixture.close();
+    }
+  });
+
+  it("serves parsed structured content and validates the seeded home response", async () => {
+    const fixture = createSeededFixture();
+
+    try {
+      const [caseResponse, homeResponse] = await Promise.all([
+        fixture.app.request(
+          "/api/public/content/case-studies/en/un1263-solvent-shenzhen-hamburg",
+        ),
+        fixture.app.request("/api/public/content/home/en"),
+      ]);
+
+      expect(caseResponse.status).toBe(200);
+      const casePayload = (await caseResponse.json()) as { data: unknown };
+      expect(casePayload.data).toMatchObject({
+        structuredBody: { version: 1 },
+      });
+      expect(publicItemSchema.safeParse(casePayload.data).success).toBe(true);
+
+      expect(homeResponse.status).toBe(200);
+      const homePayload = (await homeResponse.json()) as { data: unknown };
+      expect(homeSchema.safeParse(homePayload.data).success).toBe(true);
+      expect(homePayload.data).toMatchObject({
+        services: expect.arrayContaining([expect.anything()]),
+      });
+      const home = homePayload.data as {
+        services: unknown[];
+        cases: unknown[];
+        certificates: unknown[];
+        proof: unknown[];
+      };
+      expect(home.services).toHaveLength(7);
+      expect(home.cases).toHaveLength(8);
+      expect(home.certificates).toHaveLength(4);
+      expect(home.proof).toHaveLength(4);
     } finally {
       fixture.close();
     }

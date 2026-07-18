@@ -1687,6 +1687,46 @@ export interface components {
             title: string;
             summary: string;
             body: string;
+            structuredBody: {
+                /** @enum {number} */
+                version: 1;
+                sections: ({
+                    /** @enum {string} */
+                    type: "paragraph";
+                    text: string;
+                } | {
+                    /** @enum {string} */
+                    type: "fact-list";
+                    items: {
+                        key: string;
+                        label: string;
+                        value: string;
+                        unit?: string;
+                    }[];
+                } | {
+                    /** @enum {string} */
+                    type: "process";
+                    steps: {
+                        title: string;
+                        text: string;
+                    }[];
+                } | {
+                    /** @enum {string} */
+                    type: "bullet-list";
+                    title?: string;
+                    items: string[];
+                } | {
+                    /** @enum {string} */
+                    type: "callout";
+                    title: string;
+                    text: string;
+                } | {
+                    /** @enum {string} */
+                    type: "quote-cta";
+                    title: string;
+                    text: string;
+                })[];
+            } | null;
             seoTitle: string;
             seoDescription: string;
             altText: string;

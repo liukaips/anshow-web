@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createTestDatabase } from "../db/test-db.js";
@@ -28,6 +29,7 @@ const PUBLIC_ITEM_KEYS = [
   "seoDescription",
   "seoTitle",
   "slug",
+  "structuredBody",
   "summary",
   "title",
 ];
@@ -46,6 +48,7 @@ function insertService(
       status?: "draft" | "scheduled" | "published";
       publishedAt?: Date;
       updatedAt?: Date;
+      body?: string;
     }>;
   },
 ) {
@@ -79,7 +82,7 @@ function insertService(
         slug: translation.slug,
         title: translation.title,
         summary: `${translation.title} summary`,
-        body: `${translation.title} body`,
+        body: translation.body ?? `${translation.title} body`,
         seoTitle: `${translation.title} | AnShow`,
         seoDescription: `${translation.title} SEO description`,
         altText: `${translation.title} meaningful alt text`,
@@ -96,7 +99,7 @@ function createRepository(db: TestDatabase) {
 }
 
 describe("public content repository", () => {
-  it("returns only the requested published locale without fallback", async () => {
+  it("returns only the requested published locale from detail reads", async () => {
     const testDatabase = createTestDatabase();
 
     try {
@@ -276,7 +279,8 @@ describe("public content repository", () => {
       );
       expect(insights).toHaveLength(3);
       expect(insights[0]?.alternates.en).toMatch(/^\/en\/insights\//);
-      expect(cases).toEqual([]);
+      expect(cases).toHaveLength(8);
+      expect(cases[0]?.structuredBody?.version).toBe(1);
     } finally {
       testDatabase.close();
     }
@@ -288,28 +292,180 @@ describe("public content repository", () => {
     try {
       seedPublicContent(testDatabase.db, { now: PUBLISHED_AT });
 
-      await expect(createRepository(testDatabase.db).getHome("zh")).resolves.toMatchObject({
+      const home = await createRepository(testDatabase.db).getHome("zh");
+
+      expect(home).toMatchObject({
         locale: "zh",
-        headline: "协同衔接的国际海运",
-        slides: expect.arrayContaining([
-          expect.objectContaining({ locale: "zh", title: "协同衔接的国际海运" }),
-        ]),
-        services: expect.any(Array),
-        tradeLanes: expect.any(Array),
-        cargoTypes: expect.any(Array),
-        proof: [],
-        verifiedTrust: [],
-        certificates: [],
-        cases: [],
-        articles: expect.any(Array),
+        headline: "让国际海运更确定",
         channels: [],
       });
+      expect(home.slides).toHaveLength(4);
+      expect(home.services).toHaveLength(7);
+      expect(home.tradeLanes).toHaveLength(4);
+      expect(home.cargoTypes).toHaveLength(4);
+      expect(home.proof).toHaveLength(4);
+      expect(home.certificates).toHaveLength(4);
+      expect(home.cases).toHaveLength(8);
+      expect(home.articles).toHaveLength(3);
+      expect(home.cases[0]?.structuredBody?.version).toBe(1);
+      expect(home.verifiedTrust).toEqual([]);
     } finally {
       testDatabase.close();
     }
   });
 
-  it("exposes proof only when published verification metadata is configured", async () => {
+  it("fills a missing requested translation from the published English row", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      const englishBody = JSON.stringify({
+        version: 1,
+        sections: [{ type: "paragraph", text: "English fallback content" }],
+      });
+      insertService(testDatabase.db, {
+        id: "fallback-service",
+        translations: [
+          { locale: "en", slug: "fallback-service", title: "Fallback service", body: englishBody },
+          { locale: "ru", slug: "rezervnyi-servis", title: "Резервный сервис" },
+        ],
+      });
+      testDatabase.db
+        .delete(serviceTranslations)
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "fallback-service"),
+            eq(serviceTranslations.locale, "ru"),
+          ),
+        )
+        .run();
+
+      const repository = createRepository(testDatabase.db);
+      const [items, home, sitemap] = await Promise.all([
+        repository.listCollection("services", "ru"),
+        repository.getHome("ru"),
+        repository.listSitemap(),
+      ]);
+
+      expect(items).toEqual([
+        expect.objectContaining({
+          id: "fallback-service",
+          locale: "en",
+          structuredBody: expect.objectContaining({ version: 1 }),
+          alternates: { en: "/en/services/fallback-service" },
+        }),
+      ]);
+      expect(home.services).toEqual(items);
+      expect(sitemap.some((item) => item.path === "/ru/services/fallback-service")).toBe(false);
+
+      testDatabase.db
+        .delete(serviceTranslations)
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "fallback-service"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+      await expect(repository.listCollection("services", "ru")).resolves.toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("does not fill an explicitly unpublished requested translation from English", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "deliberately-hidden-service",
+        translations: [
+          { locale: "en", slug: "deliberately-hidden", title: "English service" },
+          { locale: "ru", slug: "skrytyi", title: "Скрытый сервис" },
+        ],
+      });
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({ status: "draft", publishedAt: null })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "deliberately-hidden-service"),
+            eq(serviceTranslations.locale, "ru"),
+          ),
+        )
+        .run();
+
+      const repository = createRepository(testDatabase.db);
+      await expect(repository.listCollection("services", "ru")).resolves.toEqual([]);
+      await expect(repository.getHome("ru")).resolves.toMatchObject({
+        services: [],
+      });
+
+      testDatabase.db
+        .delete(serviceTranslations)
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "deliberately-hidden-service"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+      await expect(repository.listCollection("services", "ru")).resolves.toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("never fills archived content from English", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "archived-fallback-service",
+        archivedAt: NOW,
+        translations: [
+          { locale: "en", slug: "archived-fallback", title: "Archived English service" },
+        ],
+      });
+
+      await expect(
+        createRepository(testDatabase.db).listCollection("services", "ru"),
+      ).resolves.toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("retains invalid legacy bodies without failing a public collection", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "invalid-legacy-body",
+        translations: [
+          {
+            locale: "en",
+            slug: "invalid-legacy-body",
+            title: "Invalid legacy body",
+            body: "{not valid JSON",
+          },
+        ],
+      });
+
+      await expect(
+        createRepository(testDatabase.db).listCollection("services", "en"),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          id: "invalid-legacy-body",
+          body: "{not valid JSON",
+          structuredBody: null,
+        }),
+      ]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("returns published proof while reserving verification metadata for trust", async () => {
     const testDatabase = createTestDatabase();
 
     try {
@@ -356,14 +512,17 @@ describe("public content repository", () => {
 
       const home = await createRepository(testDatabase.db).getHome("en");
 
-      expect(home.proof).toHaveLength(1);
-      expect(home.proof[0]?.id).toBe("verified-proof");
+      expect(home.proof.map((item) => item.id)).toEqual([
+        "unverified-proof",
+        "verified-proof",
+      ]);
+      expect(home.verifiedTrust).toEqual([]);
     } finally {
       testDatabase.close();
     }
   });
 
-  it("exposes certificates separately and only after verification", async () => {
+  it("returns published certificates separately from verified trust", async () => {
     const testDatabase = createTestDatabase();
 
     try {
@@ -410,8 +569,13 @@ describe("public content repository", () => {
 
       const home = await createRepository(testDatabase.db).getHome("en");
 
-      expect(home.certificates).toHaveLength(1);
-      expect(home.certificates[0]?.id).toBe("verified-certificate");
+      expect(home.certificates.map((item) => item.id)).toEqual([
+        "unverified-certificate",
+        "verified-certificate",
+      ]);
+      expect(home.verifiedTrust).toEqual([
+        expect.objectContaining({ id: "verified-certificate" }),
+      ]);
     } finally {
       testDatabase.close();
     }
@@ -473,8 +637,12 @@ describe("public content repository", () => {
 
       const home = await createRepository(testDatabase.db).getHome("en");
       expect(home.verifiedTrust).toEqual([]);
-      expect(home.certificates).toEqual([]);
-      expect(home.proof).toEqual([]);
+      expect(home.certificates).toEqual([
+        expect.objectContaining({ id: "whitespace-certificate" }),
+      ]);
+      expect(home.proof).toEqual([
+        expect.objectContaining({ id: "whitespace-proof" }),
+      ]);
     } finally {
       testDatabase.close();
     }

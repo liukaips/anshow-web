@@ -26,6 +26,7 @@ import {
 } from "../db/schema/content.js";
 import type { PublicContentItem } from "./public-contract.js";
 import type { PublicContentStore } from "./public-repository.js";
+import { parseContentBody } from "./structured-body.js";
 import { LOCALES, type Locale, type PublicCollection } from "./types.js";
 import { mediaForCatalogId } from "./media-catalog.js";
 
@@ -86,6 +87,10 @@ type PublishedContent = {
   item: PublicContentItem;
   code: string;
   updatedAt: Date;
+};
+
+type ReadPublishedOptions = {
+  fallbackToEnglish?: boolean;
 };
 
 const STATIC_PAGE_CODES = [
@@ -155,77 +160,102 @@ export function createDrizzleContentStore(
   async function readPublished(
     config: CollectionConfig,
     filters: { locale?: Locale; slug?: string } = {},
+    options: ReadPublishedOptions = {},
   ): Promise<PublishedContent[]> {
-    const alternateTranslations = alias(
-      config.translations,
-      "published_alternates",
-    );
-    const currentFilters = [isNull(config.base.archivedAt)];
-    if (includeDrafts) {
-      currentFilters.push(
-        sql`trim(${config.translations.slug}) <> ''`,
-        sql`trim(${config.translations.title}) <> ''`,
+    const loadRows = async (
+      locale?: Locale,
+      missingLocale?: Locale,
+    ): Promise<PublishedRow[]> => {
+      const alternateTranslations = alias(
+        config.translations,
+        "published_alternates",
       );
-    } else {
-      currentFilters.push(
-        eq(config.translations.status, "published"),
-        lte(config.translations.publishedAt, now()),
+      const requestedTranslations = alias(
+        config.translations,
+        "requested_locale_translation",
       );
-    }
+      const currentFilters = [isNull(config.base.archivedAt)];
+      if (includeDrafts) {
+        currentFilters.push(
+          sql`trim(${config.translations.slug}) <> ''`,
+          sql`trim(${config.translations.title}) <> ''`,
+        );
+      } else {
+        currentFilters.push(
+          eq(config.translations.status, "published"),
+          lte(config.translations.publishedAt, now()),
+        );
+      }
 
-    if (filters.locale) {
-      currentFilters.push(eq(config.translations.locale, filters.locale));
-    }
-    if (filters.slug) {
-      currentFilters.push(eq(config.translations.slug, filters.slug));
-    }
-    if (config.requiresVerification && !includeDrafts) {
-      currentFilters.push(
-        isNotNull(config.base.verifiedAt),
-        isNotNull(config.base.verificationSource),
-        sql`trim(${config.base.verificationSource}) <> ''`,
-      );
-    }
+      if (locale) currentFilters.push(eq(config.translations.locale, locale));
+      if (filters.slug) currentFilters.push(eq(config.translations.slug, filters.slug));
+      if (missingLocale) currentFilters.push(isNull(requestedTranslations.ownerId));
+      if (config.requiresVerification && !includeDrafts) {
+        currentFilters.push(
+          isNotNull(config.base.verifiedAt),
+          isNotNull(config.base.verificationSource),
+          sql`trim(${config.base.verificationSource}) <> ''`,
+        );
+      }
 
-    const rows: PublishedRow[] = await db
-      .select({
-        id: config.base.id,
-        code: config.base.code,
-        locale: config.translations.locale,
-        slug: config.translations.slug,
-        title: config.translations.title,
-        summary: config.translations.summary,
-        body: config.translations.body,
-        seoTitle: config.translations.seoTitle,
-        seoDescription: config.translations.seoDescription,
-        altText: config.translations.altText,
-        processStageId: config.base.processStageId,
-        updatedAt: config.translations.updatedAt,
-        alternateLocale: alternateTranslations.locale,
-        alternateSlug: alternateTranslations.slug,
-      })
-      .from(config.translations)
-      .innerJoin(config.base, eq(config.base.id, config.translations.ownerId))
-      .leftJoin(
-        alternateTranslations,
-        includeDrafts
-          ? and(
-              eq(alternateTranslations.ownerId, config.base.id),
-              sql`trim(${alternateTranslations.slug}) <> ''`,
-              sql`trim(${alternateTranslations.title}) <> ''`,
-            )
-          : and(
-              eq(alternateTranslations.ownerId, config.base.id),
-              eq(alternateTranslations.status, "published"),
-              lte(alternateTranslations.publishedAt, now()),
-            ),
-      )
-      .where(and(...currentFilters))
-      .orderBy(
-        asc(config.base.sortOrder),
-        asc(config.translations.locale),
-        asc(alternateTranslations.locale),
-      );
+      return db
+        .select({
+          id: config.base.id,
+          code: config.base.code,
+          locale: config.translations.locale,
+          slug: config.translations.slug,
+          title: config.translations.title,
+          summary: config.translations.summary,
+          body: config.translations.body,
+          seoTitle: config.translations.seoTitle,
+          seoDescription: config.translations.seoDescription,
+          altText: config.translations.altText,
+          processStageId: config.base.processStageId,
+          updatedAt: config.translations.updatedAt,
+          alternateLocale: alternateTranslations.locale,
+          alternateSlug: alternateTranslations.slug,
+        })
+        .from(config.translations)
+        .innerJoin(config.base, eq(config.base.id, config.translations.ownerId))
+        .leftJoin(
+          alternateTranslations,
+          includeDrafts
+            ? and(
+                eq(alternateTranslations.ownerId, config.base.id),
+                sql`trim(${alternateTranslations.slug}) <> ''`,
+                sql`trim(${alternateTranslations.title}) <> ''`,
+              )
+            : and(
+                eq(alternateTranslations.ownerId, config.base.id),
+                eq(alternateTranslations.status, "published"),
+                lte(alternateTranslations.publishedAt, now()),
+              ),
+        )
+        .leftJoin(
+          requestedTranslations,
+          and(
+            eq(requestedTranslations.ownerId, config.base.id),
+            eq(requestedTranslations.locale, missingLocale ?? "en"),
+          ),
+        )
+        .where(and(...currentFilters))
+        .orderBy(
+          asc(config.base.sortOrder),
+          asc(config.translations.locale),
+          asc(alternateTranslations.locale),
+        );
+    };
+
+    const rows = await loadRows(filters.locale);
+    if (
+      !includeDrafts &&
+      options.fallbackToEnglish &&
+      filters.locale &&
+      filters.locale !== "en" &&
+      !filters.slug
+    ) {
+      rows.push(...(await loadRows("en", filters.locale)));
+    }
 
     const items = new Map<string, PublishedContent>();
 
@@ -233,6 +263,7 @@ export function createDrizzleContentStore(
       const key = `${row.id}:${row.locale}`;
       let content = items.get(key);
       if (!content) {
+        const parsedBody = parseContentBody(row.body);
         content = {
           item: {
             id: row.id,
@@ -241,7 +272,8 @@ export function createDrizzleContentStore(
             title: row.title,
             summary: row.summary,
             body: row.body,
-            structuredBody: null,
+            structuredBody:
+              parsedBody.kind === "structured" ? parsedBody.value : null,
             seoTitle: row.seoTitle,
             seoDescription: row.seoDescription,
             altText: row.altText,
@@ -273,7 +305,12 @@ export function createDrizzleContentStore(
     translations: TranslationTable,
     locale: Locale,
     path: CollectionConfig["path"] = noPath,
-  ) => readPublished({ base, translations, path }, { locale });
+  ) =>
+    readPublished(
+      { base, translations, path },
+      { locale },
+      { fallbackToEnglish: true },
+    );
 
   const verifiedHomeCollection = (
     base: BaseTable,
@@ -283,6 +320,7 @@ export function createDrizzleContentStore(
     readPublished(
       { base, translations, path: noPath, requiresVerification: true },
       { locale },
+      { fallbackToEnglish: true },
     );
 
   const publicItems = (content: PublishedContent[]) =>
@@ -314,23 +352,29 @@ export function createDrizzleContentStore(
         homeCargoTypes,
         proof,
         partnersTrust,
+        homeCertificates,
         certificatesTrust,
         cases,
         homeArticles,
       ] = await Promise.all([
         homeCollection(heroSlides, heroSlideTranslations, locale),
-        readPublished(publicCollections.services, { locale }),
-        readPublished(publicCollections["trade-lanes"], { locale }),
-        readPublished(publicCollections["special-cargo"], { locale }),
-        verifiedHomeCollection(proofMetrics, proofMetricTranslations, locale),
+        readPublished(publicCollections.services, { locale }, { fallbackToEnglish: true }),
+        readPublished(publicCollections["trade-lanes"], { locale }, { fallbackToEnglish: true }),
+        readPublished(publicCollections["special-cargo"], { locale }, { fallbackToEnglish: true }),
+        homeCollection(proofMetrics, proofMetricTranslations, locale),
         verifiedHomeCollection(partners, partnerTranslations, locale),
+        homeCollection(
+          certificates,
+          certificateTranslations,
+          locale,
+        ),
         verifiedHomeCollection(
           certificates,
           certificateTranslations,
           locale,
         ),
-        readPublished(publicCollections["case-studies"], { locale }),
-        readPublished(publicCollections.insights, { locale }),
+        readPublished(publicCollections["case-studies"], { locale }, { fallbackToEnglish: true }),
+        readPublished(publicCollections.insights, { locale }, { fallbackToEnglish: true }),
       ]);
 
       return {
@@ -342,7 +386,7 @@ export function createDrizzleContentStore(
         cargoTypes: publicItems(homeCargoTypes),
         proof: publicItems(proof),
         verifiedTrust: publicItems([...partnersTrust, ...certificatesTrust]),
-        certificates: publicItems(certificatesTrust),
+        certificates: publicItems(homeCertificates),
         cases: publicItems(cases),
         articles: publicItems(homeArticles),
         channels: [],
@@ -351,7 +395,11 @@ export function createDrizzleContentStore(
 
     async listCollection(collection, locale) {
       return publicItems(
-        await readPublished(publicCollections[collection], { locale }),
+        await readPublished(
+          publicCollections[collection],
+          { locale },
+          { fallbackToEnglish: true },
+        ),
       );
     },
 
