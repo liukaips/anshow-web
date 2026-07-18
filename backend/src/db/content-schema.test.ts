@@ -49,6 +49,43 @@ function insertMediaBase(db: TestDatabase) {
 }
 
 describe("content schema constraints", () => {
+  it("stores one seed revision per collection owner and locale", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      testDatabase.db.run(
+        sql.raw(`
+          INSERT INTO content_seed_revisions (
+            collection, owner_id, locale, seed_version, applied_fingerprint,
+            applied_at
+          ) VALUES ('services', 'ocean-freight', 'en', 2, 'abc123', 1)
+        `),
+      );
+      expect(() =>
+        testDatabase.db.run(
+          sql.raw(`
+            INSERT INTO content_seed_revisions (
+              collection, owner_id, locale, seed_version, applied_fingerprint,
+              applied_at
+            ) VALUES ('services', 'ocean-freight', 'en', 3, 'def456', 2)
+          `),
+        ),
+      ).toThrow();
+      expect(() =>
+        testDatabase.db.run(
+          sql.raw(`
+            INSERT INTO content_seed_revisions (
+              collection, owner_id, locale, seed_version, applied_fingerprint,
+              applied_at
+            ) VALUES ('services', 'ocean-freight', 'de', 2, 'abc123', 1)
+          `),
+        ),
+      ).toThrow();
+    } finally {
+      testDatabase.close();
+    }
+  });
+
   it("rejects a locale outside en, zh, and ru", () => {
     const testDatabase = createTestDatabase();
 

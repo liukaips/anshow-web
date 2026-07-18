@@ -31,6 +31,25 @@ const requiredUpdatedAt = () =>
     .$onUpdate(() => new Date())
     .notNull();
 
+export const contentSeedRevisions = sqliteTable(
+  "content_seed_revisions",
+  {
+    collection: text("collection").notNull(),
+    ownerId: text("owner_id").notNull(),
+    locale: text("locale", { enum: locales }).notNull(),
+    seedVersion: integer("seed_version").notNull(),
+    appliedFingerprint: text("applied_fingerprint").notNull(),
+    appliedAt: timestamp("applied_at").notNull(),
+  },
+  (table) => [
+    check(
+      "content_seed_revisions_locale_check",
+      sql`${table.locale} in ('en', 'zh', 'ru')`,
+    ),
+    primaryKey({ columns: [table.collection, table.ownerId, table.locale] }),
+  ],
+);
+
 export const mediaAssets = sqliteTable(
   "media_assets",
   {
