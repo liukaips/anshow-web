@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { homeItem } from "./home-item.test-fixture";
@@ -29,8 +29,11 @@ const content: HomeContent = {
   channels: [],
   headline: "Database headline",
   locale: "zh",
-  proof: [item],
-  services: [item],
+  proof: [
+    { ...item, id: "founded-2012" },
+    { ...item, id: "exception-response", structuredBody: null },
+  ],
+  services: [{ ...item, id: "insurance-solutions" }],
   slides: [],
   tradeLanes: [item],
   verifiedTrust: [],
@@ -141,4 +144,72 @@ it("shares the approved evidence-led order and preview-scoped links", () => {
   const positions = orderedLabels.map((label) => pageText.indexOf(label));
   expect(positions.every((position) => position >= 0)).toBe(true);
   expect(positions).toEqual([...positions].sort((left, right) => left - right));
+});
+
+it("keeps the founded fact in trust and selects commitments by stable database IDs", () => {
+  const founded = homeItem({
+    id: "founded-2012",
+    structuredBody: {
+      sections: [
+        {
+          items: [{ key: "founded", label: "成立年份", value: "2012" }],
+          type: "fact-list",
+        },
+      ],
+      version: 1,
+    },
+    title: "成立于 2012 年",
+  });
+  const insurance = homeItem({ id: "insurance-solutions", title: "保险与定制方案" });
+  const exception = homeItem({ id: "exception-response", title: "2 小时异常响应机制目标" });
+  const transparent = homeItem({ id: "transparent-pricing", title: "报价构成透明" });
+  const multilingual = homeItem({ id: "multilingual-support", title: "7x24 多语言沟通支持" });
+  const unrelated = homeItem({ id: "unrelated-proof", title: "无关证明指标" });
+
+  render(
+    <HomepageContent
+      content={{
+        ...content,
+        proof: [founded, exception, unrelated, multilingual, transparent],
+        services: [{ ...item, id: "ocean-freight" }, insurance],
+      }}
+      labels={labels}
+      locale="zh"
+      processStory={<section>流程内容</section>}
+    />,
+  );
+
+  const trust = screen.getByRole("region", { name: labels.trustTitle });
+  const commitments = screen.getByRole("heading", { name: labels.commitmentsTitle }).closest("section")!;
+  expect(within(trust).getByText("2012")).toBeVisible();
+  expect(within(commitments).getByText("保险与定制方案")).toBeVisible();
+  expect(within(commitments).getByText("2 小时异常响应机制目标")).toBeVisible();
+  expect(within(commitments).getByText("报价构成透明")).toBeVisible();
+  expect(within(commitments).getByText("7x24 多语言沟通支持")).toBeVisible();
+  expect(within(commitments).queryByText("成立于 2012 年")).not.toBeInTheDocument();
+  expect(within(commitments).queryByText("2012")).not.toBeInTheDocument();
+  expect(within(commitments).queryByText("无关证明指标")).not.toBeInTheDocument();
+});
+
+it("renders only available commitment IDs without unrelated substitutes", () => {
+  const founded = homeItem({ id: "founded-2012", title: "Founded in 2012" });
+  const exception = homeItem({ id: "exception-response", title: "Exception response" });
+  const unrelated = homeItem({ id: "other-proof", title: "Other proof" });
+
+  render(
+    <HomepageContent
+      content={{ ...content, proof: [founded, unrelated, exception], services: [] }}
+      labels={labels}
+      locale="en"
+      processStory={<section>Process</section>}
+    />,
+  );
+
+  const commitments = screen.getByRole("heading", { name: labels.commitmentsTitle }).closest("section")!;
+  const list = within(commitments).getByRole("list");
+  expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+  expect(list).toHaveClass("md:grid-cols-1", "xl:grid-cols-1");
+  expect(within(commitments).getByText("Exception response")).toBeVisible();
+  expect(within(commitments).queryByText("Other proof")).not.toBeInTheDocument();
+  expect(within(commitments).queryByText("Founded in 2012")).not.toBeInTheDocument();
 });

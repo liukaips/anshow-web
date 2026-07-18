@@ -115,6 +115,22 @@ export function HeroCarousel({
       onMouseEnter={() => setInteractionPaused(true)}
       onMouseLeave={() => setInteractionPaused(false)}
     >
+      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[clamp(38rem,82svh,52rem)] w-full max-w-7xl flex-col justify-center px-5 pb-48 pt-28 sm:px-8 lg:px-12">
+        <div className="max-w-4xl">
+          <p className="font-mono text-xs uppercase text-[var(--color-cyan)]">{eyebrow}</p>
+          <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl lg:text-7xl">
+            {headline}
+          </h1>
+          <Link
+            className="pointer-events-auto mt-9 inline-flex min-h-12 items-center gap-3 bg-[var(--color-action)] px-5 font-semibold text-[var(--color-carbon)] transition-colors hover:bg-orange-500"
+            href={quoteHref}
+          >
+            {quoteLabel}
+            <ArrowRight aria-hidden="true" className="size-5" />
+          </Link>
+        </div>
+      </div>
+
       {hasCarousel ? (
         <div className="absolute inset-0" ref={viewportRef}>
           <div className="flex h-full touch-pan-y">
@@ -191,13 +207,13 @@ export function HeroCarousel({
                           : "translate-y-5 opacity-0"
                       }`}
                     >
-                    <p className="font-mono text-[0.7rem] uppercase text-[var(--color-cyan)]">
-                      0{index + 1} / 0{slides.length}
-                    </p>
-                    <h2 className="mt-3 text-xl font-semibold sm:text-2xl">{slide.title}</h2>
-                    <p className="mt-3 max-w-md text-base leading-7 text-[var(--color-muted-inverse)]">
-                      {slide.summary}
-                    </p>
+                      <p className="font-mono text-[0.7rem] uppercase text-[var(--color-cyan)]">
+                        0{index + 1} / 0{slides.length}
+                      </p>
+                      <h2 className="mt-3 text-xl font-semibold sm:text-2xl">{slide.title}</h2>
+                      <p className="mt-3 max-w-md text-base leading-7 text-[var(--color-muted-inverse)]">
+                        {slide.summary}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -208,22 +224,6 @@ export function HeroCarousel({
       ) : (
         <div aria-hidden="true" className="absolute inset-0 bg-[var(--color-dark-surface)]" />
       )}
-
-      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[clamp(38rem,82svh,52rem)] w-full max-w-7xl flex-col justify-center px-5 pb-48 pt-28 sm:px-8 lg:px-12">
-        <div className="max-w-4xl">
-          <p className="font-mono text-xs uppercase text-[var(--color-cyan)]">{eyebrow}</p>
-          <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl lg:text-7xl">
-            {headline}
-          </h1>
-          <Link
-            className="pointer-events-auto mt-9 inline-flex min-h-12 items-center gap-3 bg-[var(--color-action)] px-5 font-semibold text-[var(--color-carbon)] transition-colors hover:bg-orange-500"
-            href={quoteHref}
-          >
-            {quoteLabel}
-            <ArrowRight aria-hidden="true" className="size-5" />
-          </Link>
-        </div>
-      </div>
 
       {slides.length > 1 ? (
         <div className="absolute inset-x-0 bottom-0 z-20 border-t border-white/15 bg-black/55">

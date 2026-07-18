@@ -6,6 +6,20 @@ import { SectionHeading } from "./section-heading";
 import { homeHref, type HomeItem } from "./types";
 
 const icons = [Ship, Plane, TrainFront, Container, Boxes, FileCheck2, Warehouse] as const;
+const desktopSpanClasses = [
+  "",
+  "xl:col-span-1",
+  "xl:col-span-2",
+  "xl:col-span-3",
+  "xl:col-span-4",
+] as const;
+
+function finalItemLayout(index: number, itemCount: number): string {
+  if (index !== itemCount - 1) return "";
+  const tabletSpan = itemCount % 2 === 1 ? "sm:col-span-2" : "";
+  const remainingDesktopColumns = 4 - ((itemCount - 1) % 4);
+  return `${tabletSpan} ${desktopSpanClasses[remainingDesktopColumns]}`.trim();
+}
 
 type ServiceGridProps = {
   eyebrow: string;
@@ -28,7 +42,7 @@ export function ServiceGrid({ eyebrow, items, learnMore, locale, pathPrefix = ""
             const Icon = icons[index % icons.length];
             return (
               <article
-                className="group relative min-h-72 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7"
+                className={`group relative min-h-72 overflow-hidden bg-[var(--color-light-surface)] p-6 sm:p-7 ${finalItemLayout(index, items.length)}`}
                 key={item.id}
               >
                 {item.media ? (

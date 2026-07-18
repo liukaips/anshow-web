@@ -317,7 +317,13 @@ export function StaticContentPage({
   );
 }
 
-export function QuotePage({ locale }: { locale: SupportedLocale }) {
+export function QuotePage({
+  locale,
+  pathPrefix = "",
+}: {
+  locale: SupportedLocale;
+  pathPrefix?: string;
+}) {
   const labels = getPublicCopy(locale);
   return (
     <main className="bg-[var(--color-carbon)] px-5 py-20 text-white sm:px-8 lg:px-12 lg:py-28">
@@ -335,7 +341,7 @@ export function QuotePage({ locale }: { locale: SupportedLocale }) {
           <Route aria-hidden="true" className="size-10 text-[var(--color-cyan)]" />
           <Link
             className="mt-8 inline-flex min-h-12 items-center gap-3 bg-[var(--color-action)] px-5 font-semibold text-[var(--color-carbon)]"
-            href={`/${locale}/contact`}
+            href={`${pathPrefix}/${locale}/contact`}
           >
             {labels.contact}
             <ArrowRight aria-hidden="true" className="size-5" />

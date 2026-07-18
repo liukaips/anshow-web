@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   PublicCollectionPage,
   PublicDetailPage,
+  QuotePage,
   StaticContentPage,
   VerificationPage,
 } from "./public-pages";
@@ -130,5 +131,20 @@ describe("public route pages", () => {
 
     expect(screen.getByText("Verified certificate")).toBeVisible();
     expect(screen.queryByText("No verified qualifications are published yet.")).not.toBeInTheDocument();
+  });
+
+  it("uses the public contact route by default on the quote page", () => {
+    render(<QuotePage locale="en" />);
+
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/en/contact");
+  });
+
+  it("keeps the quote contact route inside preview", () => {
+    render(<QuotePage locale="ru" pathPrefix="/preview/example-token" />);
+
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "/preview/example-token/ru/contact",
+    );
   });
 });

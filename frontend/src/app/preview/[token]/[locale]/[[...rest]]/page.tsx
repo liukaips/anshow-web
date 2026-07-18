@@ -62,7 +62,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ token:
   } else if (section === "certifications") {
     content = <VerificationPage items={preview.home.certificates} locale={locale} />;
   } else if (section === "quote") {
-    content = <QuotePage locale={locale} />;
+    content = <QuotePage locale={locale} pathPrefix={prefix} />;
   } else {
     notFound();
   }

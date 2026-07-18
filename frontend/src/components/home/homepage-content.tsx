@@ -15,6 +15,13 @@ import { TradeLanes } from "./trade-lanes";
 import { TrustBar } from "./trust-bar";
 import { homeHref, largestSource, type HomeContent } from "./types";
 
+const commitmentIds = [
+  "insurance-solutions",
+  "exception-response",
+  "transparent-pricing",
+  "multilingual-support",
+] as const;
+
 export type HomepageLabels = {
   cargo: string;
   commitmentsEyebrow: string;
@@ -72,6 +79,13 @@ export function HomepageContent({
     title: slide.title,
     webpSrcSet: slide.media?.webpSrcSet,
   }));
+  const commitmentItems = new Map(
+    [...content.services, ...content.proof].map((item) => [item.id, item]),
+  );
+  const commitments = commitmentIds.flatMap((id) => {
+    const item = commitmentItems.get(id);
+    return item ? [item] : [];
+  });
 
   return (
     <main>
@@ -154,7 +168,7 @@ export function HomepageContent({
         title={labels.cargo}
       />
 
-      <ServiceCommitments eyebrow={labels.commitmentsEyebrow} items={content.proof} title={labels.commitmentsTitle} />
+      <ServiceCommitments eyebrow={labels.commitmentsEyebrow} items={commitments} title={labels.commitmentsTitle} />
 
       {content.articles.length ? (
         <section className="bg-[var(--color-light-surface)] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">

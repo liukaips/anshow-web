@@ -64,7 +64,10 @@ describe("HeroCarousel", () => {
       />,
     );
 
+    const headings = screen.getAllByRole("heading");
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(headings[0]).toHaveProperty("tagName", "H1");
+    expect(headings.slice(1).every((heading) => heading.tagName === "H2")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Pause carousel" }));
     expect(screen.getByRole("button", { name: "Play carousel" })).toBeVisible();
   });

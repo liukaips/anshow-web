@@ -31,7 +31,7 @@ it.each([
   expect(screen.getByRole("link", { name: /Open/ })).toHaveAttribute("href", href);
 });
 
-it("renders any nonempty service list without assuming exactly seven records", () => {
+it("fills the final service row deterministically for seven and other list sizes", () => {
   const items = Array.from({ length: 7 }, (_, index) =>
     homeItem({ id: `service-${index}`, slug: `service-${index}`, title: `Service ${index + 1}` }),
   );
@@ -39,10 +39,22 @@ it("renders any nonempty service list without assuming exactly seven records", (
     <ServiceGrid eyebrow="Services" items={items} learnMore="Open" locale="en" title="Services" />,
   );
 
-  expect(screen.getAllByRole("article")).toHaveLength(7);
+  let articles = screen.getAllByRole("article");
+  expect(articles).toHaveLength(7);
+  expect(articles[6]).toHaveClass("sm:col-span-2", "xl:col-span-2");
 
   rerender(
     <ServiceGrid eyebrow="Services" items={items.slice(0, 3)} learnMore="Open" locale="en" title="Services" />,
   );
-  expect(screen.getAllByRole("article")).toHaveLength(3);
+  articles = screen.getAllByRole("article");
+  expect(articles).toHaveLength(3);
+  expect(articles[2]).toHaveClass("sm:col-span-2", "xl:col-span-2");
+
+  rerender(
+    <ServiceGrid eyebrow="Services" items={items.slice(0, 6)} learnMore="Open" locale="en" title="Services" />,
+  );
+  articles = screen.getAllByRole("article");
+  expect(articles).toHaveLength(6);
+  expect(articles[5]).not.toHaveClass("sm:col-span-2");
+  expect(articles[5]).toHaveClass("xl:col-span-3");
 });
