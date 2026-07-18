@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,12 +33,15 @@ function openDatabase(databasePath: string) {
   };
 }
 
-function withTemporaryDatabase(run: (databasePath: string) => void | Promise<void>) {
+function withTemporaryDirectory(run: (directory: string) => void | Promise<void>) {
   const directory = mkdtempSync(join(tmpdir(), "anshow-migrate-"));
-  const databasePath = join(directory, "anshow.db");
-  return Promise.resolve(run(databasePath)).finally(() => {
+  return Promise.resolve(run(directory)).finally(() => {
     rmSync(directory, { recursive: true, force: true });
   });
+}
+
+function withTemporaryDatabase(run: (databasePath: string) => void | Promise<void>) {
+  return withTemporaryDirectory((directory) => run(join(directory, "anshow.db")));
 }
 
 function runtimeEnvironment(databasePath: string) {
@@ -298,6 +301,32 @@ describe("migrateAndInitializeDatabase", () => {
         preserved: [],
       });
       expect(seededSnapshot(databasePath)).toEqual(before);
+    });
+  });
+
+  it("uses the supplied validated database path instead of the ambient client path", async () => {
+    await withTemporaryDirectory(async (directory) => {
+      const ambientPath = join(directory, "ambient.db");
+      const requestedPath = join(directory, "requested.db");
+      const originalDatabasePath = process.env.DATABASE_PATH;
+
+      try {
+        process.env.DATABASE_PATH = ambientPath;
+        await migrateAndInitializeDatabase({
+          environment: runtimeEnvironment(requestedPath),
+          migrationsFolder,
+        });
+
+        expect(existsSync(requestedPath)).toBe(true);
+        expect(existsSync(ambientPath)).toBe(false);
+        expect(tableCounts(requestedPath)).toMatchObject({ heroes: 4, revisions: 162 });
+      } finally {
+        if (originalDatabasePath === undefined) {
+          delete process.env.DATABASE_PATH;
+        } else {
+          process.env.DATABASE_PATH = originalDatabasePath;
+        }
+      }
     });
   });
 

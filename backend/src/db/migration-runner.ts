@@ -11,6 +11,7 @@ import {
 import { initializeRuntime } from "../runtime-bootstrap.js";
 import type { RuntimeEnv } from "../env.js";
 import type { AppDatabase } from "./client.js";
+import { openDatabaseAtPath } from "./database-connection.js";
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultMigrationsFolder = resolve(currentDirectory, "../../migrations");
@@ -38,8 +39,10 @@ export type MigrateAndInitializeDatabaseOptions = {
   log?: (summary: MigrationInitializationSummary) => void;
 };
 
-async function openApplicationDatabase(): Promise<OpenedApplicationDatabase> {
-  const { db, sqlite } = await import("./client.js");
+function openApplicationDatabase(
+  environment: RuntimeEnv,
+): OpenedApplicationDatabase {
+  const { db, sqlite } = openDatabaseAtPath(environment.DATABASE_PATH);
   return { db, close: () => sqlite.close() };
 }
 
