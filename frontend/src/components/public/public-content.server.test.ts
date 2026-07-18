@@ -13,6 +13,7 @@ const base = {
   seoDescription: "了解我们的协同方式。",
   altText: "关于 AnShow",
   processStageId: null,
+  structuredBody: null,
   media: null,
 };
 

@@ -12,6 +12,7 @@ import { ContentMedia } from "../home/content-media";
 import type { SupportedLocale } from "../../lib/app-config";
 
 import type { PublicItem } from "./public-content.server";
+import { StructuredContent } from "./structured-content";
 import {
   getPublicCopy,
   type PublicCollection,
@@ -245,11 +246,19 @@ export function PublicDetailPage({
           </div>
           {isArticle ? (
             <article className="text-lg leading-8 text-black/75">
-              <p>{item.body}</p>
+              <StructuredContent
+                body={item.body}
+                quoteHref={`${pathPrefix}/${locale}/quote`}
+                structuredBody={item.structuredBody}
+              />
             </article>
           ) : (
             <div className="text-lg leading-8 text-black/75">
-              <p>{item.body}</p>
+              <StructuredContent
+                body={item.body}
+                quoteHref={`${pathPrefix}/${locale}/quote`}
+                structuredBody={item.structuredBody}
+              />
             </div>
           )}
         </div>
@@ -295,7 +304,11 @@ export function StaticContentPage({
             {labels.publishedInformation}
           </p>
           <div className="text-lg leading-8 text-black/75">
-            <p>{item.body}</p>
+            <StructuredContent
+              body={item.body}
+              quoteHref={`${pathPrefix}/${locale}/quote`}
+              structuredBody={item.structuredBody}
+            />
           </div>
         </div>
       </section>

@@ -11,6 +11,7 @@ const item = {
   locale: "en" as const,
   media: null,
   processStageId: "delivery" as const,
+  structuredBody: null,
   seoDescription: "Selected shipment coordination",
   seoTitle: "Selected work",
   slug: "selected-work",

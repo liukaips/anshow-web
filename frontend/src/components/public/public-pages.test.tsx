@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   PublicCollectionPage,
   PublicDetailPage,
+  StaticContentPage,
   VerificationPage,
 } from "./public-pages";
 
@@ -14,6 +15,7 @@ const item = {
   title: "Ocean Freight",
   summary: "Forwarding support for containerized ocean cargo.",
   body: "Forwarding support for containerized ocean cargo.",
+  structuredBody: null,
   seoTitle: "Ocean Freight | AnShow",
   seoDescription: "Forwarding support for containerized ocean cargo.",
   altText: "Ocean freight operation",
@@ -62,6 +64,50 @@ describe("public route pages", () => {
       "href",
       "/en/quote",
     );
+  });
+
+  it("renders structured detail content and preserves the preview quote prefix", () => {
+    render(
+      <PublicDetailPage
+        collection="services"
+        item={{
+          ...item,
+          structuredBody: {
+            version: 1,
+            sections: [
+              { type: "paragraph", text: "Structured service detail." },
+              { type: "quote-cta", title: "Plan this shipment", text: "Get route guidance." },
+            ],
+          },
+        }}
+        locale="en"
+        pathPrefix="/preview/example-token"
+      />,
+    );
+
+    expect(screen.getByText("Structured service detail.").tagName).toBe("P");
+    expect(screen.getByRole("link", { name: /Plan this shipment/ })).toHaveAttribute(
+      "href",
+      "/preview/example-token/en/quote",
+    );
+  });
+
+  it("renders structured static page content", () => {
+    render(
+      <StaticContentPage
+        item={{
+          ...item,
+          structuredBody: {
+            version: 1,
+            sections: [{ type: "bullet-list", title: "Scope", items: ["Port-to-port"] }],
+          },
+        }}
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Scope" })).toBeVisible();
+    expect(screen.getByText("Port-to-port").closest("ul")).toBeVisible();
   });
 
   it("does not invent certification records when none are configured", () => {
