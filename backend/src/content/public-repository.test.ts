@@ -40,6 +40,7 @@ function insertService(
   db: TestDatabase,
   options: {
     id: string;
+    sortOrder?: number;
     archivedAt?: Date;
     translations: Array<{
       locale: "en" | "zh" | "ru";
@@ -56,7 +57,7 @@ function insertService(
     .values({
       id: options.id,
       code: options.id,
-      sortOrder: 0,
+      sortOrder: options.sortOrder ?? 0,
       archivedAt: options.archivedAt,
       createdAt: NOW,
       updatedAt: NOW,
@@ -367,6 +368,66 @@ describe("public content repository", () => {
         )
         .run();
       await expect(repository.listCollection("services", "ru")).resolves.toEqual([]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("orders requested and English fallback rows by base priority", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertService(testDatabase.db, {
+        id: "english-first",
+        sortOrder: 0,
+        translations: [
+          { locale: "en", slug: "english-first", title: "English first" },
+        ],
+      });
+      insertService(testDatabase.db, {
+        id: "requested-second",
+        sortOrder: 1,
+        translations: [
+          {
+            locale: "ru",
+            slug: "requested-second",
+            title: "Запрошенный второй",
+          },
+        ],
+      });
+      insertService(testDatabase.db, {
+        id: "alpha-fallback",
+        sortOrder: 2,
+        translations: [
+          { locale: "en", slug: "alpha-fallback", title: "Alpha fallback" },
+        ],
+      });
+      insertService(testDatabase.db, {
+        id: "zulu-requested",
+        sortOrder: 2,
+        translations: [
+          {
+            locale: "ru",
+            slug: "zulu-requested",
+            title: "Запрошенный зулу",
+          },
+        ],
+      });
+
+      const repository = createRepository(testDatabase.db);
+      const [items, home] = await Promise.all([
+        repository.listCollection("services", "ru"),
+        repository.getHome("ru"),
+      ]);
+
+      expect(items.map((item) => item.id)).toEqual([
+        "english-first",
+        "requested-second",
+        "alpha-fallback",
+        "zulu-requested",
+      ]);
+      expect(items.map((item) => item.locale)).toEqual(["en", "ru", "en", "ru"]);
+      expect(home.services).toEqual(items);
     } finally {
       testDatabase.close();
     }

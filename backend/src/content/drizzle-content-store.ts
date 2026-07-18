@@ -69,6 +69,7 @@ type CollectionConfig = {
 type PublishedRow = {
   id: string;
   code: string;
+  sortOrder: number;
   locale: Locale;
   slug: string;
   title: string;
@@ -86,6 +87,7 @@ type PublishedRow = {
 type PublishedContent = {
   item: PublicContentItem;
   code: string;
+  sortOrder: number;
   updatedAt: Date;
 };
 
@@ -202,6 +204,7 @@ export function createDrizzleContentStore(
         .select({
           id: config.base.id,
           code: config.base.code,
+          sortOrder: config.base.sortOrder,
           locale: config.translations.locale,
           slug: config.translations.slug,
           title: config.translations.title,
@@ -282,6 +285,7 @@ export function createDrizzleContentStore(
             media: await mediaForCatalogId(row.code, row.altText),
           },
           code: row.code,
+          sortOrder: row.sortOrder,
           updatedAt: row.updatedAt,
         };
         items.set(key, content);
@@ -297,7 +301,12 @@ export function createDrizzleContentStore(
       }
     }
 
-    return [...items.values()];
+    return [...items.values()].sort(
+      (left, right) =>
+        left.sortOrder - right.sortOrder ||
+        left.code.localeCompare(right.code) ||
+        left.item.id.localeCompare(right.item.id),
+    );
   }
 
   const homeCollection = (
