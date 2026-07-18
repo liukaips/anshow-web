@@ -149,7 +149,7 @@ describe("seed upgrades", () => {
     expect(
       decideRevisionAwareSeedUpgrade({
         current: fingerprintInput({ translation: { title: "Operator title" } }),
-        nextSeed: fingerprintInput({ translation: { title: "Next title" } }),
+        nextSeed: fingerprintInput(),
         revision: {
           seedVersion: 2,
           appliedFingerprint: fingerprintSeedRecord(applied),
@@ -158,6 +158,40 @@ describe("seed upgrades", () => {
         currentSeedVersion: 2,
       }),
     ).toEqual({ decision: "preserve", recordRevision: false });
+  });
+
+  it("rejects catalog drift under an already-applied seed version", () => {
+    const applied = fingerprintInput();
+
+    expect(() =>
+      decideRevisionAwareSeedUpgrade({
+        current: applied,
+        nextSeed: fingerprintInput({ translation: { title: "Changed title" } }),
+        revision: {
+          seedVersion: 2,
+          appliedFingerprint: fingerprintSeedRecord(applied),
+        },
+        legacyFingerprint: null,
+        currentSeedVersion: 2,
+      }),
+    ).toThrow("Seed version 2 catalog drift");
+  });
+
+  it("rejects equal-version drift before restoring a missing record", () => {
+    const applied = fingerprintInput();
+
+    expect(() =>
+      decideRevisionAwareSeedUpgrade({
+        current: null,
+        nextSeed: fingerprintInput({ translation: { title: "Changed title" } }),
+        revision: {
+          seedVersion: 2,
+          appliedFingerprint: fingerprintSeedRecord(applied),
+        },
+        legacyFingerprint: null,
+        currentSeedVersion: 2,
+      }),
+    ).toThrow("Seed version 2 catalog drift");
   });
 
   it("advances an older matching revision without rewriting equal content", () => {

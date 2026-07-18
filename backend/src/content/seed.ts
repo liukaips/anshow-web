@@ -31,12 +31,16 @@ import {
   type LegacySeedKey,
 } from "./legacy-seed-fingerprints.js";
 import {
+  currentContentSeedRevision,
   seedCatalog,
+  type ContentSeedRevision,
   type SeedCollection,
   type SeedItem,
 } from "./seed-catalog.js";
 import {
+  buildCatalogSeedFingerprintInput,
   buildSeedFingerprintInput,
+  computeSeedCatalogDigest,
   decideRevisionAwareSeedUpgrade,
   fingerprintSeedRecord,
   type SeedFingerprintInput,
@@ -66,8 +70,6 @@ type LocalizedBaseRow = typeof articles.$inferSelect;
 type LocalizedTranslationRow = typeof articleTranslations.$inferSelect;
 type SeedRevisionRow = typeof contentSeedRevisions.$inferSelect;
 
-const CURRENT_SEED_VERSION = 2;
-
 /** Counts are per locale decision; one base archive can contribute three. */
 export type SeedResult = {
   inserted: number;
@@ -84,6 +86,17 @@ type TranslationDecision = {
   locale: Locale;
   decision: SeedUpgradeDecision;
   recordRevision: boolean;
+  intendedFingerprint: string | null;
+};
+
+export type ContentSeeder = (
+  db: AppDatabase,
+  options?: { now?: Date },
+) => SeedResult;
+
+export type ContentSeederConfig = {
+  catalog: readonly SeedItem[];
+  revision: ContentSeedRevision;
 };
 
 export const seedCollectionRoutes = {
@@ -171,30 +184,6 @@ function currentFingerprintInput(
 ): SeedFingerprintInput | null {
   if (base === undefined || translation === undefined) return null;
   return buildSeedFingerprintInput({ base, translation });
-}
-
-function catalogFingerprintInput(
-  seedItem: SeedItem,
-  sortOrder: number,
-  locale: Locale,
-  mediaId: string | null,
-): SeedFingerprintInput {
-  return buildSeedFingerprintInput({
-    base: {
-      sortOrder,
-      mediaId,
-      processStageId: seedItem.processStageId ?? null,
-      archivedAt: null,
-      verifiedAt: null,
-      verificationSource: null,
-    },
-    translation: {
-      status: seedItem.publish ? "published" : "draft",
-      scheduledAt: null,
-      publishedAt: seedItem.publish ? 0 : null,
-      ...seedItem.translations[locale],
-    },
-  });
 }
 
 function resolveCatalogMediaId(
@@ -300,6 +289,7 @@ function upgradeTranslation(
 
 function writeRevision(
   tx: ContentTransaction,
+  seedVersion: number,
   collection: SeedCollection,
   code: string,
   locale: Locale,
@@ -311,7 +301,7 @@ function writeRevision(
       collection,
       ownerId: code,
       locale,
-      seedVersion: CURRENT_SEED_VERSION,
+      seedVersion,
       appliedFingerprint,
       appliedAt: now,
     })
@@ -322,7 +312,7 @@ function writeRevision(
         contentSeedRevisions.locale,
       ],
       set: {
-        seedVersion: CURRENT_SEED_VERSION,
+        seedVersion,
         appliedFingerprint,
         appliedAt: now,
       },
@@ -330,36 +320,10 @@ function writeRevision(
     .run();
 }
 
-function writeCurrentRevision(
-  tx: ContentTransaction,
-  collection: SeedCollection,
-  code: string,
-  locale: Locale,
-  baseTable: LocalizedBaseTable,
-  translationTable: LocalizedTranslationTable,
-  now: Date,
-) {
-  const current = currentFingerprintInput(
-    readBase(tx, baseTable, code),
-    readTranslation(tx, translationTable, code, locale),
-  );
-  if (current === null) {
-    throw new Error(
-      `Seed revision invariant failed for ${collection}/${code}/${locale}`,
-    );
-  }
-  writeRevision(
-    tx,
-    collection,
-    code,
-    locale,
-    fingerprintSeedRecord(current),
-    now,
-  );
-}
-
-export function seedPublicContent(
+function runContentSeeder(
   db: AppDatabase,
+  catalog: readonly SeedItem[],
+  seedVersion: number,
   options: { now?: Date } = {},
 ): SeedResult {
   const now = options.now ?? new Date();
@@ -374,7 +338,7 @@ export function seedPublicContent(
     };
     const currentKeys = new Set<string>();
 
-    for (const seedItem of seedCatalog) {
+    for (const seedItem of catalog) {
       const sortOrder = collectionPositions.get(seedItem.collection) ?? 0;
       collectionPositions.set(seedItem.collection, sortOrder + 1);
       currentKeys.add(`${seedItem.collection}/${seedItem.code}`);
@@ -387,12 +351,12 @@ export function seedPublicContent(
           existingBase,
           readTranslation(tx, route.translationTable, seedItem.code, locale),
         );
-        const nextSeed = catalogFingerprintInput(
+        const nextSeed = buildCatalogSeedFingerprintInput({
           seedItem,
           sortOrder,
           locale,
-          mediaId,
-        );
+          mediaId: seedItem.desiredMediaId ?? null,
+        });
         return {
           locale,
           ...decideRevisionAwareSeedUpgrade({
@@ -409,8 +373,9 @@ export function seedPublicContent(
               seedItem.code,
               locale,
             ),
-            currentSeedVersion: CURRENT_SEED_VERSION,
+            currentSeedVersion: seedVersion,
           }),
+          intendedFingerprint: fingerprintSeedRecord(nextSeed),
         };
       });
 
@@ -420,7 +385,12 @@ export function seedPublicContent(
         upgradeBase(tx, route.baseTable, seedItem, sortOrder, mediaId, now);
       }
 
-      for (const { locale, decision, recordRevision } of decisions) {
+      for (const {
+        locale,
+        decision,
+        recordRevision,
+        intendedFingerprint,
+      } of decisions) {
         if (decision === "insert") {
           insertTranslation(tx, route.translationTable, seedItem, locale, now);
           result.inserted += 1;
@@ -436,13 +406,18 @@ export function seedPublicContent(
         }
 
         if (recordRevision) {
-          writeCurrentRevision(
+          if (intendedFingerprint === null) {
+            throw new Error(
+              `Missing intended seed fingerprint for ${seedItem.collection}/${seedItem.code}/${locale}`,
+            );
+          }
+          writeRevision(
             tx,
+            seedVersion,
             seedItem.collection,
             seedItem.code,
             locale,
-            route.baseTable,
-            route.translationTable,
+            intendedFingerprint,
             now,
           );
         }
@@ -463,19 +438,27 @@ export function seedPublicContent(
           base,
           readTranslation(tx, route.translationTable, code, locale),
         );
+        const upgradeDecision = decideRevisionAwareSeedUpgrade({
+          current,
+          nextSeed: null,
+          revision: readRevision(tx, collection, code, locale),
+          legacyFingerprint: legacySeedFingerprint(
+            collection,
+            code,
+            locale,
+          ),
+          currentSeedVersion: seedVersion,
+        });
         return {
           locale,
-          ...decideRevisionAwareSeedUpgrade({
-            current,
-            nextSeed: null,
-            revision: readRevision(tx, collection, code, locale),
-            legacyFingerprint: legacySeedFingerprint(
-              collection,
-              code,
-              locale,
-            ),
-            currentSeedVersion: CURRENT_SEED_VERSION,
-          }),
+          ...upgradeDecision,
+          intendedFingerprint:
+            upgradeDecision.decision === "archive" && current !== null
+              ? fingerprintSeedRecord({
+                  ...current,
+                  base: { ...current.base, archived: true },
+                })
+              : null,
         };
       });
       const shouldArchive = decisions.every(
@@ -488,15 +471,20 @@ export function seedPublicContent(
           .set({ archivedAt: now, updatedAt: now })
           .where(eq(table.id, code))
           .run();
-        for (const { locale } of decisions) {
+        for (const { locale, intendedFingerprint } of decisions) {
+          if (intendedFingerprint === null) {
+            throw new Error(
+              `Missing intended archive fingerprint for ${collection}/${code}/${locale}`,
+            );
+          }
           result.archived += 1;
-          writeCurrentRevision(
+          writeRevision(
             tx,
+            seedVersion,
             collection,
             code,
             locale,
-            route.baseTable,
-            route.translationTable,
+            intendedFingerprint,
             now,
           );
         }
@@ -511,4 +499,43 @@ export function seedPublicContent(
 
     return result;
   });
+}
+
+export function createContentSeeder({
+  catalog,
+  revision,
+}: ContentSeederConfig): ContentSeeder {
+  assertContentSeedContract(catalog, revision);
+
+  return (db, options = {}) => {
+    assertContentSeedContract(catalog, revision);
+    return runContentSeeder(db, catalog, revision.version, options);
+  };
+}
+
+function assertContentSeedContract(
+  catalog: readonly SeedItem[],
+  revision: ContentSeedRevision,
+) {
+  if (!Number.isSafeInteger(revision.version) || revision.version < 1) {
+    throw new Error("Seed version must be a positive safe integer");
+  }
+  const actualCatalogDigest = computeSeedCatalogDigest(catalog);
+  if (actualCatalogDigest !== revision.expectedCatalogDigest) {
+    throw new Error(
+      `Seed catalog digest mismatch for version ${revision.version}: expected ${revision.expectedCatalogDigest}, received ${actualCatalogDigest}`,
+    );
+  }
+}
+
+const currentContentSeeder = createContentSeeder({
+  catalog: seedCatalog,
+  revision: currentContentSeedRevision,
+});
+
+export function seedPublicContent(
+  db: AppDatabase,
+  options: { now?: Date } = {},
+): SeedResult {
+  return currentContentSeeder(db, options);
 }

@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 
+import type { SeedItem } from "./seed-catalog.js";
+import { LOCALES, type Locale } from "./types.js";
+
 type TimestampValue = Date | number | string | null | undefined;
 
 export type SeedFingerprintInput = {
@@ -87,6 +90,13 @@ export type RevisionAwareUpgradeDecision = {
   recordRevision: boolean;
 };
 
+export type CatalogSeedFingerprintInput = {
+  seedItem: SeedItem;
+  sortOrder: number;
+  locale: Locale;
+  mediaId: string | null;
+};
+
 export function buildSeedFingerprintInput(
   source: SeedFingerprintSource,
 ): SeedFingerprintInput {
@@ -112,6 +122,57 @@ export function buildSeedFingerprintInput(
       altText: source.translation.altText,
     },
   };
+}
+
+export function buildCatalogSeedFingerprintInput({
+  seedItem,
+  sortOrder,
+  locale,
+  mediaId,
+}: CatalogSeedFingerprintInput): SeedFingerprintInput {
+  return buildSeedFingerprintInput({
+    base: {
+      sortOrder,
+      mediaId,
+      processStageId: seedItem.processStageId ?? null,
+      archivedAt: null,
+      verifiedAt: null,
+      verificationSource: null,
+    },
+    translation: {
+      status: seedItem.publish ? "published" : "draft",
+      scheduledAt: null,
+      publishedAt: seedItem.publish ? 0 : null,
+      ...seedItem.translations[locale],
+    },
+  });
+}
+
+export function computeSeedCatalogDigest(catalog: readonly SeedItem[]): string {
+  const collectionPositions = new Map<string, number>();
+  const entries: string[] = [];
+
+  for (const seedItem of catalog) {
+    const sortOrder = collectionPositions.get(seedItem.collection) ?? 0;
+    collectionPositions.set(seedItem.collection, sortOrder + 1);
+    for (const locale of LOCALES) {
+      const fingerprint = fingerprintSeedRecord(
+        buildCatalogSeedFingerprintInput({
+          seedItem,
+          sortOrder,
+          locale,
+          mediaId: seedItem.desiredMediaId ?? null,
+        }),
+      );
+      entries.push(
+        `${seedItem.collection}/${seedItem.code}/${locale}:${fingerprint}`,
+      );
+    }
+  }
+
+  return createHash("sha256")
+    .update(canonicalJson(entries, new WeakSet<object>()))
+    .digest("hex");
 }
 
 export function fingerprintSeedRecord(input: SeedFingerprintInput): string {
@@ -166,6 +227,16 @@ export function decideRevisionAwareSeedUpgrade({
   legacyFingerprint,
   currentSeedVersion,
 }: RevisionAwareUpgradeInput): RevisionAwareUpgradeDecision {
+  if (
+    revision?.seedVersion === currentSeedVersion &&
+    nextSeed !== null &&
+    revision.appliedFingerprint !== fingerprintSeedRecord(nextSeed)
+  ) {
+    throw new Error(
+      `Seed version ${currentSeedVersion} catalog drift: applied fingerprint differs from the intended catalog fingerprint`,
+    );
+  }
+
   if (current === null) {
     return {
       decision: nextSeed === null ? "noop" : "insert",
