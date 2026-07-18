@@ -389,7 +389,7 @@ const caseStudies: SeedItem[] = [
       fact("destination", "India", "Destination", "目的地", "Пункт назначения"),
       fact("un", "UN3265", "UN number", "UN 编号", "Номер ООН"),
       fact("hazardClass", "8", "Hazard class", "危险类别", "Класс опасности"),
-      fact("quantity", "800", "Quantity", "数量", "Количество", "drums"),
+      fact("drums", "800", "Quantity", "数量", "Количество", "drums"),
       fact("clearanceDuration", "3", "Project clearance duration", "该项目清关用时", "Срок оформления в проекте", "days"),
     ];
     return item("case-studies", "un3265-india", "case-un3265-india", {

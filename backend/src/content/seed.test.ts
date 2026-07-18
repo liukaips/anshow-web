@@ -175,12 +175,15 @@ describe("public content seed", () => {
 
     expect(caseFacts["un1263-hamburg"]).toEqual(expect.arrayContaining([
       { key: "un", value: "UN1263", unit: null },
+      { key: "hazardClass", value: "3", unit: null },
       { key: "weight", value: "12", unit: "t" },
       { key: "duration", value: "28", unit: "days" },
     ]));
     expect(caseFacts["un3265-india"]).toEqual(expect.arrayContaining([
       { key: "un", value: "UN3265", unit: null },
-      { key: "quantity", value: "800", unit: "drums" },
+      { key: "hazardClass", value: "8", unit: null },
+      { key: "drums", value: "800", unit: "drums" },
+      { key: "clearanceDuration", value: "3", unit: "days" },
     ]));
     expect(caseFacts["un3480-los-angeles"]).toEqual(expect.arrayContaining([
       { key: "un", value: "UN3480", unit: null },
@@ -231,8 +234,10 @@ describe("public content seed", () => {
       .join("\n");
 
     expect(publishedCopy).not.toMatch(/100\s*%\s*(?:satisfaction|满意|удовлетвор\w*)?/iu);
+    expect(publishedCopy).not.toMatch(/guaranteed\s+satisfaction|satisfaction\s+guaranteed|unconditional\s+satisfaction|保证满意|绝对满意|满意度保证|(?:гарантированн\w*|абсолютн\w*)(?:\s+\w+){0,3}\s+удовлетвор\w*/iu);
     expect(publishedCopy).not.toMatch(/zero[-\s]*(?:risk|violations?)|零(?:风险|违规)|нулев\w*\s+(?:риск|нарушен\w*)|ноль\s+риска|без\s+(?:риска|нарушен\w*)/iu);
     expect(publishedCopy).not.toMatch(/200\s*\+\s*countries(?:\s+and\s+regions)?|200多个国家(?:和地区)?|200\s*\+\s*стран|более\s+200\s+стран/iu);
+    expect(publishedCopy).not.toMatch(/全球(?:无死角|全覆盖)|complete\s+global\s+coverage|worldwide\s+without\s+gaps|пол\w*\s+покрыт\w*\s+по\s+всему\s+миру|пол\w*\s+(?:глобальн\w*|всемирн\w*|миров\w*)\s+покрыт\w*|(?:всемирн\w*\s+)?покрыт\w*\s+без\s+пробел\w*|по\s+всему\s+миру\s+без\s+пробел\w*/iu);
   });
 
   it("inserts base records and translations idempotently", () => {
