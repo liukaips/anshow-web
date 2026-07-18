@@ -58,12 +58,34 @@ export type UpgradeInput = {
   nextSeed: SeedFingerprintInput | null;
 };
 
+export type FingerprintUpgradeInput = {
+  current: SeedFingerprintInput | null;
+  previousSeedFingerprint: string | null;
+  nextSeed: SeedFingerprintInput | null;
+};
+
+export type RevisionAwareUpgradeInput = {
+  current: SeedFingerprintInput | null;
+  nextSeed: SeedFingerprintInput | null;
+  revision:
+    | { seedVersion: number; appliedFingerprint: string }
+    | null
+    | undefined;
+  legacyFingerprint: string | null | undefined;
+  currentSeedVersion: number;
+};
+
 export type SeedUpgradeDecision =
   | "insert"
   | "upgrade"
   | "preserve"
   | "archive"
   | "noop";
+
+export type RevisionAwareUpgradeDecision = {
+  decision: SeedUpgradeDecision;
+  recordRevision: boolean;
+};
 
 export function buildSeedFingerprintInput(
   source: SeedFingerprintSource,
@@ -103,18 +125,89 @@ export function decideSeedUpgrade({
   previousSeed,
   nextSeed,
 }: UpgradeInput): SeedUpgradeDecision {
+  return decideSeedUpgradeFromFingerprint({
+    current,
+    previousSeedFingerprint:
+      previousSeed === null ? null : fingerprintSeedRecord(previousSeed),
+    nextSeed,
+  });
+}
+
+export function decideSeedUpgradeFromFingerprint({
+  current,
+  previousSeedFingerprint,
+  nextSeed,
+}: FingerprintUpgradeInput): SeedUpgradeDecision {
   if (current === null) {
     return nextSeed === null ? "noop" : "insert";
   }
 
+  const currentFingerprint = fingerprintSeedRecord(current);
   if (
-    previousSeed === null ||
-    fingerprintSeedRecord(current) !== fingerprintSeedRecord(previousSeed)
+    previousSeedFingerprint === null ||
+    currentFingerprint !== previousSeedFingerprint
   ) {
     return "preserve";
   }
 
-  return nextSeed === null ? "archive" : "upgrade";
+  if (nextSeed === null) {
+    return current.base.archived ? "noop" : "archive";
+  }
+
+  return currentFingerprint === fingerprintSeedRecord(nextSeed)
+    ? "noop"
+    : "upgrade";
+}
+
+export function decideRevisionAwareSeedUpgrade({
+  current,
+  nextSeed,
+  revision,
+  legacyFingerprint,
+  currentSeedVersion,
+}: RevisionAwareUpgradeInput): RevisionAwareUpgradeDecision {
+  if (current === null) {
+    return {
+      decision: nextSeed === null ? "noop" : "insert",
+      recordRevision: nextSeed !== null,
+    };
+  }
+
+  const currentFingerprint = fingerprintSeedRecord(current);
+  if (revision?.seedVersion === currentSeedVersion) {
+    return {
+      decision:
+        currentFingerprint === revision.appliedFingerprint ? "noop" : "preserve",
+      recordRevision: false,
+    };
+  }
+  if (revision !== null && revision !== undefined) {
+    if (revision.seedVersion > currentSeedVersion) {
+      return { decision: "preserve", recordRevision: false };
+    }
+  } else if (
+    nextSeed !== null &&
+    currentFingerprint === fingerprintSeedRecord(nextSeed)
+  ) {
+    return { decision: "noop", recordRevision: true };
+  }
+
+  const decision = decideSeedUpgradeFromFingerprint({
+    current,
+    previousSeedFingerprint:
+      revision?.appliedFingerprint ?? legacyFingerprint ?? null,
+    nextSeed,
+  });
+  return {
+    decision,
+    recordRevision:
+      decision === "insert" ||
+      decision === "upgrade" ||
+      (decision === "noop" &&
+        revision !== null &&
+        revision !== undefined &&
+        revision.seedVersion < currentSeedVersion),
+  };
 }
 
 function canonicalJson(value: unknown, activeReferences: WeakSet<object>): string {

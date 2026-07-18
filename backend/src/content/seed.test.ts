@@ -1,6 +1,7 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
+import type { AppDatabase } from "../db/client.js";
 import { createTestDatabase } from "../db/test-db.js";
 import {
   articles,
@@ -11,6 +12,7 @@ import {
   caseStudyTranslations,
   certificates,
   certificateTranslations,
+  contentSeedRevisions,
   heroSlides,
   heroSlideTranslations,
   navigationItems,
@@ -18,6 +20,7 @@ import {
   pages,
   pageTranslations,
   partners,
+  mediaAssets,
   proofMetrics,
   proofMetricTranslations,
   services,
@@ -25,13 +28,173 @@ import {
   tradeLanes,
   tradeLaneTranslations,
 } from "../db/schema/index.js";
-import { seedCatalog, type SeedCollection } from "./seed-catalog.js";
+import {
+  legacySeedFingerprints,
+  type LegacySeedKey,
+} from "./legacy-seed-fingerprints.js";
+import {
+  seedCatalog,
+  type SeedCollection,
+  type SeedTranslation,
+} from "./seed-catalog.js";
 import { seedCollectionRoutes, seedPublicContent } from "./seed.js";
+import {
+  buildSeedFingerprintInput,
+  fingerprintSeedRecord,
+} from "./seed-upgrades.js";
 import { structuredContentBodySchema } from "./structured-body.js";
-import { LOCALES } from "./types.js";
+import { LOCALES, type Locale, type ProcessStageId } from "./types.js";
 
 const SEEDED_AT = new Date("2026-07-14T12:00:00.000Z");
 const RESEEDED_AT = new Date("2026-08-14T12:00:00.000Z");
+
+type LegacyCopy = Pick<SeedTranslation, "title" | "slug" | "summary">;
+
+type LegacyServiceFixture = {
+  code: string;
+  sortOrder: number;
+  processStageId: ProcessStageId;
+  translations: Record<Locale, LegacyCopy>;
+};
+
+const LEGACY_SERVICES = [
+  {
+    code: "ocean-freight",
+    sortOrder: 0,
+    processStageId: "transit",
+    translations: {
+      en: {
+        title: "Ocean Freight",
+        slug: "ocean-freight",
+        summary:
+          "Forwarding support for containerized, consolidated, and specialist ocean cargo.",
+      },
+      zh: {
+        title: "海运服务",
+        slug: "hai-yun-fu-wu",
+        summary: "为整箱、拼箱及专业海运货物提供货运代理支持。",
+      },
+      ru: {
+        title: "Морские перевозки",
+        slug: "morskie-perevozki",
+        summary:
+          "Экспедирование контейнерных, сборных и специализированных морских грузов.",
+      },
+    },
+  },
+  {
+    code: "air-freight",
+    sortOrder: 1,
+    processStageId: "transit",
+    translations: {
+      en: {
+        title: "Air Freight",
+        slug: "air-freight",
+        summary:
+          "Air forwarding for priority, controlled, and schedule-sensitive cargo.",
+      },
+      zh: {
+        title: "空运服务",
+        slug: "kong-yun-fu-wu",
+        summary: "为优先、受控及对时效敏感的货物提供空运代理。",
+      },
+      ru: {
+        title: "Авиаперевозки",
+        slug: "aviaperevozki",
+        summary:
+          "Авиаэкспедирование приоритетных, контролируемых и срочных грузов.",
+      },
+    },
+  },
+  {
+    code: "multimodal",
+    sortOrder: 4,
+    processStageId: "route",
+    translations: {
+      en: {
+        title: "Multimodal Transport",
+        slug: "multimodal-transport",
+        summary:
+          "Combine ocean, air, rail, and road legs under one coordinated plan.",
+      },
+      zh: {
+        title: "多式联运",
+        slug: "duo-shi-lian-yun",
+        summary: "在统一方案下衔接海运、空运、铁路和公路运输。",
+      },
+      ru: {
+        title: "Мультимодальные перевозки",
+        slug: "multimodalnye-perevozki",
+        summary:
+          "Объединяйте морские, авиационные, железнодорожные и автомобильные этапы в одном плане.",
+      },
+    },
+  },
+] as const satisfies readonly LegacyServiceFixture[];
+
+function expandLegacyCopy(copy: LegacyCopy, locale: Locale): SeedTranslation {
+  const separator = locale === "zh" ? "：" : ": ";
+  return {
+    ...copy,
+    body: copy.summary,
+    seoTitle: `${copy.title} | AnShow`,
+    seoDescription: copy.summary,
+    altText: `${copy.title}${separator}${copy.summary}`,
+  };
+}
+
+function insertLegacyServices(db: AppDatabase) {
+  for (const item of LEGACY_SERVICES) {
+    db.insert(services)
+      .values({
+        id: item.code,
+        code: item.code,
+        sortOrder: item.sortOrder,
+        mediaId: null,
+        processStageId: item.processStageId,
+        createdAt: SEEDED_AT,
+        updatedAt: SEEDED_AT,
+      })
+      .run();
+
+    for (const locale of LOCALES) {
+      db.insert(serviceTranslations)
+        .values({
+          ownerId: item.code,
+          locale,
+          status: "published",
+          scheduledAt: null,
+          publishedAt: SEEDED_AT,
+          ...expandLegacyCopy(item.translations[locale], locale),
+          updatedAt: SEEDED_AT,
+        })
+        .run();
+    }
+  }
+}
+
+function insertCatalogMedia(db: AppDatabase) {
+  const mediaIds = new Set(
+    seedCatalog.flatMap((item) =>
+      item.desiredMediaId === undefined ? [] : [item.desiredMediaId],
+    ),
+  );
+  mediaIds.add("operator-ocean");
+
+  for (const id of mediaIds) {
+    db.insert(mediaAssets)
+      .values({
+        id,
+        storageKey: `seed-test/${id}`,
+        mimeType: "image/webp",
+        width: 1600,
+        height: 900,
+        dominantColor: "#123456",
+        createdAt: SEEDED_AT,
+      })
+      .run();
+  }
+}
 
 const EXPECTED_CODES = {
   "hero-slides": ["ocean", "air", "rail", "road"],
@@ -670,6 +833,533 @@ describe("public content seed", () => {
           .where(eq(pageTranslations.ownerId, "contact"))
           .get()?.value,
       ).toBe(3);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("validates the committed legacy fingerprint against exact generic copy", () => {
+    const legacyAir = LEGACY_SERVICES.find((item) => item.code === "air-freight");
+    expect(legacyAir).toBeDefined();
+    if (legacyAir === undefined) return;
+
+    const fingerprint = fingerprintSeedRecord(
+      buildSeedFingerprintInput({
+        base: {
+          sortOrder: legacyAir.sortOrder,
+          mediaId: null,
+          processStageId: legacyAir.processStageId,
+          archivedAt: null,
+          verifiedAt: null,
+          verificationSource: null,
+        },
+        translation: {
+          status: "published",
+          scheduledAt: null,
+          publishedAt: SEEDED_AT,
+          ...expandLegacyCopy(legacyAir.translations.en, "en"),
+        },
+      }),
+    );
+
+    expect(fingerprint).toBe(
+      legacySeedFingerprints["services/air-freight"].en,
+    );
+    const keys = Object.keys(legacySeedFingerprints) as LegacySeedKey[];
+    expect(keys).toHaveLength(41);
+    for (const key of keys) {
+      expect(Object.keys(legacySeedFingerprints[key])).toEqual(LOCALES);
+      for (const locale of LOCALES) {
+        expect(legacySeedFingerprints[key][locale]).toMatch(/^[a-f0-9]{64}$/u);
+      }
+    }
+  });
+
+  it("upgrades untouched generic content while preserving operator changes", () => {
+    const testDatabase = createTestDatabase();
+    const operatorUpdatedAt = new Date("2026-07-20T12:00:00.000Z");
+
+    try {
+      insertCatalogMedia(testDatabase.db);
+      insertLegacyServices(testDatabase.db);
+      testDatabase.db
+        .update(services)
+        .set({ mediaId: "operator-ocean", updatedAt: operatorUpdatedAt })
+        .where(eq(services.id, "ocean-freight"))
+        .run();
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({
+          status: "draft",
+          scheduledAt: null,
+          publishedAt: null,
+          title: "Operator ocean title",
+          body: "Operator ocean body",
+          updatedAt: operatorUpdatedAt,
+        })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "ocean-freight"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({ title: "Operator air sibling", updatedAt: operatorUpdatedAt })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "air-freight"),
+            eq(serviceTranslations.locale, "zh"),
+          ),
+        )
+        .run();
+      testDatabase.db
+        .delete(serviceTranslations)
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "air-freight"),
+            eq(serviceTranslations.locale, "ru"),
+          ),
+        )
+        .run();
+
+      const result = seedPublicContent(testDatabase.db, { now: RESEEDED_AT });
+
+      expect(result).toEqual({
+        inserted: 157,
+        upgraded: 1,
+        archived: 3,
+        preserved: [
+          { collection: "services", code: "ocean-freight", locale: "en" },
+          { collection: "services", code: "ocean-freight", locale: "zh" },
+          { collection: "services", code: "ocean-freight", locale: "ru" },
+          { collection: "services", code: "air-freight", locale: "zh" },
+        ],
+      });
+      expect(JSON.stringify(result.preserved)).not.toMatch(
+        /Operator ocean|Operator air|body/iu,
+      );
+      expect(
+        testDatabase.db
+          .select({
+            mediaId: services.mediaId,
+            updatedAt: services.updatedAt,
+          })
+          .from(services)
+          .where(eq(services.id, "ocean-freight"))
+          .get(),
+      ).toEqual({ mediaId: "operator-ocean", updatedAt: operatorUpdatedAt });
+      expect(
+        testDatabase.db
+          .select({
+            status: serviceTranslations.status,
+            publishedAt: serviceTranslations.publishedAt,
+            title: serviceTranslations.title,
+            body: serviceTranslations.body,
+            updatedAt: serviceTranslations.updatedAt,
+          })
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "ocean-freight"),
+              eq(serviceTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        status: "draft",
+        publishedAt: null,
+        title: "Operator ocean title",
+        body: "Operator ocean body",
+        updatedAt: operatorUpdatedAt,
+      });
+
+      const currentAir = seedCatalog.find(
+        (item) => item.collection === "services" && item.code === "air-freight",
+      );
+      expect(
+        testDatabase.db
+          .select({
+            mediaId: services.mediaId,
+            updatedAt: services.updatedAt,
+          })
+          .from(services)
+          .where(eq(services.id, "air-freight"))
+          .get(),
+      ).toEqual({ mediaId: "service-air", updatedAt: RESEEDED_AT });
+      expect(
+        testDatabase.db
+          .select()
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "air-freight"),
+              eq(serviceTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toMatchObject({
+        status: "published",
+        publishedAt: RESEEDED_AT,
+        title: "Air Freight for Time-Critical Cargo",
+        body: currentAir?.translations.en.body,
+        updatedAt: RESEEDED_AT,
+      });
+      expect(
+        testDatabase.db
+          .select({ title: serviceTranslations.title })
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "air-freight"),
+              eq(serviceTranslations.locale, "zh"),
+            ),
+          )
+          .get(),
+      ).toEqual({ title: "Operator air sibling" });
+      expect(
+        testDatabase.db
+          .select()
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "air-freight"),
+              eq(serviceTranslations.locale, "ru"),
+            ),
+          )
+          .get(),
+      ).toMatchObject(currentAir?.translations.ru ?? {});
+      expect(
+        testDatabase.db
+          .select({ archivedAt: services.archivedAt })
+          .from(services)
+          .where(eq(services.id, "multimodal"))
+          .get(),
+      ).toEqual({ archivedAt: RESEEDED_AT });
+
+      const currentCase = seedCatalog.find(
+        (item) =>
+          item.collection === "case-studies" && item.code === "un1263-hamburg",
+      );
+      expect(
+        testDatabase.db
+          .select({ mediaId: caseStudies.mediaId })
+          .from(caseStudies)
+          .where(eq(caseStudies.id, "un1263-hamburg"))
+          .get(),
+      ).toEqual({ mediaId: "case-un1263-hamburg" });
+      expect(
+        testDatabase.db
+          .select({
+            status: caseStudyTranslations.status,
+            body: caseStudyTranslations.body,
+          })
+          .from(caseStudyTranslations)
+          .where(
+            and(
+              eq(caseStudyTranslations.ownerId, "un1263-hamburg"),
+              eq(caseStudyTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({
+        status: "published",
+        body: currentCase?.translations.en.body,
+      });
+      expect(testDatabase.db.select().from(certificates).all()).toHaveLength(4);
+      expect(testDatabase.db.select().from(proofMetrics).all()).toHaveLength(4);
+      expect(
+        testDatabase.db
+          .select({ value: count() })
+          .from(contentSeedRevisions)
+          .get()?.value,
+      ).toBe(161);
+
+      const beforeReseed = {
+        services: testDatabase.db.select().from(services).all(),
+        translations: testDatabase.db.select().from(serviceTranslations).all(),
+        revisions: testDatabase.db.select().from(contentSeedRevisions).all(),
+      };
+      expect(seedPublicContent(testDatabase.db, { now: new Date("2026-09-14T12:00:00.000Z") })).toEqual({
+        inserted: 0,
+        upgraded: 0,
+        archived: 0,
+        preserved: result.preserved,
+      });
+      expect(testDatabase.db.select().from(services).all()).toEqual(
+        beforeReseed.services,
+      );
+      expect(testDatabase.db.select().from(serviceTranslations).all()).toEqual(
+        beforeReseed.translations,
+      );
+      expect(testDatabase.db.select().from(contentSeedRevisions).all()).toEqual(
+        beforeReseed.revisions,
+      );
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("inserts the current catalog and revision rows idempotently on an empty database", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      const first = seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      const revisions = testDatabase.db.select().from(contentSeedRevisions).all();
+      const currentRows = seedCatalog.length * LOCALES.length;
+
+      expect(first).toEqual({
+        inserted: currentRows,
+        upgraded: 0,
+        archived: 0,
+        preserved: [],
+      });
+      expect(revisions).toHaveLength(currentRows);
+      expect(new Set(revisions.map((revision) => revision.seedVersion))).toEqual(
+        new Set([2]),
+      );
+      expect(seedPublicContent(testDatabase.db, { now: RESEEDED_AT })).toEqual({
+        inserted: 0,
+        upgraded: 0,
+        archived: 0,
+        preserved: [],
+      });
+      expect(testDatabase.db.select().from(contentSeedRevisions).all()).toEqual(
+        revisions,
+      );
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it.each(["title", "body", "media", "sort", "status"] as const)(
+    "preserves an exact legacy record after an operator changes %s",
+    (field) => {
+      const testDatabase = createTestDatabase();
+      const operatorUpdatedAt = new Date("2026-07-20T12:00:00.000Z");
+
+      try {
+        insertCatalogMedia(testDatabase.db);
+        insertLegacyServices(testDatabase.db);
+        if (field === "media") {
+          testDatabase.db
+            .update(services)
+            .set({ mediaId: "operator-ocean", updatedAt: operatorUpdatedAt })
+            .where(eq(services.id, "air-freight"))
+            .run();
+        } else if (field === "sort") {
+          testDatabase.db
+            .update(services)
+            .set({ sortOrder: 42, updatedAt: operatorUpdatedAt })
+            .where(eq(services.id, "air-freight"))
+            .run();
+        } else {
+          testDatabase.db
+            .update(serviceTranslations)
+            .set(
+              field === "status"
+                ? {
+                    status: "draft",
+                    scheduledAt: null,
+                    publishedAt: null,
+                    updatedAt: operatorUpdatedAt,
+                  }
+                : { [field]: `Operator ${field}`, updatedAt: operatorUpdatedAt },
+            )
+            .where(
+              and(
+                eq(serviceTranslations.ownerId, "air-freight"),
+                eq(serviceTranslations.locale, "en"),
+              ),
+            )
+            .run();
+        }
+
+        const result = seedPublicContent(testDatabase.db, { now: RESEEDED_AT });
+        expect(result.preserved).toContainEqual({
+          collection: "services",
+          code: "air-freight",
+          locale: "en",
+        });
+        const base = testDatabase.db
+          .select({
+            mediaId: services.mediaId,
+            sortOrder: services.sortOrder,
+            updatedAt: services.updatedAt,
+          })
+          .from(services)
+          .where(eq(services.id, "air-freight"))
+          .get();
+        if (field === "media") {
+          expect(base).toEqual({
+            mediaId: "operator-ocean",
+            sortOrder: 1,
+            updatedAt: operatorUpdatedAt,
+          });
+        }
+        if (field === "sort") {
+          expect(base).toEqual({
+            mediaId: null,
+            sortOrder: 42,
+            updatedAt: operatorUpdatedAt,
+          });
+        }
+        expect(
+          testDatabase.db
+            .select({
+              status: serviceTranslations.status,
+              title: serviceTranslations.title,
+              body: serviceTranslations.body,
+              updatedAt: serviceTranslations.updatedAt,
+            })
+            .from(serviceTranslations)
+            .where(
+              and(
+                eq(serviceTranslations.ownerId, "air-freight"),
+                eq(serviceTranslations.locale, "en"),
+              ),
+            )
+            .get(),
+        ).toMatchObject(
+          field === "status"
+            ? { status: "draft", updatedAt: operatorUpdatedAt }
+            : field === "title" || field === "body"
+              ? { [field]: `Operator ${field}`, updatedAt: operatorUpdatedAt }
+              : {},
+        );
+      } finally {
+        testDatabase.close();
+      }
+    },
+  );
+
+  it("does not archive an operator-modified superseded legacy record", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertLegacyServices(testDatabase.db);
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({ title: "Operator multimodal" })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "multimodal"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+
+      const result = seedPublicContent(testDatabase.db, { now: RESEEDED_AT });
+      expect(result.preserved).toContainEqual({
+        collection: "services",
+        code: "multimodal",
+        locale: "en",
+      });
+      expect(
+        testDatabase.db
+          .select({ archivedAt: services.archivedAt })
+          .from(services)
+          .where(eq(services.id, "multimodal"))
+          .get(),
+      ).toEqual({ archivedAt: null });
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("does not advance a revision after an operator edit", () => {
+    const testDatabase = createTestDatabase();
+    const operatorUpdatedAt = new Date("2026-07-20T12:00:00.000Z");
+
+    try {
+      seedPublicContent(testDatabase.db, { now: SEEDED_AT });
+      const revisionBeforeEdit = testDatabase.db
+        .select()
+        .from(contentSeedRevisions)
+        .where(
+          and(
+            eq(contentSeedRevisions.collection, "services"),
+            eq(contentSeedRevisions.ownerId, "ocean-freight"),
+            eq(contentSeedRevisions.locale, "en"),
+          ),
+        )
+        .get();
+      testDatabase.db
+        .update(serviceTranslations)
+        .set({ title: "Operator current title", updatedAt: operatorUpdatedAt })
+        .where(
+          and(
+            eq(serviceTranslations.ownerId, "ocean-freight"),
+            eq(serviceTranslations.locale, "en"),
+          ),
+        )
+        .run();
+
+      expect(seedPublicContent(testDatabase.db, { now: RESEEDED_AT }).preserved).toContainEqual({
+        collection: "services",
+        code: "ocean-freight",
+        locale: "en",
+      });
+      expect(
+        testDatabase.db
+          .select()
+          .from(contentSeedRevisions)
+          .where(
+            and(
+              eq(contentSeedRevisions.collection, "services"),
+              eq(contentSeedRevisions.ownerId, "ocean-freight"),
+              eq(contentSeedRevisions.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual(revisionBeforeEdit);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("rolls back content decisions when a revision write fails", () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      insertLegacyServices(testDatabase.db);
+      testDatabase.db.run(
+        sql.raw(`
+          CREATE TRIGGER reject_seed_revision
+          BEFORE INSERT ON content_seed_revisions
+          BEGIN
+            SELECT RAISE(ABORT, 'revision rejected');
+          END
+        `),
+      );
+
+      expect(() =>
+        seedPublicContent(testDatabase.db, { now: RESEEDED_AT }),
+      ).toThrow("revision rejected");
+      expect(
+        testDatabase.db
+          .select({ title: serviceTranslations.title })
+          .from(serviceTranslations)
+          .where(
+            and(
+              eq(serviceTranslations.ownerId, "air-freight"),
+              eq(serviceTranslations.locale, "en"),
+            ),
+          )
+          .get(),
+      ).toEqual({ title: "Air Freight" });
+      expect(
+        testDatabase.db
+          .select({ archivedAt: services.archivedAt })
+          .from(services)
+          .where(eq(services.id, "multimodal"))
+          .get(),
+      ).toEqual({ archivedAt: null });
+      expect(testDatabase.db.select().from(caseStudies).all()).toEqual([]);
+      expect(testDatabase.db.select().from(contentSeedRevisions).all()).toEqual(
+        [],
+      );
     } finally {
       testDatabase.close();
     }

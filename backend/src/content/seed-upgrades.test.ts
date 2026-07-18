@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildSeedFingerprintInput,
+  decideRevisionAwareSeedUpgrade,
   decideSeedUpgrade,
   fingerprintSeedRecord,
   type SeedFingerprintInput,
@@ -123,6 +124,57 @@ describe("seed upgrades", () => {
     expect(
       decideSeedUpgrade({ current: null, previousSeed: null, nextSeed: null }),
     ).toBe("noop");
+  });
+
+  it("does not rewrite a current seed revision that still matches", () => {
+    const current = fingerprintInput();
+
+    expect(
+      decideRevisionAwareSeedUpgrade({
+        current,
+        nextSeed: fingerprintInput(),
+        revision: {
+          seedVersion: 2,
+          appliedFingerprint: fingerprintSeedRecord(current),
+        },
+        legacyFingerprint: null,
+        currentSeedVersion: 2,
+      }),
+    ).toEqual({ decision: "noop", recordRevision: false });
+  });
+
+  it("preserves edits without advancing the current revision", () => {
+    const applied = fingerprintInput();
+
+    expect(
+      decideRevisionAwareSeedUpgrade({
+        current: fingerprintInput({ translation: { title: "Operator title" } }),
+        nextSeed: fingerprintInput({ translation: { title: "Next title" } }),
+        revision: {
+          seedVersion: 2,
+          appliedFingerprint: fingerprintSeedRecord(applied),
+        },
+        legacyFingerprint: null,
+        currentSeedVersion: 2,
+      }),
+    ).toEqual({ decision: "preserve", recordRevision: false });
+  });
+
+  it("advances an older matching revision without rewriting equal content", () => {
+    const current = fingerprintInput();
+
+    expect(
+      decideRevisionAwareSeedUpgrade({
+        current,
+        nextSeed: fingerprintInput(),
+        revision: {
+          seedVersion: 1,
+          appliedFingerprint: fingerprintSeedRecord(current),
+        },
+        legacyFingerprint: null,
+        currentSeedVersion: 2,
+      }),
+    ).toEqual({ decision: "noop", recordRevision: true });
   });
 
   it("fingerprints a stable projection with a fixed SHA-256 vector", () => {
