@@ -7,7 +7,7 @@ import {
 import { publicItemSchema } from "./public-contract.js";
 
 describe("structured content body", () => {
-  it("accepts version 1 paragraph, fact-list, and process sections", () => {
+  it("accepts version 1 with all supported section types", () => {
     const body = {
       version: 1,
       sections: [
@@ -23,6 +23,21 @@ describe("structured content body", () => {
           steps: [
             { title: "Book", text: "Confirm capacity with the carrier." },
           ],
+        },
+        {
+          type: "bullet-list",
+          title: "Documents",
+          items: ["Commercial invoice", "Packing list"],
+        },
+        {
+          type: "callout",
+          title: "Plan ahead",
+          text: "Reserve capacity before peak season.",
+        },
+        {
+          type: "quote-cta",
+          title: "Need a rate?",
+          text: "Request a tailored freight quote.",
         },
       ],
     };
@@ -54,6 +69,111 @@ describe("structured content body", () => {
       kind: "legacy-text",
       text: JSON.stringify(unsafeBody),
     });
+  });
+
+  it.each([
+    ["empty sections", []],
+    ["empty paragraph", [{ type: "paragraph", text: "" }]],
+    ["empty fact list", [{ type: "fact-list", items: [] }]],
+    [
+      "13 facts",
+      [
+        {
+          type: "fact-list",
+          items: Array.from({ length: 13 }, (_, index) => ({
+            key: `key-${index}`,
+            label: `Label ${index}`,
+            value: `${index}`,
+          })),
+        },
+      ],
+    ],
+    [
+      "empty fact key",
+      [{ type: "fact-list", items: [{ key: "", label: "Label", value: "1" }] }],
+    ],
+    [
+      "empty fact label",
+      [{ type: "fact-list", items: [{ key: "key", label: "", value: "1" }] }],
+    ],
+    [
+      "empty fact value",
+      [{ type: "fact-list", items: [{ key: "key", label: "Label", value: "" }] }],
+    ],
+    [
+      "empty process title",
+      [{ type: "process", steps: [{ title: "", text: "Step details" }] }],
+    ],
+    ["empty process steps", [{ type: "process", steps: [] }]],
+    [
+      "empty process text",
+      [{ type: "process", steps: [{ title: "Step", text: "" }] }],
+    ],
+    [
+      "empty bullet title",
+      [{ type: "bullet-list", title: "", items: ["Item"] }],
+    ],
+    ["empty bullet list", [{ type: "bullet-list", items: [] }]],
+    ["empty bullet item", [{ type: "bullet-list", items: [""] }]],
+    ["empty callout title", [{ type: "callout", title: "", text: "Text" }]],
+    ["empty callout text", [{ type: "callout", title: "Title", text: "" }]],
+    ["empty quote CTA title", [{ type: "quote-cta", title: "", text: "Text" }]],
+    ["empty quote CTA text", [{ type: "quote-cta", title: "Title", text: "" }]],
+    [
+      "9 process steps",
+      [
+        {
+          type: "process",
+          steps: Array.from({ length: 9 }, (_, index) => ({
+            title: `Step ${index}`,
+            text: "Step details",
+          })),
+        },
+      ],
+    ],
+    [
+      "17 bullet items",
+      [
+        {
+          type: "bullet-list",
+          items: Array.from({ length: 17 }, (_, index) => `Item ${index}`),
+        },
+      ],
+    ],
+    [
+      "25 sections",
+      Array.from({ length: 25 }, () => ({ type: "paragraph", text: "Text" })),
+    ],
+    ["paragraph over max", [{ type: "paragraph", text: "p".repeat(5_001) }]],
+    [
+      "fact key over max",
+      [
+        {
+          type: "fact-list",
+          items: [{ key: "k".repeat(81), label: "Label", value: "1" }],
+        },
+      ],
+    ],
+    [
+      "process text over max",
+      [{ type: "process", steps: [{ title: "Step", text: "p".repeat(1_001) }] }],
+    ],
+    [
+      "bullet item over max",
+      [{ type: "bullet-list", items: ["b".repeat(501)] }],
+    ],
+    [
+      "callout text over max",
+      [{ type: "callout", title: "Title", text: "c".repeat(1_501) }],
+    ],
+    [
+      "quote CTA text over max",
+      [{ type: "quote-cta", title: "Title", text: "q".repeat(801) }],
+    ],
+  ])("rejects %s", (_name, sections) => {
+    expect(
+      structuredContentBodySchema.safeParse({ version: 1, sections }).success,
+    ).toBe(false);
   });
 
   it("requires a nullable structured body in the public item contract", () => {

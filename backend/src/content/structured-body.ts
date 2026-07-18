@@ -3,7 +3,7 @@ import { z } from "@hono/zod-openapi";
 export const paragraphSectionSchema = z
   .object({
     type: z.literal("paragraph"),
-    text: z.string().max(5_000),
+    text: z.string().min(1).max(5_000),
   })
   .strict();
 
@@ -11,9 +11,9 @@ export type ParagraphSection = z.infer<typeof paragraphSectionSchema>;
 
 export const factListItemSchema = z
   .object({
-    key: z.string().max(80),
-    label: z.string().max(120),
-    value: z.string().max(120),
+    key: z.string().min(1).max(80),
+    label: z.string().min(1).max(120),
+    value: z.string().min(1).max(120),
     unit: z.string().max(40).optional(),
   })
   .strict();
@@ -23,7 +23,7 @@ export type FactListItem = z.infer<typeof factListItemSchema>;
 export const factListSectionSchema = z
   .object({
     type: z.literal("fact-list"),
-    items: z.array(factListItemSchema),
+    items: z.array(factListItemSchema).min(1).max(12),
   })
   .strict();
 
@@ -31,8 +31,8 @@ export type FactListSection = z.infer<typeof factListSectionSchema>;
 
 export const processStepSchema = z
   .object({
-    title: z.string().max(120),
-    text: z.string().max(1_000),
+    title: z.string().min(1).max(120),
+    text: z.string().min(1).max(1_000),
   })
   .strict();
 
@@ -50,8 +50,8 @@ export type ProcessSection = z.infer<typeof processSectionSchema>;
 export const bulletListSectionSchema = z
   .object({
     type: z.literal("bullet-list"),
-    title: z.string().max(160).optional(),
-    items: z.array(z.string().max(500)).min(1).max(16),
+    title: z.string().min(1).max(160).optional(),
+    items: z.array(z.string().min(1).max(500)).min(1).max(16),
   })
   .strict();
 
@@ -60,8 +60,8 @@ export type BulletListSection = z.infer<typeof bulletListSectionSchema>;
 export const calloutSectionSchema = z
   .object({
     type: z.literal("callout"),
-    title: z.string().max(160),
-    text: z.string().max(1_500),
+    title: z.string().min(1).max(160),
+    text: z.string().min(1).max(1_500),
   })
   .strict();
 
@@ -70,8 +70,8 @@ export type CalloutSection = z.infer<typeof calloutSectionSchema>;
 export const quoteCtaSectionSchema = z
   .object({
     type: z.literal("quote-cta"),
-    title: z.string().max(160),
-    text: z.string().max(800),
+    title: z.string().min(1).max(160),
+    text: z.string().min(1).max(800),
   })
   .strict();
 
