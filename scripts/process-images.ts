@@ -82,6 +82,15 @@ async function assertReadable(filePath: string): Promise<void> {
   }
 }
 
+async function isReadable(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function encode(
   source: string,
   targetWidth: number,
@@ -151,6 +160,7 @@ export async function processAsset(
   if (kind === "hero") {
     await assertReadable(mobileSource);
   }
+  const hasMobileSource = kind === "hero" || (await isReadable(mobileSource));
   await fs.mkdir(outputDir, { recursive: true });
 
   const widths = kind === "hero" ? [480, 768, 1280, 1920] : [480, 768, 1280];
@@ -170,7 +180,7 @@ export async function processAsset(
     }
   }
 
-  if (kind === "hero") {
+  if (hasMobileSource) {
     for (const format of ["avif", "webp"] as const) {
       variants.push(
         await encode(
@@ -437,13 +447,13 @@ export async function buildAssets(options: WorkspaceOptions = {}): Promise<Asset
   }
 }
 
-function expectedVariantKeys(kind: AssetKind): Set<string> {
+function expectedVariantKeys(kind: AssetKind, hasMobileSource: boolean): Set<string> {
   const widths = kind === "hero" ? [480, 768, 1280, 1920] : [480, 768, 1280];
   const keys = new Set<string>();
   for (const format of ["avif", "webp"] as const) {
     for (const width of widths) keys.add(`desktop-${width}-${format}`);
   }
-  if (kind === "hero") {
+  if (hasMobileSource) {
     keys.add("mobile-768-avif");
     keys.add("mobile-768-webp");
   }
@@ -494,7 +504,9 @@ export async function verifyAssets(options: WorkspaceOptions = {}): Promise<Veri
     const recordStart = violations.length;
     const kind: AssetKind = id.startsWith("hero-") ? "hero" : "content";
     const source = path.join(rootDir, "assets/source", `${id}.png`);
-    const requiredSources = kind === "hero" ? [source, path.join(rootDir, "assets/source", `${id}-mobile.png`)] : [source];
+    const mobileSource = path.join(rootDir, "assets/source", `${id}-mobile.png`);
+    const hasMobileSource = kind === "hero" || (await isReadable(mobileSource));
+    const requiredSources = kind === "hero" ? [source, mobileSource] : [source];
     for (const requiredSource of requiredSources) {
       try {
         await fs.access(requiredSource);
@@ -518,7 +530,7 @@ export async function verifyAssets(options: WorkspaceOptions = {}): Promise<Veri
       // The missing source violation above is more actionable.
     }
 
-    const expectedKeys = expectedVariantKeys(kind);
+    const expectedKeys = expectedVariantKeys(kind, hasMobileSource);
     const actualKeys = new Set<string>();
     for (const variant of record.variants) {
       const expectedPrefix = `/media/${id}/`;

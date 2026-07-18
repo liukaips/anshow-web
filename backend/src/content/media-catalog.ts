@@ -17,11 +17,12 @@ const manifestPaths = process.env.MEDIA_MANIFEST_PATH
   : [path.resolve(process.cwd(), "content/assets/manifest.json"), path.resolve(process.cwd(), "../content/assets/manifest.json")];
 let catalogPromise: Promise<Map<string, ManifestRecord>> | undefined;
 const catalogAliases: Record<string, string> = {
-  ocean: "hero-ocean", air: "hero-rail", rail: "hero-air", road: "hero-road",
+  ocean: "hero-ocean", air: "hero-air", rail: "hero-rail", road: "hero-road",
   "ocean-freight": "service-ocean", "air-freight": "service-air", "rail-freight": "service-rail", "road-freight": "service-road", multimodal: "service-multimodal", customs: "service-customs", warehousing: "service-warehouse",
   "china-russia": "lane-china-russia", "china-europe": "lane-china-europe", "central-asia": "lane-central-asia", "global-network": "lane-global",
   "project-cargo": "cargo-project", "oversized-cargo": "cargo-oversized", "dangerous-goods": "cargo-dangerous", "temperature-controlled": "cargo-cold-chain",
-  about: "trust-operations", network: "trust-coordination", contact: "trust-coordination", "multimodal-planning": "trust-coordination", "customs-readiness": "trust-customs", "warehouse-handoff": "trust-warehouse", "enquiry-preparation": "trust-operations", "mode-selection": "service-multimodal", "document-readiness": "trust-customs",
+  about: "anshow-office", network: "trust-coordination", contact: "anshow-contact", "multimodal-planning": "trust-coordination", "customs-readiness": "trust-customs", "warehouse-handoff": "trust-warehouse", "enquiry-preparation": "trust-operations", "mode-selection": "service-multimodal", "document-readiness": "trust-customs",
+  "un1263-hamburg": "case-un1263-hamburg", "un3265-india": "case-un3265-india", "un3480-los-angeles": "case-un3480-los-angeles", "injection-machine-turkey": "case-injection-machine-turkey", "excavators-tir-moscow": "case-excavators-tir-moscow", "auto-parts-rail-russia": "case-auto-parts-rail-russia", "electronics-air-munich": "case-electronics-air-munich", "semiconductor-import-clearance": "case-semiconductor-clearance",
 };
 
 async function loadCatalog(): Promise<Map<string, ManifestRecord>> {

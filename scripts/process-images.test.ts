@@ -12,6 +12,48 @@ import {
   verifyAssets,
 } from "./process-images";
 
+const CASE_ASSET_IDS = [
+  "case-un1263-hamburg",
+  "case-un3265-india",
+  "case-un3480-los-angeles",
+  "case-injection-machine-turkey",
+  "case-excavators-tir-moscow",
+  "case-auto-parts-rail-russia",
+  "case-electronics-air-munich",
+  "case-semiconductor-clearance",
+] as const;
+
+const FEATURE_CASE_ASSET_IDS = CASE_ASSET_IDS.slice(0, 4);
+
+const ALL_ASSET_IDS = [
+  "hero-ocean",
+  "hero-air",
+  "hero-rail",
+  "hero-road",
+  "service-ocean",
+  "service-air",
+  "service-rail",
+  "service-road",
+  "service-multimodal",
+  "service-customs",
+  "service-warehouse",
+  "lane-china-russia",
+  "lane-china-europe",
+  "lane-central-asia",
+  "lane-global",
+  "cargo-project",
+  "cargo-oversized",
+  "cargo-dangerous",
+  "cargo-cold-chain",
+  "trust-operations",
+  "trust-warehouse",
+  "trust-customs",
+  "trust-coordination",
+  "anshow-office",
+  "anshow-contact",
+  ...CASE_ASSET_IDS,
+] as const;
+
 async function createMaster(
   rootDir: string,
   id: string,
@@ -59,7 +101,7 @@ describe("derivativePlan", () => {
 });
 
 describe("generation prompts", () => {
-  it("defines the exact 23 approved production assets", async () => {
+  it("defines the exact 33 approved production assets", async () => {
     const promptPath = path.join(process.cwd(), "content/assets/prompts.json");
     const prompts = JSON.parse(await fs.readFile(promptPath, "utf8")) as Array<{
       id: string;
@@ -67,33 +109,67 @@ describe("generation prompts", () => {
       use: string;
     }>;
 
-    expect(prompts.map(({ id }) => id)).toEqual([
-      "hero-ocean",
-      "hero-air",
-      "hero-rail",
-      "hero-road",
-      "service-ocean",
-      "service-air",
-      "service-rail",
-      "service-road",
-      "service-multimodal",
-      "service-customs",
-      "service-warehouse",
-      "lane-china-russia",
-      "lane-china-europe",
-      "lane-central-asia",
-      "lane-global",
-      "cargo-project",
-      "cargo-oversized",
-      "cargo-dangerous",
-      "cargo-cold-chain",
-      "trust-operations",
-      "trust-warehouse",
-      "trust-customs",
-      "trust-coordination",
-    ]);
-    expect(new Set(prompts.map(({ id }) => id)).size).toBe(23);
+    expect(prompts.map(({ id }) => id)).toEqual(ALL_ASSET_IDS);
+    expect(new Set(prompts.map(({ id }) => id)).size).toBe(33);
     expect(prompts.every(({ prompt, use }) => prompt.length > 0 && use.length > 0)).toBe(true);
+  });
+
+  it("plans responsive case media and truthful catalog aliases", async () => {
+    const [manifestSource, promptSource, catalogSource] = await Promise.all([
+      fs.readFile(path.join(process.cwd(), "content/assets/manifest.json"), "utf8"),
+      fs.readFile(path.join(process.cwd(), "content/assets/prompts.json"), "utf8"),
+      fs.readFile(path.join(process.cwd(), "backend/src/content/media-catalog.ts"), "utf8"),
+    ]);
+    const manifest = JSON.parse(manifestSource) as Array<{
+      id: string;
+      variants: Array<{ format: string; role: string; width: number }>;
+    }>;
+    const promptIds = new Set(
+      (JSON.parse(promptSource) as Array<{ id: string }>).map(({ id }) => id),
+    );
+    const manifestById = new Map(manifest.map((record) => [record.id, record]));
+
+    for (const id of CASE_ASSET_IDS) {
+      expect(promptIds.has(id), `${id} prompt`).toBe(true);
+      const record = manifestById.get(id);
+      expect(record, `${id} manifest record`).toBeDefined();
+      if (!record) continue;
+
+      const variantKeys = record.variants.map(
+        ({ format, role, width }) => `${role}-${width}-${format}`,
+      );
+      expect(variantKeys).toEqual(
+        expect.arrayContaining([
+          "desktop-480-avif",
+          "desktop-768-avif",
+          "desktop-1280-avif",
+          "desktop-480-webp",
+          "desktop-768-webp",
+          "desktop-1280-webp",
+          "thumbnail-320-avif",
+        ]),
+      );
+      if (FEATURE_CASE_ASSET_IDS.includes(id)) {
+        expect(variantKeys).toEqual(
+          expect.arrayContaining(["mobile-768-avif", "mobile-768-webp"]),
+        );
+      }
+    }
+
+    expect(catalogSource).toMatch(/\bair:\s*"hero-air"/);
+    expect(catalogSource).toMatch(/\brail:\s*"hero-rail"/);
+    for (const [alias, id] of [
+      ["un1263-hamburg", "case-un1263-hamburg"],
+      ["un3265-india", "case-un3265-india"],
+      ["un3480-los-angeles", "case-un3480-los-angeles"],
+      ["injection-machine-turkey", "case-injection-machine-turkey"],
+      ["excavators-tir-moscow", "case-excavators-tir-moscow"],
+      ["auto-parts-rail-russia", "case-auto-parts-rail-russia"],
+      ["electronics-air-munich", "case-electronics-air-munich"],
+      ["semiconductor-import-clearance", "case-semiconductor-clearance"],
+    ] as const) {
+      expect(catalogSource).toMatch(new RegExp(`"${alias}":\\s*"${id}"`));
+    }
   });
 });
 
@@ -142,6 +218,35 @@ describe("processAsset", () => {
 
       await expect(processAsset("hero-ocean", "hero", { rootDir })).rejects.toThrow(
         /hero-ocean-mobile\.png/,
+      );
+    } finally {
+      await fs.rm(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("creates mobile derivatives for content with an art-directed mobile master", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "anshow-assets-"));
+
+    try {
+      await createMaster(rootDir, "case-un1263-hamburg", 1600, 900, {
+        r: 25,
+        g: 55,
+        b: 75,
+      });
+      await createMaster(rootDir, "case-un1263-hamburg-mobile", 900, 1200, {
+        r: 30,
+        g: 60,
+        b: 80,
+      });
+
+      const record = await processAsset("case-un1263-hamburg", "content", { rootDir });
+
+      expect(record.variants).toHaveLength(9);
+      expect(record.variants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ format: "avif", role: "mobile", width: 768 }),
+          expect.objectContaining({ format: "webp", role: "mobile", width: 768 }),
+        ]),
       );
     } finally {
       await fs.rm(rootDir, { recursive: true, force: true });

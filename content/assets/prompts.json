@@ -113,5 +113,55 @@
     "id": "trust-coordination",
     "use": "trust section",
     "prompt": "Photorealistic international logistics coordination meeting around a shipment route display, no visible third-party brands, no readable confidential text, no watermark"
+  },
+  {
+    "id": "anshow-office",
+    "use": "about page PPT-sourced office brand visual",
+    "prompt": "PPT-sourced AnShow office reception brand visual embedded on company presentation slide 1; extract only and do not present as documentary facility proof; never generate, retouch, or invent facilities, signage, or people"
+  },
+  {
+    "id": "anshow-contact",
+    "use": "contact page PPT-sourced Shenzhen skyline visual",
+    "prompt": "PPT-sourced Shenzhen skyline contact visual embedded on company presentation slide 15; extract only and do not present as company-facility proof; never generate, retouch, or invent facilities, signage, or people"
+  },
+  {
+    "id": "case-un1263-hamburg",
+    "use": "representative case: UN1263 solvent to Hamburg",
+    "prompt": "Credible documentary industrial freight photography of sealed drums prepared for a Class 3 flammable-liquid ocean shipment to Hamburg, compliant palletization and containment, realistic safe handling and scale, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-un3265-india",
+    "use": "representative case: UN3265 electrolyte to India",
+    "prompt": "Credible documentary industrial freight photography of corrosion-resistant sealed drums prepared for a Class 8 electrolyte ocean export to India, compliant palletization and containment, realistic safe handling and scale, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-un3480-los-angeles",
+    "use": "representative case: UN3480 lithium batteries to Los Angeles",
+    "prompt": "Credible documentary industrial freight photography of compliant UN3480 lithium battery cargo secured for ocean freight to Los Angeles, intact standardized cartons on pallets with realistic protection and safe handling, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-injection-machine-turkey",
+    "use": "representative case: injection molding machine to Turkey",
+    "prompt": "Credible documentary industrial freight photography of one large injection molding machine professionally secured on a 40-foot flat-rack container for ocean export to Turkey, realistic heavy-lift rigging and plausible machinery dimensions, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-excavators-tir-moscow",
+    "use": "representative case: excavators by TIR to Moscow",
+    "prompt": "Credible documentary industrial freight photography of construction excavators correctly secured on road trailers for a long-distance TIR movement toward Moscow, realistic tie-downs, axle loading and safe roadside logistics handling, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-auto-parts-rail-russia",
+    "use": "representative case: auto parts by rail to Russia",
+    "prompt": "Credible documentary industrial freight photography of protected automotive parts being loaded into an intermodal container at a rail freight terminal for China-Russia transport, realistic rail mode and safe handling, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-electronics-air-munich",
+    "use": "representative case: electronics by air to Munich",
+    "prompt": "Credible documentary industrial air-freight photography of protected electronics cargo secured on standard airport unit load devices beside an unbranded cargo aircraft bound for Munich, realistic safe apron handling, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
+  },
+  {
+    "id": "case-semiconductor-clearance",
+    "use": "representative case: used semiconductor equipment import clearance",
+    "prompt": "Credible documentary industrial photography of used semiconductor manufacturing equipment protected for customs inspection in a clean bonded warehouse, realistic machinery geometry and careful safe handling, wide 16:9 composition with safe negative space, no text, no logos, no branded vehicles, no identifiable customer, no invented labels, no watermark"
   }
 ]

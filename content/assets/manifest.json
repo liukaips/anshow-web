@@ -1598,5 +1598,709 @@
         "role": "thumbnail"
       }
     ]
+  },
+  {
+    "id": "anshow-office",
+    "width": 2048,
+    "height": 2048,
+    "dominantColor": "rgb(152 152 152)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 480,
+        "format": "avif",
+        "byteSize": 27399,
+        "url": "/media/anshow-office/desktop-480.0d9f3c883f9f.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 768,
+        "format": "avif",
+        "byteSize": 60610,
+        "url": "/media/anshow-office/desktop-768.0b4d7fe93908.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 1280,
+        "format": "avif",
+        "byteSize": 76355,
+        "url": "/media/anshow-office/desktop-1280.669c54540460.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 480,
+        "format": "webp",
+        "byteSize": 34438,
+        "url": "/media/anshow-office/desktop-480.ab800516a373.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 768,
+        "format": "webp",
+        "byteSize": 74582,
+        "url": "/media/anshow-office/desktop-768.4c64091862e3.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 1280,
+        "format": "webp",
+        "byteSize": 90918,
+        "url": "/media/anshow-office/desktop-1280.b46ad9a196ab.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 320,
+        "format": "avif",
+        "byteSize": 13380,
+        "url": "/media/anshow-office/thumbnail-320.167204d07bc8.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "anshow-contact",
+    "width": 1080,
+    "height": 1614,
+    "dominantColor": "rgb(8 56 8)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 717,
+        "format": "avif",
+        "byteSize": 34214,
+        "url": "/media/anshow-contact/desktop-480.3ba5b5fa8f2c.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1148,
+        "format": "avif",
+        "byteSize": 71060,
+        "url": "/media/anshow-contact/desktop-768.53f7b122eb58.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1080,
+        "height": 1614,
+        "format": "avif",
+        "byteSize": 81754,
+        "url": "/media/anshow-contact/desktop-1280.8f873f1f49ea.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 717,
+        "format": "webp",
+        "byteSize": 37726,
+        "url": "/media/anshow-contact/desktop-480.3dbad596ae12.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1148,
+        "format": "webp",
+        "byteSize": 76534,
+        "url": "/media/anshow-contact/desktop-768.b6a6fefc1fb3.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1080,
+        "height": 1614,
+        "format": "webp",
+        "byteSize": 85780,
+        "url": "/media/anshow-contact/desktop-1280.6ae7da5c3c16.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 478,
+        "format": "avif",
+        "byteSize": 17977,
+        "url": "/media/anshow-contact/thumbnail-320.5aaed7827398.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-un1263-hamburg",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(136 168 200)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 15889,
+        "url": "/media/case-un1263-hamburg/desktop-480.b95cd36ae56e.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 33480,
+        "url": "/media/case-un1263-hamburg/desktop-768.8f80b8fbbff4.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 75629,
+        "url": "/media/case-un1263-hamburg/desktop-1280.bfe44831d7e4.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 19576,
+        "url": "/media/case-un1263-hamburg/desktop-480.c1e9da7d0a21.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 41406,
+        "url": "/media/case-un1263-hamburg/desktop-768.9c56758ac630.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 90556,
+        "url": "/media/case-un1263-hamburg/desktop-1280.8203a489c84b.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "avif",
+        "byteSize": 48793,
+        "url": "/media/case-un1263-hamburg/mobile-768.f230c035706a.avif",
+        "role": "mobile"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "webp",
+        "byteSize": 57196,
+        "url": "/media/case-un1263-hamburg/mobile-768.3d13539747ec.webp",
+        "role": "mobile"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 8715,
+        "url": "/media/case-un1263-hamburg/thumbnail-320.be5ccf55ca84.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-un3265-india",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(232 232 232)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 14632,
+        "url": "/media/case-un3265-india/desktop-480.057df62b82b4.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 30656,
+        "url": "/media/case-un3265-india/desktop-768.784bd1eca3aa.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 68279,
+        "url": "/media/case-un3265-india/desktop-1280.3d6a1285756f.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 20122,
+        "url": "/media/case-un3265-india/desktop-480.a92802d8927f.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 41364,
+        "url": "/media/case-un3265-india/desktop-768.a3d9b1cf44a9.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 90560,
+        "url": "/media/case-un3265-india/desktop-1280.ddd2f6d11c6b.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "avif",
+        "byteSize": 36945,
+        "url": "/media/case-un3265-india/mobile-768.d716d1ed3323.avif",
+        "role": "mobile"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "webp",
+        "byteSize": 40780,
+        "url": "/media/case-un3265-india/mobile-768.de8e2125fa66.webp",
+        "role": "mobile"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 7922,
+        "url": "/media/case-un3265-india/thumbnail-320.d7f3c28bbb77.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-un3480-los-angeles",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(104 72 40)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 14730,
+        "url": "/media/case-un3480-los-angeles/desktop-480.cb723b995c80.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 33566,
+        "url": "/media/case-un3480-los-angeles/desktop-768.181f6bd716c9.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 87413,
+        "url": "/media/case-un3480-los-angeles/desktop-1280.ebf3f860dfd5.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 17094,
+        "url": "/media/case-un3480-los-angeles/desktop-480.3a6d06a50e2d.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 39638,
+        "url": "/media/case-un3480-los-angeles/desktop-768.fd0adc53dcc4.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 90676,
+        "url": "/media/case-un3480-los-angeles/desktop-1280.47dc599401a9.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "avif",
+        "byteSize": 32882,
+        "url": "/media/case-un3480-los-angeles/mobile-768.45e6fc735bcc.avif",
+        "role": "mobile"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "webp",
+        "byteSize": 40332,
+        "url": "/media/case-un3480-los-angeles/mobile-768.cd51c102fa78.webp",
+        "role": "mobile"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 7479,
+        "url": "/media/case-un3480-los-angeles/thumbnail-320.a6f762cdcd80.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-injection-machine-turkey",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(216 216 216)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 12598,
+        "url": "/media/case-injection-machine-turkey/desktop-480.1038ec3f4b64.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 27328,
+        "url": "/media/case-injection-machine-turkey/desktop-768.8a6b168ccb01.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 67213,
+        "url": "/media/case-injection-machine-turkey/desktop-1280.7ed3db21378f.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 15642,
+        "url": "/media/case-injection-machine-turkey/desktop-480.1706e9be7626.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 33992,
+        "url": "/media/case-injection-machine-turkey/desktop-768.0b8d9873c5b7.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 80912,
+        "url": "/media/case-injection-machine-turkey/desktop-1280.a10f2dacfbec.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "avif",
+        "byteSize": 51612,
+        "url": "/media/case-injection-machine-turkey/mobile-768.87dfd0791180.avif",
+        "role": "mobile"
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "format": "webp",
+        "byteSize": 60600,
+        "url": "/media/case-injection-machine-turkey/mobile-768.48f3fc0803e4.webp",
+        "role": "mobile"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 6778,
+        "url": "/media/case-injection-machine-turkey/thumbnail-320.a1e3ca654cbb.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-excavators-tir-moscow",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(216 216 232)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 18075,
+        "url": "/media/case-excavators-tir-moscow/desktop-480.550773b2f2ac.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 43929,
+        "url": "/media/case-excavators-tir-moscow/desktop-768.659f572ccfb2.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 78369,
+        "url": "/media/case-excavators-tir-moscow/desktop-1280.da8cb452c57d.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 23492,
+        "url": "/media/case-excavators-tir-moscow/desktop-480.238567a594e7.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 56994,
+        "url": "/media/case-excavators-tir-moscow/desktop-768.417821da8115.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 90672,
+        "url": "/media/case-excavators-tir-moscow/desktop-1280.f6f32500ab02.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 8916,
+        "url": "/media/case-excavators-tir-moscow/thumbnail-320.7ac0d2fdbd6a.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-auto-parts-rail-russia",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(232 232 232)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 13029,
+        "url": "/media/case-auto-parts-rail-russia/desktop-480.fc6fb120e0da.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 26776,
+        "url": "/media/case-auto-parts-rail-russia/desktop-768.98c3b22b6952.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 57784,
+        "url": "/media/case-auto-parts-rail-russia/desktop-1280.226c660a44aa.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 17356,
+        "url": "/media/case-auto-parts-rail-russia/desktop-480.b3c1fbdaddb4.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 36150,
+        "url": "/media/case-auto-parts-rail-russia/desktop-768.19ffc834fd23.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 79198,
+        "url": "/media/case-auto-parts-rail-russia/desktop-1280.6a3a7ec55073.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 7050,
+        "url": "/media/case-auto-parts-rail-russia/thumbnail-320.99b1cd0a06e6.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-electronics-air-munich",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(168 152 152)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 13444,
+        "url": "/media/case-electronics-air-munich/desktop-480.b9f262eb5226.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 28972,
+        "url": "/media/case-electronics-air-munich/desktop-768.f790607b47ca.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 67482,
+        "url": "/media/case-electronics-air-munich/desktop-1280.daadfa3f2a09.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 16550,
+        "url": "/media/case-electronics-air-munich/desktop-480.6749b932da1d.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 35436,
+        "url": "/media/case-electronics-air-munich/desktop-768.9c3e16ab3d1f.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 80192,
+        "url": "/media/case-electronics-air-munich/desktop-1280.08a3e8e5517b.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 7082,
+        "url": "/media/case-electronics-air-munich/thumbnail-320.9603ea5b266e.avif",
+        "role": "thumbnail"
+      }
+    ]
+  },
+  {
+    "id": "case-semiconductor-clearance",
+    "width": 2048,
+    "height": 1152,
+    "dominantColor": "rgb(216 216 216)",
+    "variants": [
+      {
+        "width": 480,
+        "height": 270,
+        "format": "avif",
+        "byteSize": 10353,
+        "url": "/media/case-semiconductor-clearance/desktop-480.29ce56c62b0a.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "avif",
+        "byteSize": 21231,
+        "url": "/media/case-semiconductor-clearance/desktop-768.3c2ddbc6157c.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "avif",
+        "byteSize": 48865,
+        "url": "/media/case-semiconductor-clearance/desktop-1280.fc068b177f94.avif",
+        "role": "desktop"
+      },
+      {
+        "width": 480,
+        "height": 270,
+        "format": "webp",
+        "byteSize": 11878,
+        "url": "/media/case-semiconductor-clearance/desktop-480.c8b70e723fe4.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 768,
+        "height": 432,
+        "format": "webp",
+        "byteSize": 24438,
+        "url": "/media/case-semiconductor-clearance/desktop-768.e77e8a5bb301.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "format": "webp",
+        "byteSize": 56938,
+        "url": "/media/case-semiconductor-clearance/desktop-1280.0d21b4f6f4a5.webp",
+        "role": "desktop"
+      },
+      {
+        "width": 320,
+        "height": 180,
+        "format": "avif",
+        "byteSize": 5848,
+        "url": "/media/case-semiconductor-clearance/thumbnail-320.e870720f7924.avif",
+        "role": "thumbnail"
+      }
+    ]
   }
 ]
