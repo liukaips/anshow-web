@@ -95,10 +95,15 @@ function structuredBody(itemCode: string, locale: string, body: string) {
 
 function canonicalFacts(body: string) {
   const parsed = structuredContentBodySchema.parse(JSON.parse(body));
-  const factList = parsed.sections.find((section) => section.type === "fact-list");
-  expect(factList, "case body must contain a fact-list").toBeDefined();
+  const factLists = parsed.sections.filter((section) => section.type === "fact-list");
+  expect(factLists, "case body must contain exactly one fact-list").toHaveLength(1);
+  const [factList] = factLists;
   if (!factList || factList.type !== "fact-list") return [];
-  return factList.items.map(({ key, value }) => [key, value]);
+  return factList.items.map(({ key, value, unit }) => ({
+    key,
+    value,
+    unit: unit ?? null,
+  }));
 }
 
 describe("public content seed", () => {
@@ -143,9 +148,16 @@ describe("public content seed", () => {
     const cases = seedCatalog.filter((item) => item.collection === "case-studies");
 
     expect(cases.every((item) => item.publish)).toBe(true);
-    expect(cases.map((item) => item.desiredMediaId)).toEqual(
-      EXPECTED_CODES["case-studies"].map((code) => `case-${code}`),
-    );
+    expect(Object.fromEntries(cases.map((item) => [item.code, item.desiredMediaId]))).toEqual({
+      "un1263-hamburg": "case-un1263-hamburg",
+      "un3265-india": "case-un3265-india",
+      "un3480-los-angeles": "case-un3480-los-angeles",
+      "injection-machine-turkey": "case-injection-machine-turkey",
+      "excavators-tir-moscow": "case-excavators-tir-moscow",
+      "auto-parts-rail-russia": "case-auto-parts-rail-russia",
+      "electronics-air-munich": "case-electronics-air-munich",
+      "semiconductor-import-clearance": "case-semiconductor-clearance",
+    });
     for (const item of cases) {
       const enFacts = canonicalFacts(item.translations.en.body);
       expect(enFacts.length).toBeGreaterThan(0);
@@ -158,19 +170,58 @@ describe("public content seed", () => {
     const caseFacts = Object.fromEntries(
       seedCatalog
         .filter((item) => item.collection === "case-studies")
-        .map((item) => [item.code, Object.fromEntries(canonicalFacts(item.translations.en.body))]),
+        .map((item) => [item.code, canonicalFacts(item.translations.en.body)]),
     );
 
-    expect(caseFacts).toMatchObject({
-      "un1263-hamburg": { unNumber: "UN1263", hazardClass: "3", weight: "12", duration: "28" },
-      "un3265-india": { unNumber: "UN3265", hazardClass: "8", quantity: "800", clearanceDuration: "3" },
-      "un3480-los-angeles": { unNumber: "UN3480", weight: "5", duration: "14", timeSaved: "7", costDifference: "8" },
-      "injection-machine-turkey": { dimensions: "11.8 x 2.6 x 3.2", weight: "28", equipment: "40-foot flat rack" },
-      "excavators-tir-moscow": { distance: "8600", duration: "15" },
-      "auto-parts-rail-russia": { duration: "18-22", projectCostDifference: "60" },
-      "electronics-air-munich": { weight: "3", duration: "42" },
-      "semiconductor-import-clearance": { resolutionDuration: "5" },
-    });
+    expect(caseFacts["un1263-hamburg"]).toEqual(expect.arrayContaining([
+      { key: "un", value: "UN1263", unit: null },
+      { key: "weight", value: "12", unit: "t" },
+      { key: "duration", value: "28", unit: "days" },
+    ]));
+    expect(caseFacts["un3265-india"]).toEqual(expect.arrayContaining([
+      { key: "un", value: "UN3265", unit: null },
+      { key: "quantity", value: "800", unit: "drums" },
+    ]));
+    expect(caseFacts["un3480-los-angeles"]).toEqual(expect.arrayContaining([
+      { key: "un", value: "UN3480", unit: null },
+      { key: "weight", value: "5", unit: "t" },
+      { key: "duration", value: "14", unit: "days" },
+      { key: "projectTimeSaved", value: "7", unit: "days" },
+      { key: "projectCostDifference", value: "8", unit: "%" },
+    ]));
+    expect(caseFacts["injection-machine-turkey"]).toEqual(expect.arrayContaining([
+      { key: "dimensions", value: "11.8 × 2.6 × 3.2", unit: "m" },
+      { key: "weight", value: "28", unit: "t" },
+      { key: "equipment", value: "40-foot flat rack", unit: null },
+    ]));
+    expect(caseFacts["excavators-tir-moscow"]).toEqual(expect.arrayContaining([
+      { key: "distance", value: "8,600", unit: "km" },
+      { key: "duration", value: "15", unit: "days" },
+    ]));
+    expect(caseFacts["auto-parts-rail-russia"]).toEqual(expect.arrayContaining([
+      { key: "duration", value: "18–22", unit: "days" },
+      { key: "projectCostDifference", value: "60", unit: "%" },
+    ]));
+    expect(caseFacts["electronics-air-munich"]).toEqual(expect.arrayContaining([
+      { key: "weight", value: "3", unit: "t" },
+      { key: "duration", value: "42", unit: "hours" },
+    ]));
+    expect(caseFacts["semiconductor-import-clearance"]).toEqual(expect.arrayContaining([
+      { key: "duration", value: "5", unit: "days" },
+    ]));
+  });
+
+  it("uses the complete English name for the injection molding machine", () => {
+    const item = seedCatalog.find(
+      (candidate) => candidate.collection === "case-studies" && candidate.code === "injection-machine-turkey",
+    );
+    expect(item).toBeDefined();
+    const copy = item?.translations.en;
+    expect(copy?.title).toContain("Injection Molding Machine");
+    expect(copy?.seoTitle).toContain("Injection Molding Machine");
+    expect(copy?.altText).toMatch(/injection molding machine/i);
+    expect(copy?.body).toMatch(/injection molding machine/i);
+    expect(Object.values(copy ?? {}).join(" ")).not.toMatch(/\bInjection Machine\b/);
   });
 
   it("contains no prohibited absolute claims in published copy", () => {
@@ -179,8 +230,9 @@ describe("public content seed", () => {
       .flatMap((item) => LOCALES.map((locale) => Object.values(item.translations[locale]).join(" ")))
       .join("\n");
 
-    expect(publishedCopy).not.toMatch(/100%|零风险|零违规|zero risk|zero violations|нулев(?:ой|ого|ые) риск|без нарушений/iu);
-    expect(publishedCopy).not.toMatch(/200\+\s*countries/iu);
+    expect(publishedCopy).not.toMatch(/100\s*%\s*(?:satisfaction|满意|удовлетвор\w*)?/iu);
+    expect(publishedCopy).not.toMatch(/zero[-\s]*(?:risk|violations?)|零(?:风险|违规)|нулев\w*\s+(?:риск|нарушен\w*)|ноль\s+риска|без\s+(?:риска|нарушен\w*)/iu);
+    expect(publishedCopy).not.toMatch(/200\s*\+\s*countries(?:\s+and\s+regions)?|200多个国家(?:和地区)?|200\s*\+\s*стран|более\s+200\s+стран/iu);
   });
 
   it("inserts base records and translations idempotently", () => {

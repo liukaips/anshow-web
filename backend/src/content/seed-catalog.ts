@@ -322,7 +322,7 @@ type CaseFactDefinition = {
   key: string;
   value: string;
   labels: Record<Locale, string>;
-  units?: Partial<Record<Locale, string>>;
+  unit?: string;
 };
 
 function caseCopy(
@@ -344,7 +344,7 @@ function caseCopy(
     key: definition.key,
     label: definition.labels[locale],
     value: definition.value,
-    ...(definition.units?.[locale] ? { unit: definition.units[locale] } : {}),
+    ...(definition.unit ? { unit: definition.unit } : {}),
   }));
   return copy(title, slug, summary, [
     { type: "paragraph", text: summary },
@@ -363,9 +363,9 @@ function fact(
   en: string,
   zh: string,
   ru: string,
-  units?: Partial<Record<Locale, string>>,
+  unit?: string,
 ): CaseFactDefinition {
-  return { key, value, labels: { en, zh, ru }, units };
+  return { key, value, labels: { en, zh, ru }, unit };
 }
 
 const caseStudies: SeedItem[] = [
@@ -373,10 +373,10 @@ const caseStudies: SeedItem[] = [
     const facts = [
       fact("origin", "Shenzhen", "Origin", "起运地", "Пункт отправления"),
       fact("destination", "Hamburg", "Destination", "目的地", "Пункт назначения"),
-      fact("unNumber", "UN1263", "UN number", "UN 编号", "Номер ООН"),
+      fact("un", "UN1263", "UN number", "UN 编号", "Номер ООН"),
       fact("hazardClass", "3", "Hazard class", "危险类别", "Класс опасности"),
-      fact("weight", "12", "Weight", "货重", "Вес", { en: "t", zh: "吨", ru: "т" }),
-      fact("duration", "28", "Transit time", "运输时效", "Срок перевозки", { en: "days approx.", zh: "天左右", ru: "дней, около" }),
+      fact("weight", "12", "Weight", "货重", "Вес", "t"),
+      fact("duration", "28", "Approximate transit time", "运输时效（约）", "Примерный срок перевозки", "days"),
     ];
     return item("case-studies", "un1263-hamburg", "case-un1263-hamburg", {
       en: caseCopy("en", "UN1263 Solvent from Shenzhen to Hamburg", "un1263-solvent-shenzhen-hamburg", "Representative movement of 12 t of Class 3 UN1263 solvent from Shenzhen to Hamburg in about 28 days.", facts, "The regulated cargo required aligned declaration data, packaging evidence, and carrier acceptance.", "The team coordinated document review, dangerous-goods booking, loading requirements, and destination handoff.", "The representative shipment reached Hamburg in about 28 days under the agreed transport plan."),
@@ -387,10 +387,10 @@ const caseStudies: SeedItem[] = [
   (() => {
     const facts = [
       fact("destination", "India", "Destination", "目的地", "Пункт назначения"),
-      fact("unNumber", "UN3265", "UN number", "UN 编号", "Номер ООН"),
+      fact("un", "UN3265", "UN number", "UN 编号", "Номер ООН"),
       fact("hazardClass", "8", "Hazard class", "危险类别", "Класс опасности"),
-      fact("quantity", "800", "Quantity", "数量", "Количество", { en: "drums", zh: "桶", ru: "бочек" }),
-      fact("clearanceDuration", "3", "Clearance result", "清关结果", "Срок оформления", { en: "days", zh: "天", ru: "дня" }),
+      fact("quantity", "800", "Quantity", "数量", "Количество", "drums"),
+      fact("clearanceDuration", "3", "Project clearance duration", "该项目清关用时", "Срок оформления в проекте", "days"),
     ];
     return item("case-studies", "un3265-india", "case-un3265-india", {
       en: caseCopy("en", "UN3265 Electrolyte Export to India", "un3265-electrolyte-india", "Representative export of 800 drums of Class 8 UN3265 electrolyte to India, with clearance completed in three days for this project.", facts, "The corrosive cargo required compliant packaging, load planning, and consistent declaration records.", "The team aligned drum documentation, loading controls, export handling, and destination clearance information.", "Destination clearance was completed in three days for this representative shipment."),
@@ -402,11 +402,11 @@ const caseStudies: SeedItem[] = [
     const facts = [
       fact("origin", "Shenzhen", "Origin", "起运地", "Пункт отправления"),
       fact("destination", "Los Angeles", "Destination", "目的地", "Пункт назначения"),
-      fact("unNumber", "UN3480", "UN number", "UN 编号", "Номер ООН"),
-      fact("weight", "5", "Weight", "货重", "Вес", { en: "t", zh: "吨", ru: "т" }),
-      fact("duration", "14", "Transit time", "运输时效", "Срок перевозки", { en: "days approx.", zh: "天左右", ru: "дней, около" }),
-      fact("timeSaved", "7", "Project comparison", "项目时效对比", "Сравнение по сроку", { en: "days saved", zh: "天", ru: "дней экономии" }),
-      fact("costDifference", "8", "Project cost comparison", "项目成本对比", "Сравнение стоимости", { en: "% lower", zh: "% 降幅", ru: "% ниже" }),
+      fact("un", "UN3480", "UN number", "UN 编号", "Номер ООН"),
+      fact("weight", "5", "Weight", "货重", "Вес", "t"),
+      fact("duration", "14", "Approximate transit time", "运输时效（约）", "Примерный срок перевозки", "days"),
+      fact("projectTimeSaved", "7", "Representative project time comparison", "该项目时效对比", "Сравнение срока в этом проекте", "days"),
+      fact("projectCostDifference", "8", "Representative project cost comparison", "该项目成本对比", "Сравнение стоимости в этом проекте", "%"),
     ];
     return item("case-studies", "un3480-los-angeles", "case-un3480-los-angeles", {
       en: caseCopy("en", "UN3480 Lithium Batteries to Los Angeles", "un3480-lithium-batteries-los-angeles", "Representative movement of 5 t of UN3480 lithium batteries to Los Angeles in about 14 days.", facts, "Battery classification, test evidence, packing, and capacity timing had to be aligned before acceptance.", "The team coordinated document readiness, compliant handling data, booking, and milestone follow-up.", "For this project, the selected plan took about 14 days, seven days less and 8% lower in cost than the compared option at that time."),
@@ -417,22 +417,22 @@ const caseStudies: SeedItem[] = [
   (() => {
     const facts = [
       fact("destination", "Turkey", "Destination", "目的地", "Пункт назначения"),
-      fact("dimensions", "11.8 x 2.6 x 3.2", "Dimensions", "设备尺寸", "Габариты", { en: "m", zh: "米", ru: "м" }),
-      fact("weight", "28", "Weight", "货重", "Вес", { en: "t", zh: "吨", ru: "т" }),
+      fact("dimensions", "11.8 × 2.6 × 3.2", "Dimensions", "设备尺寸", "Габариты", "m"),
+      fact("weight", "28", "Weight", "货重", "Вес", "t"),
       fact("equipment", "40-foot flat rack", "Equipment", "箱型", "Оборудование"),
     ];
     return item("case-studies", "injection-machine-turkey", "case-injection-machine-turkey", {
-      en: caseCopy("en", "Injection Machine Export to Turkey", "injection-machine-turkey", "Representative export of a 28 t injection machine measuring 11.8 x 2.6 x 3.2 m in a 40-foot flat rack.", facts, "The machine exceeded standard dimensions and required a verified lifting and securing plan.", "The team coordinated measurement checks, flat-rack booking, lifting interfaces, securing, and transport documents.", "The machine moved to Turkey under the agreed special-container plan."),
-      zh: caseCopy("zh", "注塑机出口土耳其", "zhu-su-ji-tu-er-qi", "代表性项目：一台 28 吨、尺寸 11.8 x 2.6 x 3.2 米的注塑机使用 40 英尺框架柜出口土耳其。", facts, "设备超出标准尺寸，需要核实吊装与加固方案。", "团队协同尺寸复核、框架柜订舱、吊装接口、加固及运输单证。", "设备按约定的特种柜方案运往土耳其。"),
-      ru: caseCopy("ru", "Экспорт термопластавтомата в Турцию", "termoplastavtomat-turtsiya", "Представительный проект: оборудование весом 28 т и размером 11.8 x 2.6 x 3.2 м отправлено в Турцию на 40-футовой платформе flat rack.", facts, "Оборудование превышало стандартные габариты, поэтому требовались проверенные схемы подъема и крепления.", "Команда координировала замеры, бронирование flat rack, подъем, крепление и транспортные документы.", "Оборудование отправлено в Турцию по согласованной схеме со специальным контейнером."),
+      en: caseCopy("en", "Injection Molding Machine Export to Turkey", "injection-molding-machine-turkey", "Representative export of a 28 t injection molding machine measuring 11.8 × 2.6 × 3.2 m in a 40-foot flat rack.", facts, "The injection molding machine exceeded standard dimensions and required a verified lifting and securing plan.", "The team coordinated injection molding machine measurements, flat-rack booking, lifting interfaces, securing, and transport documents.", "The injection molding machine moved to Turkey under the agreed special-container plan."),
+      zh: caseCopy("zh", "注塑机出口土耳其", "zhu-su-ji-tu-er-qi", "代表性项目：一台 28 吨、尺寸 11.8 × 2.6 × 3.2 米的注塑机使用 40 英尺框架柜出口土耳其。", facts, "设备超出标准尺寸，需要核实吊装与加固方案。", "团队协同尺寸复核、框架柜订舱、吊装接口、加固及运输单证。", "设备按约定的特种柜方案运往土耳其。"),
+      ru: caseCopy("ru", "Экспорт термопластавтомата в Турцию", "termoplastavtomat-turtsiya", "Представительный проект: оборудование весом 28 т и размером 11.8 × 2.6 × 3.2 м отправлено в Турцию на 40-футовой платформе flat rack.", facts, "Оборудование превышало стандартные габариты, поэтому требовались проверенные схемы подъема и крепления.", "Команда координировала замеры, бронирование flat rack, подъем, крепление и транспортные документы.", "Оборудование отправлено в Турцию по согласованной схеме со специальным контейнером."),
     }, { processStageId: "pickup" });
   })(),
   (() => {
     const facts = [
       fact("destination", "Moscow", "Destination", "目的地", "Пункт назначения"),
       fact("mode", "TIR road", "Mode", "运输方式", "Вид перевозки"),
-      fact("distance", "8600", "Distance", "运输里程", "Расстояние", { en: "km approx.", zh: "公里左右", ru: "км, около" }),
-      fact("duration", "15", "Transit time", "运输时效", "Срок перевозки", { en: "days approx.", zh: "天左右", ru: "дней, около" }),
+      fact("distance", "8,600", "Approximate distance", "运输里程（约）", "Примерное расстояние", "km"),
+      fact("duration", "15", "Approximate transit time", "运输时效（约）", "Примерный срок перевозки", "days"),
     ];
     return item("case-studies", "excavators-tir-moscow", "case-excavators-tir-moscow", {
       en: caseCopy("en", "Excavators by TIR to Moscow", "excavators-tir-moscow", "Representative TIR movement of excavators to Moscow over about 8,600 km in about 15 days.", facts, "Large equipment required route checks, cross-border timing, and protection at each handoff.", "The team coordinated TIR documentation, border milestones, equipment securing, and delivery communication.", "The representative route covered about 8,600 km and reached Moscow in about 15 days."),
@@ -444,8 +444,8 @@ const caseStudies: SeedItem[] = [
     const facts = [
       fact("route", "China-Russia", "Route", "路线", "Маршрут"),
       fact("mode", "Rail", "Mode", "运输方式", "Вид перевозки"),
-      fact("duration", "18-22", "Transit time", "运输时效", "Срок перевозки", { en: "days approx.", zh: "天左右", ru: "дней, около" }),
-      fact("projectCostDifference", "60", "Project cost comparison", "项目成本对比", "Сравнение стоимости", { en: "% below air", zh: "% 低于空运", ru: "% ниже авиаперевозки" }),
+      fact("duration", "18–22", "Approximate transit time", "运输时效（约）", "Примерный срок перевозки", "days"),
+      fact("projectCostDifference", "60", "Representative project cost comparison with air", "该项目与空运成本对比", "Сравнение стоимости с авиа в этом проекте", "%"),
     ];
     return item("case-studies", "auto-parts-rail-russia", "case-auto-parts-rail-russia", {
       en: caseCopy("en", "Auto Parts by Rail from China to Russia", "auto-parts-rail-china-russia", "Representative China-Russia rail movement of auto parts in about 18-22 days.", facts, "The plan had to balance delivery timing, rail schedules, terminal handoffs, and budget.", "The team coordinated container planning, rail booking, border documents, and final road delivery.", "For this project, transit was about 18-22 days and the compared rail plan cost about 60% less than air at that time."),
@@ -457,8 +457,8 @@ const caseStudies: SeedItem[] = [
     const facts = [
       fact("destination", "Munich", "Destination", "目的地", "Пункт назначения"),
       fact("mode", "Air", "Mode", "运输方式", "Вид перевозки"),
-      fact("weight", "3", "Weight", "货重", "Вес", { en: "t", zh: "吨", ru: "т" }),
-      fact("duration", "42", "Transit time", "运输时效", "Срок перевозки", { en: "hours approx.", zh: "小时左右", ru: "часа, около" }),
+      fact("weight", "3", "Weight", "货重", "Вес", "t"),
+      fact("duration", "42", "Approximate transit time", "运输时效（约）", "Примерный срок перевозки", "hours"),
     ];
     return item("case-studies", "electronics-air-munich", "case-electronics-air-munich", {
       en: caseCopy("en", "Electronics by Air to Munich", "electronics-air-munich", "Representative air movement of 3 t of electronics to Munich in about 42 hours.", facts, "The high-priority cargo required rapid document readiness, capacity confirmation, and coordinated handoffs.", "The team aligned cargo data, flight booking, airport handling, milestone updates, and destination delivery.", "The representative shipment reached Munich in about 42 hours."),
@@ -470,9 +470,9 @@ const caseStudies: SeedItem[] = [
     const facts = [
       fact("cargo", "Used semiconductor equipment", "Cargo", "货物", "Груз"),
       fact("movement", "Import clearance", "Project type", "项目类型", "Тип проекта"),
-      fact("resolutionDuration", "5", "Resolution time", "问题处理用时", "Срок решения", { en: "days approx.", zh: "天左右", ru: "дней, около" }),
+      fact("duration", "5", "Approximate project resolution time", "该项目问题处理用时（约）", "Примерный срок решения в проекте", "days"),
     ];
-    return item("case-studies", "semiconductor-import-clearance", "case-semiconductor-import-clearance", {
+    return item("case-studies", "semiconductor-import-clearance", "case-semiconductor-clearance", {
       en: caseCopy("en", "Used Semiconductor Equipment Import Clearance", "used-semiconductor-import-clearance", "Representative import-clearance project for used semiconductor equipment, with the identified issue resolved in about five days.", facts, "Used equipment records required reconciliation before inspection and customs communication could proceed.", "The team coordinated document comparison, equipment data clarification, inspection support, and customs-facing communication.", "The identified clearance issue was resolved in about five days for this project."),
       zh: caseCopy("zh", "二手半导体设备进口清关", "er-shou-ban-dao-ti-she-bei-qing-guan", "代表性项目：二手半导体设备进口清关，发现的问题约 5 天完成处理。", facts, "二手设备资料需要核对一致后，方可推进查验及关务沟通。", "团队协同单证比对、设备信息澄清、查验支持及关务沟通。", "该项目发现的清关问题约 5 天完成处理。"),
       ru: caseCopy("ru", "Импортное оформление бывшего в эксплуатации полупроводникового оборудования", "importnoe-oformlenie-poluprovodnikovogo-oborudovaniya", "Представительный проект импортного оформления бывшего в эксплуатации полупроводникового оборудования; выявленный вопрос решен примерно за пять дней.", facts, "До досмотра и взаимодействия с таможней требовалось сверить сведения о бывшем в эксплуатации оборудовании.", "Команда координировала сопоставление документов, уточнение данных, поддержку досмотра и коммуникацию с таможней.", "Выявленный вопрос оформления был решен примерно за пять дней в рамках этого проекта."),
