@@ -4,6 +4,7 @@ import {
   parseContentBody,
   structuredContentBodySchema,
 } from "./structured-body.js";
+import { publicItemSchema } from "./public-contract.js";
 
 describe("structured content body", () => {
   it("accepts version 1 paragraph, fact-list, and process sections", () => {
@@ -53,5 +54,31 @@ describe("structured content body", () => {
       kind: "legacy-text",
       text: JSON.stringify(unsafeBody),
     });
+  });
+
+  it("requires a nullable structured body in the public item contract", () => {
+    const publicItem = {
+      id: "ocean-freight",
+      locale: "en",
+      slug: "ocean-freight",
+      title: "Ocean Freight",
+      summary: "Ocean freight services.",
+      body: "Existing editorial paragraph",
+      structuredBody: null,
+      seoTitle: "Ocean Freight | AnShow",
+      seoDescription: "Ocean freight services.",
+      altText: "Ocean freight scene",
+      processStageId: null,
+      alternates: {},
+      media: null,
+    };
+    const missingStructuredBody = Object.fromEntries(
+      Object.entries(publicItem).filter(([key]) => key !== "structuredBody"),
+    );
+
+    expect(publicItemSchema.safeParse(publicItem).success).toBe(true);
+    expect(publicItemSchema.safeParse(missingStructuredBody).success).toBe(
+      false,
+    );
   });
 });

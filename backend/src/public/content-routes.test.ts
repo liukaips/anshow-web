@@ -18,6 +18,7 @@ const PUBLIC_ITEM_KEYS = [
   "seoDescription",
   "seoTitle",
   "slug",
+  "structuredBody",
   "summary",
   "title",
 ];

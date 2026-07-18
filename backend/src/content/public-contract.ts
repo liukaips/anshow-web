@@ -1,14 +1,10 @@
 import { z } from "@hono/zod-openapi";
 
-import {
-  structuredContentBodySchema,
-  type StructuredContentBody,
-} from "./structured-body.js";
+import { structuredContentBodySchema } from "./structured-body.js";
 import {
   LOCALES,
   PUBLIC_COLLECTIONS,
   PROCESS_STAGE_IDS,
-  type ProcessStageId,
 } from "./types.js";
 
 export const localeSchema = z.enum(LOCALES).openapi("PublicLocale");
@@ -30,24 +26,7 @@ export const mediaSchema = z
 
 export type PublicMedia = z.infer<typeof mediaSchema>;
 
-export type PublicContentItem = {
-  id: string;
-  locale: z.infer<typeof localeSchema>;
-  slug: string;
-  title: string;
-  summary: string;
-  body: string;
-  /** Existing content producers may omit this until their migration is complete. */
-  structuredBody?: StructuredContentBody | null;
-  seoTitle: string;
-  seoDescription: string;
-  altText: string;
-  processStageId: ProcessStageId | null;
-  alternates: Partial<Record<z.infer<typeof localeSchema>, string>>;
-  media: PublicMedia | null;
-};
-
-export const publicItemSchema = (z
+export const publicItemSchema = z
   .object({
     id: z.string(),
     locale: localeSchema,
@@ -63,7 +42,7 @@ export const publicItemSchema = (z
     alternates: z.partialRecord(localeSchema, z.string()),
     media: mediaSchema.nullable(),
   })
-  .openapi("PublicContentItem") as z.ZodType<PublicContentItem>);
+  .openapi("PublicContentItem");
 
 export const homeSchema = z
   .object({
@@ -118,5 +97,6 @@ export const errorEnvelopeSchema = z
   })
   .openapi("ErrorEnvelope");
 
+export type PublicContentItem = z.infer<typeof publicItemSchema>;
 export type PublicHome = z.infer<typeof homeSchema>;
 export type PublicSitemapItem = z.infer<typeof sitemapItemSchema>;

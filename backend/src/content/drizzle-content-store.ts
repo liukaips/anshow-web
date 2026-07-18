@@ -241,6 +241,7 @@ export function createDrizzleContentStore(
             title: row.title,
             summary: row.summary,
             body: row.body,
+            structuredBody: null,
             seoTitle: row.seoTitle,
             seoDescription: row.seoDescription,
             altText: row.altText,
