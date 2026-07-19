@@ -42,6 +42,44 @@ test("returns a localized not-found page for an unknown public route", async ({
   ).toBeVisible();
 });
 
+for (const route of [
+  "/en/services/ocean-freight",
+  "/zh/services/hai-yun-fu-wu",
+  "/ru/services/morskie-perevozki",
+  "/en/case-studies/un1263-solvent-shenzhen-hamburg",
+  "/zh/case-studies/un1263-rong-ji-shen-zhen-han-bao",
+  "/ru/case-studies/rastvoritel-un1263-shenzhen-gamburg",
+] as const) {
+  test(`${route} exposes complete crawl metadata and structured data`, async ({
+    page,
+  }) => {
+    const response = await page.goto(route);
+    expect(response?.ok(), `${route} should return a successful response`).toBe(true);
+
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
+    await expect(page.locator('link[rel="alternate"][hreflang="x-default"]')).toHaveCount(1);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /\S+/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\/media\//);
+
+    const structuredData = await page.locator('script[type="application/ld+json"]').evaluateAll(
+      (scripts) => scripts.map((script) => JSON.parse(script.textContent ?? "null")),
+    );
+    expect(structuredData).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ "@type": "BreadcrumbList" }),
+        expect.objectContaining({ "@type": route.includes("/services/") ? "Service" : "Article" }),
+      ]),
+    );
+  });
+}
+
+test("keeps preview pages out of indexes and crawler results", async ({ page }) => {
+  const response = await page.goto("/preview/not-a-real-token/en");
+
+  expect(response?.headers()["x-robots-tag"]).toMatch(/noindex/i);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+});
+
 test("key public routes render a primary heading", async ({ page }) => {
   for (const route of publicRoutes) {
     const response = await page.goto(route);

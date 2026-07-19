@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: "/preview/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, noarchive" }],
+      },
+    ];
+  },
 };
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");

@@ -23,7 +23,7 @@ describe("robots", () => {
       rules: {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api"],
+        disallow: ["/admin/", "/preview/", "/api/"],
       },
       sitemap: "https://www.anshow.test/sitemap.xml",
     });

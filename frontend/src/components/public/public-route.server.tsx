@@ -4,16 +4,27 @@ import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { largestSource } from "@/components/home/types";
 import { ProcessStory } from "@/components/process/process-story";
 import { getFrontendServerEnv } from "@/env";
 import { isLocale } from "@/i18n/routing";
-import { pageMetadata, staticLocaleAlternates } from "@/lib/seo";
+import {
+  articleJsonLd,
+  breadcrumbJsonLd,
+  contactPageJsonLd,
+  pageMetadata,
+  serializeJsonLd,
+  serviceJsonLd,
+  staticLocaleAlternates,
+  type SeoPage,
+} from "@/lib/seo";
 
 import {
   loadCollection,
   loadCertificates,
   loadDetail,
   loadFixedPage,
+  type PublicItem,
 } from "./public-content.server";
 import {
   getPublicCopy,
@@ -40,6 +51,7 @@ function metadata(input: {
   alternates?: Partial<Record<"en" | "zh" | "ru", string>>;
   description: string;
   locale: "en" | "zh" | "ru";
+  mediaUrl?: string;
   path: string;
   title: string;
 }): Metadata {
@@ -47,6 +59,22 @@ function metadata(input: {
     ...input,
     siteUrl: getFrontendServerEnv().SITE_URL,
   });
+}
+
+function publicMediaUrl(item: PublicItem): string | undefined {
+  return item.media
+    ? largestSource(item.media.webpSrcSet) ?? largestSource(item.media.avifSrcSet)
+    : undefined;
+}
+
+function jsonLd(value: unknown, key: string) {
+  return (
+    <script
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(value) }}
+      key={key}
+      type="application/ld+json"
+    />
+  );
 }
 
 export async function collectionRouteMetadata(
@@ -94,6 +122,7 @@ export async function detailRouteMetadata(
     alternates: item.alternates,
     description: item.seoDescription,
     locale,
+    mediaUrl: publicMediaUrl(item),
     path: `/${collection}/${encodeURIComponent(item.slug)}`,
     title: item.seoTitle,
   });
@@ -117,13 +146,54 @@ export async function renderDetailRoute(
     />
   ) : undefined;
 
+  const siteUrl = getFrontendServerEnv().SITE_URL;
+  const path = `/${locale}/${collection}/${encodeURIComponent(item.slug)}`;
+  const page: SeoPage = {
+    description: item.seoDescription,
+    imageUrl: publicMediaUrl(item),
+    locale,
+    name: item.title,
+    path,
+  };
+  const labels = getPublicCopy(locale);
+  const schemas: Array<readonly [string, unknown]> = [
+    [
+      "breadcrumb",
+      breadcrumbJsonLd(siteUrl, [
+        { name: labels.home, path: `/${locale}` },
+        {
+          name: labels.collections[collection].title,
+          path: `/${locale}/${collection}`,
+        },
+        { name: item.title, path },
+      ]),
+    ],
+  ];
+
+  if (collection === "services" || collection === "special-cargo") {
+    schemas.unshift(["service", serviceJsonLd(siteUrl, page)]);
+  } else if (collection === "insights" || collection === "case-studies") {
+    schemas.unshift([
+      "article",
+      articleJsonLd(siteUrl, {
+        ...page,
+        ...(collection === "case-studies"
+          ? { articleSection: "Representative logistics project" }
+          : {}),
+      }),
+    ]);
+  }
+
   return (
-    <PublicDetailPage
-      collection={collection}
-      item={item}
-      locale={locale}
-      process={process}
-    />
+    <>
+      <PublicDetailPage
+        collection={collection}
+        item={item}
+        locale={locale}
+        process={process}
+      />
+      {schemas.map(([key, value]) => jsonLd(value, key))}
+    </>
   );
 }
 
@@ -139,6 +209,7 @@ export async function fixedPageMetadata(
     alternates: item.alternates,
     description: item.seoDescription,
     locale,
+    mediaUrl: publicMediaUrl(item),
     path: `/${code}`,
     title: item.seoTitle,
   });
@@ -153,7 +224,24 @@ export async function renderFixedPageRoute(
   setRequestLocale(locale);
   const item = await loadFixedPage(locale, code);
   if (!item) notFound();
-  return <StaticContentPage item={item} locale={locale} />;
+  if (code !== "contact") return <StaticContentPage item={item} locale={locale} />;
+
+  const siteUrl = getFrontendServerEnv().SITE_URL;
+  return (
+    <>
+      <StaticContentPage item={item} locale={locale} />
+      {jsonLd(
+        contactPageJsonLd(siteUrl, {
+          description: item.seoDescription,
+          imageUrl: publicMediaUrl(item),
+          locale,
+          name: item.title,
+          path: `/${locale}/contact`,
+        }),
+        "contact-page",
+      )}
+    </>
+  );
 }
 
 export async function quoteRouteMetadata(params: LocaleParams): Promise<Metadata> {

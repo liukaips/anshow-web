@@ -64,4 +64,26 @@ describe("sitemap", () => {
 
     await expect(sitemap()).rejects.toThrow(/root-relative/);
   });
+
+  it("preserves only the published record and its actual locale alternates", async () => {
+    mockedListPublishedUrls.mockResolvedValue([
+      {
+        path: "/en/services/ocean-freight",
+        updatedAt: "2026-07-14T12:00:00.000Z",
+        alternates: {
+          en: "/en/services/ocean-freight",
+          zh: "/zh/services/hai-yun-fu-wu",
+        },
+      },
+    ]);
+
+    const entries = await sitemap();
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.url).not.toMatch(/admin|preview/);
+    expect(entries[0]?.alternates?.languages).toEqual({
+      en: "https://www.anshow.test/en/services/ocean-freight",
+      zh: "https://www.anshow.test/zh/services/hai-yun-fu-wu",
+    });
+  });
 });
