@@ -273,6 +273,22 @@ describe("migrateAndInitializeDatabase", () => {
             expect.objectContaining({ type: "fact-list" }),
           ]),
         });
+        expect(
+          sqlite
+            .prepare("select name, email, email_verified from user")
+            .all(),
+        ).toEqual([
+          {
+            name: "liukai",
+            email: "liukai@anshow.local",
+            email_verified: 1,
+          },
+        ]);
+        expect(
+          sqlite
+            .prepare("select role_id from user_roles")
+            .all(),
+        ).toEqual([{ role_id: "super-administrator" }]);
       } finally {
         sqlite.close();
       }

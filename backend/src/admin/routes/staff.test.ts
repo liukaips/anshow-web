@@ -26,6 +26,17 @@ function repository(): StaffRepository {
     ]),
     get: vi.fn(() => null),
     listRoles: vi.fn(() => []),
+    create: vi.fn(async () => ({
+      id: "11111111-1111-4111-8111-111111111111" as `${string}-${string}-${string}-${string}-${string}`,
+      name: "刘凯",
+      email: "liukai@anshow.local",
+      enabled: true,
+      createdAt: new Date("2026-07-19T13:00:00.000Z"),
+      roles: "System Administrator",
+      roleIds: ["system-administrator"],
+      roleNames: ["System Administrator"],
+      isSuperAdmin: false,
+    })),
     disable: vi.fn(),
     enable: vi.fn(),
     setRoles: vi.fn(),
@@ -78,6 +89,34 @@ describe("admin staff routes", () => {
 
     expect(response.status).toBe(403);
     expect(staffRepository.revokeSessions).not.toHaveBeenCalled();
+  });
+
+  it("creates a staff account with the authenticated actor", async () => {
+    const staffRepository = repository();
+    const response = await app(staffRepository).request("/api/admin/staff", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "liukai",
+        name: "刘凯",
+        password: "liukaiok",
+        roleIds: ["system-administrator"],
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(staffRepository.create).toHaveBeenCalledWith(
+      {
+        account: "liukai",
+        name: "刘凯",
+        password: "liukaiok",
+        roleIds: ["system-administrator"],
+      },
+      "admin-1",
+    );
+    expect(await response.json()).toMatchObject({
+      data: { email: "liukai@anshow.local", enabled: true },
+    });
   });
 
   it("revokes sessions with the authenticated actor", async () => {

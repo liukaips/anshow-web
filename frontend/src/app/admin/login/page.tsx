@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/auth/client";
+import { loginAccountToEmail } from "@/auth/login-account";
 import { AnShowLogo } from "@/components/brand/anshow-logo";
 
 const inputClassName =
@@ -21,7 +22,7 @@ export default function AdminLoginPage() {
 
     try {
       const result = await authClient.signIn.email({
-        email: String(formData.get("email")),
+        email: loginAccountToEmail(String(formData.get("email"))),
         password: String(formData.get("password")),
         callbackURL: "/admin",
       });
@@ -64,15 +65,16 @@ export default function AdminLoginPage() {
             <form action={submit} className="space-y-5">
               <div className="space-y-2">
                 <label className="block text-sm font-medium" htmlFor="email">
-                  邮箱
+                  账号
                 </label>
                 <input
                   autoComplete="username"
                   className={inputClassName}
                   id="email"
                   name="email"
+                  placeholder="liukai 或邮箱"
                   required
-                  type="email"
+                  type="text"
                 />
               </div>
 

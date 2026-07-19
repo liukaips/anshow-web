@@ -669,7 +669,7 @@ export interface paths {
         };
         get: operations["listStaff"];
         put?: never;
-        post?: never;
+        post: operations["createStaff"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4961,6 +4961,130 @@ export interface operations {
             };
             /** @description 无员工管理权限 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+        };
+    };
+    createStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    account: string;
+                    name: string;
+                    password: string;
+                    roleIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description 员工账号已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            id: string;
+                            name: string;
+                            email: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            createdAt: string | null;
+                            roles: string | null;
+                            roleIds: string[];
+                            roleNames: string[];
+                            isSuperAdmin: boolean;
+                        };
+                        error: unknown;
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 创建员工输入无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 无员工管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 创建员工依赖的账号不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: unknown;
+                        error: {
+                            code: string;
+                            message: string;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description 员工账号已存在或角色受保护 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -82,18 +82,18 @@ curl -fsS "https://${SITE_HOST}/api/health/ready"
 curl -I "https://${SITE_HOST}/en"
 ```
 
-## 4. 创建首个超级管理员
+## 4. 登录 Admin
 
-交互式输入密码，避免密码进入命令历史：
+`migrate` 首次成功执行后会自动初始化官网内容、内置图片、RBAC 角色和默认超级管理员。
 
-```bash
-read -r -s ANSHOW_ADMIN_PASSWORD
-printf '%s' "$ANSHOW_ADMIN_PASSWORD" | docker compose run --rm -T backend \
-  node backend/dist/scripts/create-admin.js admin@example.com --name "超级管理员"
-unset ANSHOW_ADMIN_PASSWORD
-```
+默认登录信息：
 
-创建后访问 `https://正式域名/admin/login`。Admin 固定使用中文。
+- 账号：`liukai`
+- 密码：`liukaiok`
+
+访问 `https://正式域名/admin/login`。Admin 固定使用中文。
+
+登录后建议立即进入“员工与角色”创建个人账号，并为默认账号更换使用策略或停用。生产环境不要继续保留多人共用账号。
 
 ## 5. Admin 中的备份配置
 

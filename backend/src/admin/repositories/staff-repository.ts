@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import type { AppDatabase } from "../../db/client.js";
-import { session, user } from "../../db/schema/auth.js";
+import { account, session, user } from "../../db/schema/auth.js";
 import {
   permissions,
   rolePermissions,
@@ -9,6 +9,7 @@ import {
   userRoles,
 } from "../../db/schema/rbac.js";
 import { auditLogs } from "../../db/schema/settings.js";
+import { hashCredentialPassword } from "../../auth/credential-password.js";
 
 export const STAFF_REPOSITORY_ERROR_CODES = [
   "SELF_DISABLE",
@@ -16,6 +17,7 @@ export const STAFF_REPOSITORY_ERROR_CODES = [
   "SUPER_ADMIN_REQUIRED",
   "STAFF_NOT_FOUND",
   "INVALID_ROLE",
+  "STAFF_ALREADY_EXISTS",
 ] as const;
 
 type StaffRepositoryErrorCode =
@@ -114,6 +116,48 @@ function assertSuperAdminActor(
   }
 }
 
+export type CreateStaffInput = {
+  account: string;
+  name: string;
+  password: string;
+  roleIds: string[];
+};
+
+function normalizeStaffAccount(value: string): string {
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.includes("@") ? trimmed : `${trimmed}@anshow.local`;
+}
+
+function assertValidStaffInput(input: CreateStaffInput): CreateStaffInput {
+  const account = input.account.trim();
+  const name = input.name.trim();
+  const password = input.password;
+  if (!account || account.length > 80 || /\s/.test(account)) {
+    throw new StaffRepositoryError(
+      "STAFF_ALREADY_EXISTS",
+      "登录账号格式不正确",
+    );
+  }
+  if (!name || name.length > 80) {
+    throw new StaffRepositoryError(
+      "STAFF_ALREADY_EXISTS",
+      "员工姓名格式不正确",
+    );
+  }
+  if (password.length < 8 || password.length > 128) {
+    throw new StaffRepositoryError(
+      "STAFF_ALREADY_EXISTS",
+      "初始密码需为 8 到 128 个字符",
+    );
+  }
+  return {
+    account,
+    name,
+    password,
+    roleIds: [...new Set(input.roleIds)],
+  };
+}
+
 export function createStaffRepository(database: AppDatabase) {
   const assignedRoles = (userId: string) =>
     database
@@ -125,6 +169,94 @@ export function createStaffRepository(database: AppDatabase) {
       .all();
 
   return {
+    async create(input: CreateStaffInput, actorId: string) {
+      const validated = assertValidStaffInput(input);
+      const normalizedEmail = normalizeStaffAccount(validated.account);
+      const id = crypto.randomUUID();
+      const now = new Date();
+      const passwordHash = await hashCredentialPassword(validated.password);
+
+      return database.transaction((transaction) => {
+        const existing = transaction
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.email, normalizedEmail))
+          .get();
+        if (existing) {
+          throw new StaffRepositoryError(
+            "STAFF_ALREADY_EXISTS",
+            "该登录账号已存在",
+          );
+        }
+
+        const availableRoles = transaction
+          .select({ id: roles.id, name: roles.name })
+          .from(roles)
+          .all();
+        const availableRoleIds = new Set(availableRoles.map((role) => role.id));
+        if (
+          validated.roleIds.length === 0 ||
+          validated.roleIds.some((roleId) => !availableRoleIds.has(roleId))
+        ) {
+          throw new StaffRepositoryError(
+            "INVALID_ROLE",
+            "选择的角色不存在，请刷新后重试",
+          );
+        }
+
+        const selectedRoleNames = availableRoles
+          .filter((role) => validated.roleIds.includes(role.id))
+          .map((role) => role.name);
+        if (selectedRoleNames.includes("Super Administrator")) {
+          assertSuperAdminActor(transaction, actorId);
+        }
+
+        transaction
+          .insert(user)
+          .values({
+            id,
+            name: validated.name,
+            email: normalizedEmail,
+            emailVerified: true,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .run();
+        transaction
+          .insert(account)
+          .values({
+            id: crypto.randomUUID(),
+            accountId: id,
+            providerId: "credential",
+            userId: id,
+            password: passwordHash,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .run();
+        transaction
+          .insert(userRoles)
+          .values(validated.roleIds.map((roleId) => ({ userId: id, roleId })))
+          .run();
+        audit(transaction, actorId, "staff.create", id, {
+          roleIds: validated.roleIds,
+          highRisk: selectedRoleNames.includes("Super Administrator"),
+        });
+
+        return {
+          id,
+          name: validated.name,
+          email: normalizedEmail,
+          enabled: true,
+          createdAt: now,
+          roles: selectedRoleNames.join("、") || null,
+          roleIds: validated.roleIds,
+          roleNames: selectedRoleNames,
+          isSuperAdmin: selectedRoleNames.includes("Super Administrator"),
+        };
+      });
+    },
+
     list() {
       return database
         .select({

@@ -4,6 +4,7 @@ import {
   LogOut,
   Save,
   ShieldCheck,
+  UserPlus,
   UserRoundCheck,
   UserRoundX,
 } from "lucide-react";
@@ -35,9 +36,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   SUPER_ADMIN_REQUIRED: "只有超级管理员可以修改其他超级管理员。",
   STAFF_NOT_FOUND: "未找到该员工账号，请刷新后重试。",
   INVALID_ROLE: "选择的角色已发生变化，请刷新后重新选择。",
+  STAFF_ALREADY_EXISTS: "该登录账号已存在，请换一个账号。",
 };
 
-async function mutate(path: string, body?: unknown): Promise<void> {
+async function postJson<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
     ...(body === undefined
@@ -47,7 +49,7 @@ async function mutate(path: string, body?: unknown): Promise<void> {
           body: JSON.stringify(body),
         }),
   });
-  if (response.ok) return;
+  if (response.ok) return (await response.json()) as T;
 
   let payload: { error?: { code?: string; message?: string } } = {};
   try {
@@ -61,6 +63,10 @@ async function mutate(path: string, body?: unknown): Promise<void> {
       payload.error?.message ??
       "操作失败，请检查网络后重试。",
   );
+}
+
+async function mutate(path: string, body?: unknown): Promise<void> {
+  await postJson(path, body);
 }
 
 function normalizeStaff(item: StaffMember): OperationalStaffMember {
@@ -102,6 +108,12 @@ export function StaffForm({
     text: string;
     tone: "error" | "success";
   } | null>(null);
+  const [newStaff, setNewStaff] = useState({
+    account: "",
+    name: "",
+    password: "",
+    roleIds: [] as string[],
+  });
 
   function toggleRole(userId: string, roleId: string) {
     setSelectedRoles((current) => {
@@ -113,6 +125,41 @@ export function StaffForm({
           : [...assigned, roleId],
       };
     });
+  }
+
+  function toggleNewStaffRole(roleId: string) {
+    setNewStaff((current) => ({
+      ...current,
+      roleIds: current.roleIds.includes(roleId)
+        ? current.roleIds.filter((value) => value !== roleId)
+        : [...current.roleIds, roleId],
+    }));
+  }
+
+  async function createStaff() {
+    setBusy("create");
+    setMessage(null);
+    try {
+      const response = await postJson<{ data: StaffMember }>("/api/admin/staff", newStaff);
+      const created = normalizeStaff(response.data);
+      setItems((current) => [...current, created]);
+      setSelectedRoles((current) => ({
+        ...current,
+        [created.id]: created.roleIds ?? [],
+      }));
+      setNewStaff({ account: "", name: "", password: "", roleIds: [] });
+      setMessage({
+        text: "员工账号已创建，可使用初始密码登录",
+        tone: "success",
+      });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : "创建员工失败，请重试。",
+        tone: "error",
+      });
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function saveRoles(employee: OperationalStaffMember) {
@@ -223,6 +270,104 @@ export function StaffForm({
           分配角色、处理账号状态或立即撤销登录会话。
         </p>
       </div>
+
+      <form
+        className="grid gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-5 sm:px-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void createStaff();
+        }}
+      >
+        <div>
+          <h3 className="text-base font-semibold text-neutral-950">
+            新建员工账号
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">
+            填写账号、姓名、初始密码并选择角色，保存后员工即可登录后台。
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <label className="grid gap-1 text-sm font-medium text-neutral-900">
+            登录账号
+            <input
+              className="min-h-11 rounded border border-neutral-300 bg-white px-3 text-base font-normal text-neutral-950 outline-none focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
+              onChange={(event) =>
+                setNewStaff((current) => ({
+                  ...current,
+                  account: event.target.value,
+                }))
+              }
+              placeholder="例如 liukai"
+              required
+              value={newStaff.account}
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-neutral-900">
+            员工姓名
+            <input
+              className="min-h-11 rounded border border-neutral-300 bg-white px-3 text-base font-normal text-neutral-950 outline-none focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
+              onChange={(event) =>
+                setNewStaff((current) => ({
+                  ...current,
+                  name: event.target.value,
+                }))
+              }
+              placeholder="例如 刘凯"
+              required
+              value={newStaff.name}
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-neutral-900">
+            初始密码
+            <input
+              className="min-h-11 rounded border border-neutral-300 bg-white px-3 text-base font-normal text-neutral-950 outline-none focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100"
+              minLength={8}
+              onChange={(event) =>
+                setNewStaff((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+              placeholder="至少 8 位"
+              required
+              type="password"
+              value={newStaff.password}
+            />
+          </label>
+        </div>
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-medium text-neutral-900">
+            初始角色
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {roles.map((role) => (
+              <label
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded border border-neutral-200 bg-white px-3 text-sm text-neutral-800 hover:bg-neutral-50"
+                key={role.id}
+              >
+                <input
+                  checked={newStaff.roleIds.includes(role.id)}
+                  className="size-5 accent-[var(--color-cyan-ink)]"
+                  onChange={() => toggleNewStaffRole(role.id)}
+                  required={newStaff.roleIds.length === 0}
+                  type="checkbox"
+                />
+                新员工角色：{staffRoleLabel(role.name)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div className="flex justify-end">
+          <button
+            className="inline-flex min-h-11 items-center gap-2 rounded bg-[var(--color-cyan-ink)] px-4 text-sm font-semibold text-white transition-colors hover:bg-sky-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-cyan-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={busy !== null}
+            type="submit"
+          >
+            <UserPlus aria-hidden="true" className="size-4" />
+            {busy === "create" ? "正在创建..." : "创建员工账号"}
+          </button>
+        </div>
+      </form>
 
       {items.length === 0 ? (
         <AdminEmptyState

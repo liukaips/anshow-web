@@ -43,6 +43,56 @@ afterEach(() => {
 });
 
 describe("StaffForm", () => {
+  it("creates a staff account with initial roles", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          id: "liukai-id",
+          name: "刘凯",
+          email: "liukai@anshow.local",
+          createdAt: "2026-07-19T13:00:00.000Z",
+          roles: "Content Editor",
+          enabled: true,
+          roleIds: ["content-editor"],
+          roleNames: ["Content Editor"],
+          isSuperAdmin: false,
+        },
+      }),
+    });
+
+    render(<StaffForm currentUserId="admin-1" roles={roles} staff={[]} />);
+
+    fireEvent.change(screen.getByLabelText("登录账号"), {
+      target: { value: "liukai" },
+    });
+    fireEvent.change(screen.getByLabelText("员工姓名"), {
+      target: { value: "刘凯" },
+    });
+    fireEvent.change(screen.getByLabelText("初始密码"), {
+      target: { value: "liukaiok" },
+    });
+    fireEvent.click(screen.getByLabelText("新员工角色：内容编辑"));
+    fireEvent.click(screen.getByRole("button", { name: "创建员工账号" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/staff",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            account: "liukai",
+            name: "刘凯",
+            password: "liukaiok",
+            roleIds: ["content-editor"],
+          }),
+        }),
+      ),
+    );
+    expect(screen.getByText("员工账号已创建，可使用初始密码登录")).toBeVisible();
+    expect(screen.getByText("刘凯")).toBeVisible();
+  });
+
   it("shows Chinese account status and role choices", () => {
     render(
       <StaffForm

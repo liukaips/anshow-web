@@ -32,6 +32,14 @@ const staffListItemSchema = z.object({
   roleNames: z.array(z.string()),
   isSuperAdmin: z.boolean(),
 });
+const createStaffInputSchema = z
+  .object({
+    account: z.string().trim().min(1).max(80),
+    name: z.string().trim().min(1).max(80),
+    password: z.string().min(8).max(128),
+    roleIds: z.array(z.string().trim().min(1)).min(1).max(20),
+  })
+  .strict();
 
 const commonErrors = {
   401: {
@@ -54,6 +62,41 @@ const listRoute = createRoute({
       content: {
         "application/json": { schema: envelope(z.array(staffListItemSchema)) },
       },
+    },
+    ...commonErrors,
+  },
+});
+
+const createStaffRoute = createRoute({
+  method: "post",
+  path: "/api/admin/staff",
+  operationId: "createStaff",
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": { schema: createStaffInputSchema },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "员工账号已创建",
+      content: {
+        "application/json": { schema: envelope(staffListItemSchema) },
+      },
+    },
+    400: {
+      description: "创建员工输入无效",
+      content: { "application/json": { schema: error } },
+    },
+    404: {
+      description: "创建员工依赖的账号不存在",
+      content: { "application/json": { schema: error } },
+    },
+    409: {
+      description: "员工账号已存在或角色受保护",
+      content: { "application/json": { schema: error } },
     },
     ...commonErrors,
   },
@@ -243,6 +286,18 @@ export function registerStaffRoutes(
     }
   };
 
+  const staffError = (context: Context<AppEnv>, caught: StaffRepositoryError) => {
+    const status = caught.code === "STAFF_NOT_FOUND" ? 404 : 409;
+    return context.json(
+      {
+        data: null,
+        error: { code: caught.code, message: caught.message },
+        requestId: context.get("requestId"),
+      },
+      status,
+    );
+  };
+
   app.openapi(listRoute, (context) =>
     context.json(
       {
@@ -283,6 +338,24 @@ export function registerStaffRoutes(
       200,
     ),
   );
+  app.openapi(createStaffRoute, async (context) => {
+    try {
+      return context.json(
+        {
+          data: await repository.create(
+            context.req.valid("json"),
+            context.get("actor")!.user.id,
+          ),
+          error: null,
+          requestId: context.get("requestId"),
+        },
+        201,
+      );
+    } catch (caught) {
+      if (!(caught instanceof StaffRepositoryError)) throw caught;
+      return staffError(context, caught);
+    }
+  });
   app.openapi(accountMutation("disableStaff", "disable"), (context) =>
     runMutation(context, () =>
       repository.disable(

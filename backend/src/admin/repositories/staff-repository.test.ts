@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { roleIdForName, seedRbac } from "../../auth/seed-rbac.js";
 import { createTestDatabase } from "../../db/test-db.js";
-import { session, user } from "../../db/schema/auth.js";
+import { account, session, user } from "../../db/schema/auth.js";
 import { auditLogs } from "../../db/schema/settings.js";
 import { userRoles } from "../../db/schema/rbac.js";
 import {
@@ -55,6 +55,78 @@ function addSession(
 }
 
 describe("staff repository lifecycle", () => {
+  it("creates an enabled credential staff account with audited roles", async () => {
+    const testDatabase = createTestDatabase();
+    try {
+      seedRbac(testDatabase.db);
+      addUser(testDatabase.db, { id: "admin-1", roleNames: ["Super Administrator"] });
+
+      const created = await createStaffRepository(testDatabase.db).create(
+        {
+          account: "liukai",
+          name: "刘凯",
+          password: "liukaiok",
+          roleIds: [roleIdForName("System Administrator")],
+        },
+        "admin-1",
+      );
+
+      expect(created).toMatchObject({
+        name: "刘凯",
+        email: "liukai@anshow.local",
+        enabled: true,
+        roleIds: ["system-administrator"],
+        roleNames: ["System Administrator"],
+      });
+      expect(testDatabase.db.select().from(account).all()).toEqual([
+        expect.objectContaining({
+          accountId: created.id,
+          providerId: "credential",
+          userId: created.id,
+          password: expect.stringMatching(
+            /^\$argon2id\$v=19\$m=19456,t=2,p=1\$/,
+          ),
+        }),
+      ]);
+      expect(testDatabase.db.select().from(auditLogs).all()).toEqual([
+        expect.objectContaining({
+          actorId: "admin-1",
+          action: "staff.create",
+          entityId: created.id,
+        }),
+      ]);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("requires a super administrator to create another super administrator", async () => {
+    const testDatabase = createTestDatabase();
+    try {
+      seedRbac(testDatabase.db);
+      addUser(testDatabase.db, { id: "system-1", roleNames: ["System Administrator"] });
+
+      await expect(
+        createStaffRepository(testDatabase.db).create(
+          {
+            account: "super-two",
+            name: "Super Two",
+            password: "liukaiok",
+            roleIds: [roleIdForName("Super Administrator")],
+          },
+          "system-1",
+        ),
+      ).rejects.toThrowError(
+        expect.objectContaining<Partial<StaffRepositoryError>>({
+          code: "SUPER_ADMIN_REQUIRED",
+        }),
+      );
+      expect(testDatabase.db.select().from(user).all()).toHaveLength(1);
+    } finally {
+      testDatabase.close();
+    }
+  });
+
   it("returns one employee row with status and all assigned roles", () => {
     const testDatabase = createTestDatabase();
     try {

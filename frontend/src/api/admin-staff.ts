@@ -1,4 +1,14 @@
-export type StaffMember = { id: string; name: string; email: string; createdAt: string; roles: string | null };
+export type StaffMember = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  roles: string | null;
+  enabled?: boolean;
+  roleIds?: string[];
+  roleNames?: string[];
+  isSuperAdmin?: boolean;
+};
 export type StaffRole = { id: string; name: string; permissions: string[] };
 
 export async function updateStaff(id: string, action: "enable" | "disable") {
