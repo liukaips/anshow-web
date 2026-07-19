@@ -21,7 +21,7 @@ const catalogAliases: Record<string, string> = {
   "ocean-freight": "service-ocean", "air-freight": "service-air", "rail-freight": "service-rail", "road-freight": "service-road", multimodal: "service-multimodal", customs: "service-customs", warehousing: "service-warehouse",
   "china-russia": "lane-china-russia", "china-europe": "lane-china-europe", "central-asia": "lane-central-asia", "global-network": "lane-global",
   "project-cargo": "cargo-project", "oversized-cargo": "cargo-oversized", "dangerous-goods": "cargo-dangerous", "temperature-controlled": "cargo-cold-chain",
-  about: "anshow-office", network: "trust-coordination", contact: "anshow-contact", "multimodal-planning": "trust-coordination", "customs-readiness": "trust-customs", "warehouse-handoff": "trust-warehouse", "enquiry-preparation": "trust-operations", "mode-selection": "service-multimodal", "document-readiness": "trust-customs",
+  about: "hero-ocean", network: "trust-coordination", contact: "hero-ocean", "multimodal-planning": "trust-coordination", "customs-readiness": "trust-customs", "warehouse-handoff": "trust-warehouse", "enquiry-preparation": "trust-operations", "mode-selection": "service-multimodal", "document-readiness": "trust-customs",
   "un1263-hamburg": "case-un1263-hamburg", "un3265-india": "case-un3265-india", "un3480-los-angeles": "case-un3480-los-angeles", "injection-machine-turkey": "case-injection-machine-turkey", "excavators-tir-moscow": "case-excavators-tir-moscow", "auto-parts-rail-russia": "case-auto-parts-rail-russia", "electronics-air-munich": "case-electronics-air-munich", "semiconductor-import-clearance": "case-semiconductor-clearance",
 };
 
@@ -43,8 +43,9 @@ export async function mediaForCatalogId(id: string, alt: string): Promise<Public
   if (!record) return null;
   const desktop = record.variants.filter((variant) => variant.role === "desktop");
   const mobileAvif = record.variants.find((variant) => variant.role === "mobile" && variant.format === "avif")?.url ?? null;
+  const mobileWebp = record.variants.find((variant) => variant.role === "mobile" && variant.format === "webp")?.url ?? null;
   const avifSrcSet = desktop.filter((variant) => variant.format === "avif").map((variant) => `${variant.url} ${variant.width}w`).join(", ");
   const webpSrcSet = desktop.filter((variant) => variant.format === "webp").map((variant) => `${variant.url} ${variant.width}w`).join(", ");
   if (!avifSrcSet || !webpSrcSet) return null;
-  return { alt, width: record.width, height: record.height, dominantColor: record.dominantColor, mobileAvif, avifSrcSet, webpSrcSet };
+  return { alt, width: record.width, height: record.height, dominantColor: record.dominantColor, mobileAvif, mobileWebp, avifSrcSet, webpSrcSet };
 }

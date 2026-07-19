@@ -19,6 +19,7 @@ export const mediaSchema = z
     height: z.number().int().positive(),
     dominantColor: z.string(),
     mobileAvif: z.string().nullable(),
+    mobileWebp: z.string().nullable(),
     avifSrcSet: z.string(),
     webpSrcSet: z.string(),
   })

@@ -18,6 +18,9 @@ export function ContentMedia({ item, eager = false, className = "" }: ContentMed
       {media.mobileAvif ? (
         <source media="(max-width: 767px)" srcSet={media.mobileAvif} type="image/avif" />
       ) : null}
+      {media.mobileWebp ? (
+        <source media="(max-width: 767px)" srcSet={media.mobileWebp} type="image/webp" />
+      ) : null}
       <source sizes="(max-width: 767px) 100vw, 50vw" srcSet={media.avifSrcSet} type="image/avif" />
       <source sizes="(max-width: 767px) 100vw, 50vw" srcSet={media.webpSrcSet} type="image/webp" />
       <img
@@ -33,4 +36,3 @@ export function ContentMedia({ item, eager = false, className = "" }: ContentMed
     </picture>
   );
 }
-

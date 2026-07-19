@@ -339,9 +339,12 @@ async function loadPrompts(rootDir: string): Promise<PromptRecord[]> {
 }
 
 async function preflightSources(rootDir: string, prompts: PromptRecord[]): Promise<void> {
-  const required = prompts.flatMap(({ id }) => {
+  const required = prompts.flatMap(({ id, mobilePrompt }) => {
     const sources = [path.join(rootDir, "assets/source", `${id}.png`)];
     if (id.startsWith("hero-")) {
+      sources.push(path.join(rootDir, "assets/source", `${id}-mobile.png`));
+    }
+    if (mobilePrompt && !id.startsWith("hero-")) {
       sources.push(path.join(rootDir, "assets/source", `${id}-mobile.png`));
     }
     return sources;
@@ -355,7 +358,20 @@ async function preflightSources(rootDir: string, prompts: PromptRecord[]): Promi
     }
   }
   if (missing.length > 0) {
-    throw new Error(`Required source images are missing:\n${missing.map((file) => `- ${file}`).join("\n")}`);
+    const declaredMobileSources = new Set(
+      prompts.flatMap(({ id, mobilePrompt }) =>
+        mobilePrompt ? [path.join(rootDir, "assets/source", `${id}-mobile.png`)] : [],
+      ),
+    );
+    throw new Error(
+      `Required source images are missing:\n${missing
+        .map((file) =>
+          declaredMobileSources.has(file)
+            ? `- Required mobile source declared by prompt: ${file}`
+            : `- ${file}`,
+        )
+        .join("\n")}`,
+    );
   }
 }
 
@@ -512,12 +528,13 @@ export async function verifyAssets(options: WorkspaceOptions = {}): Promise<Veri
   }
 
   let completeSourceRecords = 0;
-  for (const { id } of prompts) {
+  for (const { id, mobilePrompt } of prompts) {
     const recordStart = violations.length;
     const kind: AssetKind = id.startsWith("hero-") ? "hero" : "content";
     const source = path.join(rootDir, "assets/source", `${id}.png`);
     const mobileSource = path.join(rootDir, "assets/source", `${id}-mobile.png`);
-    const hasMobileSource = kind === "hero" || (await isReadable(mobileSource));
+    const mobileSourceExists = await isReadable(mobileSource);
+    const hasMobileSource = kind === "hero" || mobileSourceExists;
     const requiredSources = kind === "hero" ? [source, mobileSource] : [source];
     for (const requiredSource of requiredSources) {
       try {
@@ -525,6 +542,9 @@ export async function verifyAssets(options: WorkspaceOptions = {}): Promise<Veri
       } catch {
         violations.push(`Missing source image: ${requiredSource}`);
       }
+    }
+    if (mobilePrompt && !mobileSourceExists) {
+      violations.push(`Missing mobile source declared by prompt: ${mobileSource}`);
     }
 
     const record = recordById.get(id);

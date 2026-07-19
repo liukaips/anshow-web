@@ -1745,6 +1745,7 @@ export interface components {
             height: number;
             dominantColor: string;
             mobileAvif: string | null;
+            mobileWebp: string | null;
             avifSrcSet: string;
             webpSrcSet: string;
         } | null;

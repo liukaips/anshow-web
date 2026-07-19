@@ -3623,6 +3623,10 @@
             "type": "string",
             "nullable": true
           },
+          "mobileWebp": {
+            "type": "string",
+            "nullable": true
+          },
           "avifSrcSet": {
             "type": "string"
           },
@@ -3636,6 +3640,7 @@
           "height",
           "dominantColor",
           "mobileAvif",
+          "mobileWebp",
           "avifSrcSet",
           "webpSrcSet"
         ]

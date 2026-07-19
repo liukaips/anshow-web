@@ -146,6 +146,38 @@ it("shares the approved evidence-led order and preview-scoped links", () => {
   expect(positions).toEqual([...positions].sort((left, right) => left - right));
 });
 
+it("forwards both portrait formats from public media to the hero picture", () => {
+  const slide = homeItem({
+    id: "ocean",
+    media: {
+      alt: "Container vessel at a terminal",
+      avifSrcSet: "/media/hero-ocean/desktop-1280.avif 1280w",
+      dominantColor: "rgb(20 40 60)",
+      height: 1152,
+      mobileAvif: "/media/hero-ocean/mobile-768.avif",
+      mobileWebp: "/media/hero-ocean/mobile-768.webp",
+      webpSrcSet: "/media/hero-ocean/desktop-1280.webp 1280w",
+      width: 2048,
+    },
+  });
+  const { container } = render(
+    <HomepageContent
+      content={{ ...content, slides: [slide] }}
+      labels={labels}
+      locale="zh"
+      processStory={<section>流程内容</section>}
+    />,
+  );
+
+  const mobileSources = [
+    ...container.querySelectorAll('source[media="(max-width: 767px)"]'),
+  ];
+  expect(mobileSources.map((source) => [source.type, source.srcset])).toEqual([
+    ["image/avif", slide.media?.mobileAvif],
+    ["image/webp", slide.media?.mobileWebp],
+  ]);
+});
+
 it("keeps the founded fact in trust and selects commitments by stable database IDs", () => {
   const founded = homeItem({
     id: "founded-2012",

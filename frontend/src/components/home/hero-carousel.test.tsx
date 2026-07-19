@@ -9,6 +9,7 @@ const slides = [
     fallback: "/media/hero-ocean/desktop-1280.webp",
     id: "ocean",
     mobileAvif: "/media/hero-ocean/mobile-768.avif",
+    mobileWebp: "/media/hero-ocean/mobile-768.webp",
     summary: "Plan containerized movements with one forwarding contact.",
     title: "Ocean freight",
   },
@@ -94,10 +95,14 @@ describe("HeroCarousel", () => {
     expect(images[0]).toHaveAttribute("fetchpriority", "high");
     expect(images[0]).toHaveAttribute("loading", "eager");
     expect(images[1]).toHaveAttribute("loading", "lazy");
-    expect(document.querySelector('source[media="(max-width: 767px)"]')).toHaveAttribute(
-      "srcset",
-      slides[0].mobileAvif,
-    );
+    const mobileSources = [
+      ...document.querySelectorAll('source[media="(max-width: 767px)"]'),
+    ];
+    expect(mobileSources).toHaveLength(2);
+    expect(mobileSources[0]).toHaveAttribute("type", "image/avif");
+    expect(mobileSources[0]).toHaveAttribute("srcset", slides[0].mobileAvif);
+    expect(mobileSources[1]).toHaveAttribute("type", "image/webp");
+    expect(mobileSources[1]).toHaveAttribute("srcset", slides[0].mobileWebp);
   });
 
   it("renders a stable conversion hero when no slides are published", () => {

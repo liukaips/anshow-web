@@ -75,13 +75,20 @@ async function createMaster(
     .toFile(path.join(sourceDir, `${id}.png`));
 }
 
-async function writePrompts(rootDir: string, ids: string[]) {
+async function writePrompts(rootDir: string, ids: string[], mobileIds: string[] = []) {
   const contentDir = path.join(rootDir, "content/assets");
   await fs.mkdir(contentDir, { recursive: true });
   await fs.writeFile(
     path.join(contentDir, "prompts.json"),
     `${JSON.stringify(
-      ids.map((id) => ({ id, use: "test fixture", prompt: `Approved prompt for ${id}` })),
+      ids.map((id) => ({
+        id,
+        use: "test fixture",
+        prompt: `Approved prompt for ${id}`,
+        ...(mobileIds.includes(id)
+          ? { mobilePrompt: `Approved mobile prompt for ${id}` }
+          : {}),
+      })),
       null,
       2,
     )}\n`,
@@ -297,6 +304,51 @@ describe("processAsset", () => {
 });
 
 describe("asset build", () => {
+  it("rejects a declared mobile prompt when its source master is missing", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "anshow-assets-"));
+
+    try {
+      await writePrompts(
+        rootDir,
+        ["case-un1263-hamburg"],
+        ["case-un1263-hamburg"],
+      );
+      await createMaster(rootDir, "case-un1263-hamburg", 1600, 900, {
+        r: 25,
+        g: 55,
+        b: 75,
+      });
+
+      await expect(buildAssets({ rootDir })).rejects.toThrow(
+        /Required mobile source declared by prompt: .*case-un1263-hamburg-mobile\.png/,
+      );
+    } finally {
+      await fs.rm(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a declared mobile source removed after a successful build", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "anshow-assets-"));
+    const id = "case-un1263-hamburg";
+    const mobileSource = path.join(rootDir, "assets/source", `${id}-mobile.png`);
+
+    try {
+      await writePrompts(rootDir, [id], [id]);
+      await createMaster(rootDir, id, 1600, 900, { r: 25, g: 55, b: 75 });
+      await createMaster(rootDir, `${id}-mobile`, 900, 1200, { r: 30, g: 60, b: 80 });
+      await buildAssets({ rootDir });
+      await fs.rm(mobileSource);
+
+      const summary = await verifyAssets({ rootDir });
+
+      expect(summary.violations).toContain(
+        `Missing mobile source declared by prompt: ${mobileSource}`,
+      );
+    } finally {
+      await fs.rm(rootDir, { recursive: true, force: true });
+    }
+  });
+
   it("publishes a complete manifest before removing stale hashed derivatives", async () => {
     const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "anshow-assets-"));
     const outputDir = path.join(rootDir, "frontend/public/media/service-ocean");

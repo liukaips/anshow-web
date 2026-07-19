@@ -75,6 +75,7 @@ export function HomepageContent({
     fallback: slide.media ? largestSource(slide.media.webpSrcSet) : undefined,
     id: slide.id,
     mobileAvif: slide.media?.mobileAvif,
+    mobileWebp: slide.media?.mobileWebp,
     summary: slide.summary,
     title: slide.title,
     webpSrcSet: slide.media?.webpSrcSet,

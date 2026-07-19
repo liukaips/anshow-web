@@ -12,6 +12,7 @@ export type HeroSlide = {
   alt: string;
   fallback?: string;
   mobileAvif?: string | null;
+  mobileWebp?: string | null;
   avifSrcSet?: string;
   webpSrcSet?: string;
 };
@@ -149,6 +150,13 @@ export function HeroCarousel({
                         media="(max-width: 767px)"
                         srcSet={slide.mobileAvif}
                         type="image/avif"
+                      />
+                    ) : null}
+                    {slide.mobileWebp ? (
+                      <source
+                        media="(max-width: 767px)"
+                        srcSet={slide.mobileWebp}
+                        type="image/webp"
                       />
                     ) : null}
                     {slide.avifSrcSet ? (
