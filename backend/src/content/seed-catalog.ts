@@ -44,7 +44,7 @@ export type ContentSeedRevision = {
 };
 
 export const currentContentSeedRevision = {
-  version: 2,
+  version: 3,
   expectedCatalogDigest:
     "72004b8be71d51c270eb3cbc9708b127ec637152e56b129195a099312147fd1d",
 } as const satisfies ContentSeedRevision;

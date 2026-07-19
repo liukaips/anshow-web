@@ -69,6 +69,7 @@ type CollectionConfig = {
 type PublishedRow = {
   id: string;
   code: string;
+  mediaId: string | null;
   sortOrder: number;
   locale: Locale;
   slug: string;
@@ -204,6 +205,7 @@ export function createDrizzleContentStore(
         .select({
           id: config.base.id,
           code: config.base.code,
+          mediaId: config.base.mediaId,
           sortOrder: config.base.sortOrder,
           locale: config.translations.locale,
           slug: config.translations.slug,
@@ -282,7 +284,7 @@ export function createDrizzleContentStore(
             altText: row.altText,
             processStageId: row.processStageId,
             alternates: {},
-            media: await mediaForCatalogId(row.code, row.altText),
+            media: await mediaForCatalogId(row.mediaId ?? row.code, row.altText),
           },
           code: row.code,
           sortOrder: row.sortOrder,

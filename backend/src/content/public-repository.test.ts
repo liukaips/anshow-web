@@ -9,6 +9,7 @@ import {
   partnerTranslations,
   proofMetrics,
   proofMetricTranslations,
+  mediaAssets,
   services,
   serviceTranslations,
 } from "../db/schema/index.js";
@@ -40,6 +41,8 @@ function insertService(
   db: TestDatabase,
   options: {
     id: string;
+    code?: string;
+    mediaId?: string | null;
     sortOrder?: number;
     archivedAt?: Date;
     translations: Array<{
@@ -56,8 +59,9 @@ function insertService(
   db.insert(services)
     .values({
       id: options.id,
-      code: options.id,
+      code: options.code ?? options.id,
       sortOrder: options.sortOrder ?? 0,
+      mediaId: options.mediaId ?? null,
       archivedAt: options.archivedAt,
       createdAt: NOW,
       updatedAt: NOW,
@@ -157,6 +161,49 @@ describe("public content repository", () => {
       expect(Object.keys(home.services[0] ?? {}).sort()).toEqual(
         PUBLIC_ITEM_KEYS,
       );
+    } finally {
+      testDatabase.close();
+    }
+  });
+
+  it("uses the configured media ID instead of the content code for public images", async () => {
+    const testDatabase = createTestDatabase();
+
+    try {
+      testDatabase.db
+        .insert(mediaAssets)
+        .values({
+          id: "service-customs",
+          storageKey: "seed-test/service-customs",
+          mimeType: "image/webp",
+          width: 1600,
+          height: 900,
+          dominantColor: "#123456",
+          createdAt: NOW,
+        })
+        .run();
+      insertService(testDatabase.db, {
+        id: "customs-origin",
+        code: "customs-origin",
+        mediaId: "service-customs",
+        translations: [
+          { locale: "zh", slug: "bao-guan-yu-chan-di-zheng", title: "报关与产地证" },
+        ],
+      });
+
+      await expect(
+        createRepository(testDatabase.db).getBySlug(
+          "services",
+          "zh",
+          "bao-guan-yu-chan-di-zheng",
+        ),
+      ).resolves.toMatchObject({
+        id: "customs-origin",
+        media: expect.objectContaining({
+          avifSrcSet: expect.stringContaining("/media/service-customs/"),
+          webpSrcSet: expect.stringContaining("/media/service-customs/"),
+        }),
+      });
     } finally {
       testDatabase.close();
     }

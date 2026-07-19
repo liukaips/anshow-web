@@ -1229,7 +1229,7 @@ describe("public content seed", () => {
       });
       expect(revisions).toHaveLength(currentRows);
       expect(new Set(revisions.map((revision) => revision.seedVersion))).toEqual(
-        new Set([2]),
+        new Set([3]),
       );
       expect(seedPublicContent(testDatabase.db, { now: RESEEDED_AT })).toEqual({
         inserted: 0,
@@ -1563,7 +1563,7 @@ describe("public content seed", () => {
         "ru",
         "V3 air title",
       );
-      const v3Result = createTestSeeder(v3Catalog, 3)(testDatabase.db, {
+      const v3Result = createTestSeeder(v3Catalog, 4)(testDatabase.db, {
         now: new Date("2026-10-14T12:00:00.000Z"),
       });
 
@@ -1680,11 +1680,11 @@ describe("public content seed", () => {
         "en",
         "Changed under version two",
       );
-      const changedV2Seeder = createTestSeeder(changedCatalog, 2);
+      const changedV2Seeder = createTestSeeder(changedCatalog, 3);
 
       expect(() =>
         changedV2Seeder(testDatabase.db, { now: RESEEDED_AT }),
-      ).toThrow("Seed version 2 catalog drift");
+      ).toThrow("Seed version 3 catalog drift");
       expect(testDatabase.db.select().from(services).all()).toEqual(
         before.services,
       );
@@ -1725,7 +1725,7 @@ describe("public content seed", () => {
         "Catalog air v3",
       );
 
-      const result = createTestSeeder(v3Catalog, 3)(testDatabase.db, {
+      const result = createTestSeeder(v3Catalog, 4)(testDatabase.db, {
         now: RESEEDED_AT,
       });
 
@@ -1780,7 +1780,7 @@ describe("public content seed", () => {
             ),
           )
           .get(),
-      ).toEqual({ seedVersion: 3 });
+      ).toEqual({ seedVersion: 4 });
     } finally {
       testDatabase.close();
     }
@@ -1803,7 +1803,7 @@ describe("public content seed", () => {
         "Catalog air body without media v3",
       );
 
-      createTestSeeder(v3Catalog, 3)(testDatabase.db, { now: RESEEDED_AT });
+      createTestSeeder(v3Catalog, 4)(testDatabase.db, { now: RESEEDED_AT });
 
       expect(
         testDatabase.db
@@ -1864,7 +1864,7 @@ describe("public content seed", () => {
         "Catalog air operator-media v3",
       );
 
-      const result = createTestSeeder(v3Catalog, 3)(testDatabase.db, {
+      const result = createTestSeeder(v3Catalog, 4)(testDatabase.db, {
         now: RESEEDED_AT,
       });
 
@@ -1905,7 +1905,7 @@ describe("public content seed", () => {
 
       expect(() =>
         seedPublicContent(testDatabase.db, { now: RESEEDED_AT }),
-      ).toThrow("Seed version 2 catalog drift");
+      ).toThrow("Seed version 3 catalog drift");
       expect(
         testDatabase.db
           .select({ mediaId: services.mediaId })

@@ -8,6 +8,7 @@ import {
   type ContentSeeder,
   type SeedResult,
 } from "../content/seed.js";
+import { seedManifestMediaAssets } from "../content/media-asset-seed.js";
 import { initializeRuntime } from "../runtime-bootstrap.js";
 import type { RuntimeEnv } from "../env.js";
 import type { AppDatabase } from "./client.js";
@@ -65,6 +66,7 @@ export async function migrateAndInitializeDatabase(
 
     try {
       runMigrations(opened.db, { migrationsFolder });
+      await seedManifestMediaAssets(opened.db);
       const seedResult = seed(opened.db);
       const summary = {
         inserted: seedResult.inserted,
