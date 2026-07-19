@@ -170,7 +170,9 @@ it("forwards both portrait formats from public media to the hero picture", () =>
   );
 
   const mobileSources = [
-    ...container.querySelectorAll('source[media="(max-width: 767px)"]'),
+    ...container.querySelectorAll<HTMLSourceElement>(
+      'source[media="(max-width: 767px)"]',
+    ),
   ];
   expect(mobileSources.map((source) => [source.type, source.srcset])).toEqual([
     ["image/avif", slide.media?.mobileAvif],
