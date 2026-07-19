@@ -75,7 +75,7 @@ export function EvidenceCases({
                     <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-black/10 py-4">
                       {facts.map((fact) => (
                         <div className="min-w-0" key={fact.key}>
-                          <dt className="truncate text-[0.7rem] text-black/50">{fact.label}</dt>
+                          <dt className="truncate text-[0.7rem] text-black/65">{fact.label}</dt>
                           <dd className="mt-1 flex flex-wrap items-baseline gap-1 font-mono text-lg font-semibold tabular-nums text-[var(--color-text)]">
                             {fact.value}
                             {fact.unit ? <span className="text-xs font-normal text-black/55">{fact.unit}</span> : null}

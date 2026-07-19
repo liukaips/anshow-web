@@ -13,9 +13,20 @@ import type { PublicCollection } from "@/components/public/public-copy";
 import { PreviewBanner } from "@/components/preview/preview-banner";
 import { isLocale } from "@/i18n/routing";
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } };
-
 const collections = new Set<PublicCollection>(["services", "trade-lanes", "special-cargo", "insights", "case-studies"]);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string; locale: string }>;
+}): Promise<Metadata> {
+  const { token, locale: candidate } = await params;
+  if (!isLocale(candidate)) return {};
+  const preview = await getPublicPreview(token, candidate).catch(() => null);
+  return preview
+    ? { robots: { index: false, follow: false, nocache: true } }
+    : {};
+}
 
 export default async function PreviewPage({ params }: { params: Promise<{ token: string; locale: string; rest?: string[] }> }) {
   const { token, locale: candidate, rest = [] } = await params;
