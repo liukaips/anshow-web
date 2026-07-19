@@ -29,6 +29,7 @@ export type PromptRecord = {
   id: string;
   use: string;
   prompt: string;
+  mobilePrompt?: string;
 };
 
 export type VerificationSummary = {
@@ -247,7 +248,7 @@ function parsePrompts(value: unknown, filePath: string): PromptRecord[] {
     if (!candidate || typeof candidate !== "object") {
       throw new Error(`${filePath}[${index}] must be an object`);
     }
-    const { id, prompt, use } = candidate as Record<string, unknown>;
+    const { id, mobilePrompt, prompt, use } = candidate as Record<string, unknown>;
     if (typeof id !== "string" || !ASSET_ID.test(id)) {
       throw new Error(`${filePath}[${index}].id is invalid`);
     }
@@ -260,8 +261,19 @@ function parsePrompts(value: unknown, filePath: string): PromptRecord[] {
     if (typeof prompt !== "string" || prompt.trim() === "") {
       throw new Error(`${filePath}[${index}].prompt must be a non-empty string`);
     }
+    if (
+      mobilePrompt !== undefined &&
+      (typeof mobilePrompt !== "string" || mobilePrompt.trim() === "")
+    ) {
+      throw new Error(`${filePath}[${index}].mobilePrompt must be a non-empty string`);
+    }
     ids.add(id);
-    prompts.push({ id, use, prompt });
+    prompts.push({
+      id,
+      use,
+      prompt,
+      ...(typeof mobilePrompt === "string" ? { mobilePrompt } : {}),
+    });
   }
   return prompts;
 }

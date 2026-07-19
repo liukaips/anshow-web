@@ -25,6 +25,12 @@ const CASE_ASSET_IDS = [
 
 const FEATURE_CASE_ASSET_IDS = CASE_ASSET_IDS.slice(0, 4);
 
+const DANGEROUS_GOODS_MARKS = {
+  "case-un1263-hamburg": "standardized Class 3 flammable-liquid hazard diamond",
+  "case-un3265-india": "standardized Class 8 corrosive hazard diamond",
+  "case-un3480-los-angeles": "standardized Class 9 lithium-battery hazard diamond",
+} as const;
+
 const ALL_ASSET_IDS = [
   "hero-ocean",
   "hero-air",
@@ -169,6 +175,42 @@ describe("generation prompts", () => {
       ["semiconductor-import-clearance", "case-semiconductor-clearance"],
     ] as const) {
       expect(catalogSource).toMatch(new RegExp(`"${alias}":\\s*"${id}"`));
+    }
+  });
+
+  it("audits mobile art direction for exactly the mobile-enabled case sources", async () => {
+    const prompts = JSON.parse(
+      await fs.readFile(path.join(process.cwd(), "content/assets/prompts.json"), "utf8"),
+    ) as Array<{ id: string; mobilePrompt?: string }>;
+    const withMobilePrompt = prompts
+      .filter(({ mobilePrompt }) => typeof mobilePrompt === "string" && mobilePrompt.length > 0)
+      .map(({ id }) => id);
+
+    expect(withMobilePrompt).toEqual(FEATURE_CASE_ASSET_IDS);
+    for (const id of FEATURE_CASE_ASSET_IDS) {
+      const mobilePrompt = prompts.find((prompt) => prompt.id === id)?.mobilePrompt ?? "";
+      expect(mobilePrompt, id).toMatch(/portrait 3:4/i);
+      expect(mobilePrompt, id).toMatch(/lower third/i);
+      expect(mobilePrompt, id).toMatch(/upper safe negative space/i);
+      expect(mobilePrompt, id).toMatch(/realistic safe (?:handling|securement)/i);
+      expect(mobilePrompt, id).toMatch(/no (?:commercial )?brands/i);
+    }
+    for (const [id, regulatedMark] of Object.entries(DANGEROUS_GOODS_MARKS)) {
+      const mobilePrompt = prompts.find((prompt) => prompt.id === id)?.mobilePrompt ?? "";
+      expect(mobilePrompt, id).toContain(regulatedMark);
+    }
+  });
+
+  it("requires exact standardized dangerous-goods marks without commercial labels", async () => {
+    const prompts = JSON.parse(
+      await fs.readFile(path.join(process.cwd(), "content/assets/prompts.json"), "utf8"),
+    ) as Array<{ id: string; prompt: string }>;
+
+    for (const [id, regulatedMark] of Object.entries(DANGEROUS_GOODS_MARKS)) {
+      const prompt = prompts.find((candidate) => candidate.id === id)?.prompt ?? "";
+      expect(prompt, id).toContain(regulatedMark);
+      expect(prompt, id).toMatch(/no commercial text/i);
+      expect(prompt, id).toMatch(/no fake customer labels/i);
     }
   });
 });
