@@ -11,6 +11,17 @@ import { PublishCenter } from "./publish-center";
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("PublishCenter", () => {
+  it("explains the release gate in frontend outcome language", () => {
+    render(<PublishCenter canPublish />);
+
+    expect(screen.getByRole("heading", { name: "前台预览" })).toBeVisible();
+    expect(screen.getByText("三语完成情况")).toBeVisible();
+    expect(screen.getByText("图片检查")).toBeVisible();
+    expect(screen.getByText("SEO 标题与描述")).toBeVisible();
+    expect(screen.getByText("发布记录")).toBeVisible();
+    expect(screen.queryByText(/hash|snapshot|token|webhook/i)).toBeNull();
+  });
+
   it("creates same-domain preview links for all locales", async () => {
     createPreview.mockResolvedValue({ rawToken: "preview-token", snapshotId: "snapshot-1", tokenId: "token-1", contentHash: "a".repeat(64), sourceVersions: [], createdAt: new Date().toISOString(), expiresAt: new Date().toISOString() });
     render(<PublishCenter />);

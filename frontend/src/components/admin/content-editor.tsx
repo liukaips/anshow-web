@@ -34,6 +34,7 @@ import { AdvancedSettings } from "./content/editor/advanced-settings";
 import { ChineseContentStep } from "./content/editor/chinese-content-step";
 import {
   firstContentErrorField,
+  validateChineseContent,
   type TranslationField,
 } from "./content/editor/content-validation";
 
@@ -353,6 +354,12 @@ export function ContentEditor({
   }
 
   async function save() {
+    const nextErrors = validateChineseContent(activeDraft);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      setMessage({ kind: "error", text: "请先补全页面必填内容。" });
+      return;
+    }
     setPending("save");
     setMessage(null);
     try {
@@ -502,6 +509,7 @@ export function ContentEditor({
 
         <div className="grid min-w-0 grid-cols-1 gap-5">
           <ChineseContentStep
+            collection={collection}
             disabled={fieldsDisabled}
             errors={errors}
             onChange={updateField}

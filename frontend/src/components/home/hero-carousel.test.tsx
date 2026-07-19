@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HeroCarousel } from "./hero-carousel";
@@ -164,6 +164,41 @@ describe("HeroCarousel", () => {
     expect(container.querySelector("[data-autoplay-active]")).toHaveAttribute(
       "data-autoplay-active",
       "true",
+    );
+    expect(screen.getByRole("button", { name: "Pause carousel" })).toBeVisible();
+  });
+
+  it("keeps autoplay disabled when visitors request reduced motion", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: true,
+        removeEventListener: vi.fn(),
+      }),
+    );
+    const { container } = render(
+      <HeroCarousel
+        eyebrow="International freight forwarding"
+        headline="Move freight. Command certainty."
+        labels={{
+          goTo: "Go to slide",
+          next: "Next slide",
+          pause: "Pause carousel",
+          play: "Play carousel",
+          previous: "Previous slide",
+        }}
+        quoteHref="/en/quote"
+        quoteLabel="Plan your shipment"
+        slides={slides}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(container.querySelector("[data-autoplay-active]")).toHaveAttribute(
+        "data-autoplay-active",
+        "false",
+      ),
     );
     expect(screen.getByRole("button", { name: "Pause carousel" })).toBeVisible();
   });

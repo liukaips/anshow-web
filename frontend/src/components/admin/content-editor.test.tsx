@@ -308,6 +308,61 @@ describe("ContentEditor", () => {
     expect(screen.getByText("未发布预览")).toBeVisible();
   });
 
+  it("saves case studies through business fields as structured public content", async () => {
+    render(
+      <ContentEditor
+        canPublish
+        canWrite
+        collection="case-studies"
+        initialItem={{
+          ...ITEM,
+          translations: {
+            en: {
+              ...ITEM.translations.en!,
+              body: JSON.stringify({
+                version: 1,
+                sections: [
+                  {
+                    type: "fact-list",
+                    items: [
+                      { key: "cargo", label: "货物类型", value: "锂电池" },
+                      { key: "origin", label: "起运地", value: "深圳" },
+                      { key: "destination", label: "目的地", value: "洛杉矶" },
+                    ],
+                  },
+                  { type: "paragraph", text: "项目难点：资料复杂。" },
+                  { type: "paragraph", text: "解决方案：合规订舱。" },
+                  { type: "callout", title: "项目结果", text: "按计划交付。" },
+                ],
+              }),
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("货物类型")).toBeVisible();
+    expect(screen.getByLabelText("起运地")).toBeVisible();
+    expect(screen.getByLabelText("目的地")).toBeVisible();
+    expect(screen.queryByText(/JSON|body|slug|code/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("目的地"), {
+      target: { value: "汉堡" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledOnce());
+    const input = saveDraft.mock.calls[0]?.[3];
+    const savedBody = JSON.parse(input.body);
+    expect(savedBody.version).toBe(1);
+    expect(savedBody.sections[0]).toMatchObject({
+      type: "fact-list",
+      items: expect.arrayContaining([
+        { key: "destination", label: "目的地", value: "汉堡" },
+      ]),
+    });
+  });
+
   it("renders translation controls read-only for a viewer", () => {
     render(
       <ContentEditor

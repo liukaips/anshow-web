@@ -1,6 +1,15 @@
 "use client";
 
-import { CheckCircle2, ExternalLink, LoaderCircle, ScanEye, Send } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  FileSearch,
+  ImageIcon,
+  Languages,
+  LoaderCircle,
+  ScanEye,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -10,6 +19,28 @@ const locales = [
   ["zh", "中文"],
   ["en", "英文"],
   ["ru", "俄文"],
+] as const;
+const releaseChecks = [
+  {
+    icon: Languages,
+    title: "三语完成情况",
+    text: "中文、英文和俄文页面都需要检查标题、摘要和正文是否完整。",
+  },
+  {
+    icon: ImageIcon,
+    title: "图片检查",
+    text: "确认首页轮播、服务、案例和联系页图片已显示，并且移动端裁切正常。",
+  },
+  {
+    icon: FileSearch,
+    title: "SEO 标题与描述",
+    text: "确认搜索结果标题、页面描述和分享图片能够说明业务内容。",
+  },
+  {
+    icon: CheckCircle2,
+    title: "发布记录",
+    text: "发布后系统会保留本次变更记录，便于后续追踪和回退判断。",
+  },
 ] as const;
 
 export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: boolean }>) {
@@ -86,7 +117,7 @@ export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: bo
       <section className="border border-neutral-200 bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">整站预览</h2>
+            <h2 className="text-lg font-semibold">前台预览</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">生成当前所有草稿的固定快照。链接 24 小时内有效，之后修改内容不会改变这份预览。</p>
           </div>
           <button className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-action)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={pending} onClick={create} type="button">
@@ -97,6 +128,22 @@ export function PublishCenter({ canPublish = false }: Readonly<{ canPublish?: bo
         <div aria-live="polite" className="mt-4 min-h-6">
           {error ? <p className="text-sm text-[var(--color-danger)]" role="alert">{error}</p> : null}
           {preview ? <p className="text-sm font-medium text-[var(--color-teal-ink)]">预览已生成。请分别检查三种语言和页面布局。</p> : null}
+        </div>
+      </section>
+      <section className="border border-neutral-200 bg-white p-5 sm:p-6">
+        <h2 className="text-lg font-semibold">发布前检查</h2>
+        <div className="mt-4 grid gap-px overflow-hidden border border-neutral-200 bg-neutral-200 md:grid-cols-2">
+          {releaseChecks.map((item) => (
+            <div className="flex gap-3 bg-white p-4" key={item.title}>
+              <span className="grid size-10 shrink-0 place-items-center rounded bg-neutral-100 text-neutral-700">
+                <item.icon aria-hidden="true" className="size-5" />
+              </span>
+              <div>
+                <h3 className="font-semibold text-neutral-950">{item.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-neutral-600">{item.text}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
       {preview ? (

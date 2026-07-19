@@ -12,7 +12,39 @@ export type BackupSettings = {
   encryptionConfigured: boolean;
 };
 
-export type AdminSettings = { backup?: BackupSettings } & Record<string, unknown>;
+export type SiteLocale = "en" | "zh" | "ru";
+
+export type AdminSettings = {
+  backup?: BackupSettings;
+  companyIdentity?: {
+    displayName: string;
+    legalName: string;
+    registrationNumber: string;
+    address: string;
+  };
+  publicContacts?: {
+    email: string;
+    phone: string;
+  };
+  privacyController?: {
+    name: string;
+    email: string;
+  };
+  smtpRecipient?: {
+    name: string;
+    email: string;
+  };
+  localeDefaults?: {
+    defaultLocale: SiteLocale;
+    enabledLocales: SiteLocale[];
+  };
+  mediaMode?: "local" | "cos";
+  featureFlags?: {
+    enquiriesEnabled: boolean;
+    caseStudiesEnabled: boolean;
+    insightsEnabled: boolean;
+  };
+} & Record<string, unknown>;
 
 export async function getAdminSettings(): Promise<AdminSettings> {
   const requestHeaders = await headers();

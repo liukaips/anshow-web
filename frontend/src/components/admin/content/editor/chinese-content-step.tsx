@@ -1,8 +1,13 @@
-import type { AdminContentTranslationInput } from "../../../../api/admin-content";
+import type {
+  AdminContentCollection,
+  AdminContentTranslationInput,
+} from "../../../../api/admin-content";
 import { AdminFormField } from "../../ui/admin-form-field";
+import { BusinessContentFields } from "./business-content-fields";
 import type { ContentFieldErrors, TranslationField } from "./content-validation";
 
 type ChineseContentStepProps = {
+  collection: AdminContentCollection;
   disabled: boolean;
   errors: ContentFieldErrors;
   onChange: (field: TranslationField, value: string) => void;
@@ -12,9 +17,15 @@ type ChineseContentStepProps = {
 const inputClass =
   "min-h-11 w-full rounded-[var(--radius-control)] border border-neutral-300 bg-white px-3 py-2 text-base text-[var(--color-text)] outline-none transition-[border-color,box-shadow] duration-[var(--motion-fast)] focus:border-[var(--color-cyan-ink)] focus:ring-2 focus:ring-sky-100 disabled:bg-neutral-100";
 
-export function ChineseContentStep({ disabled, errors, onChange, value }: ChineseContentStepProps) {
+export function ChineseContentStep({
+  collection,
+  disabled,
+  errors,
+  onChange,
+  value,
+}: ChineseContentStepProps) {
   const field = (
-    name: "title" | "summary" | "body",
+    name: "title" | "summary",
     label: string,
     help: string,
     multiline = false,
@@ -26,7 +37,7 @@ export function ChineseContentStep({ disabled, errors, onChange, value }: Chines
           disabled={disabled}
           id={`translation-${name}`}
           onChange={(event) => onChange(name, event.target.value)}
-          rows={name === "body" ? 10 : 4}
+          rows={4}
           value={value[name]}
         />
       ) : (
@@ -54,7 +65,13 @@ export function ChineseContentStep({ disabled, errors, onChange, value }: Chines
       </div>
       {field("title", "标题", "填写内容名称，建议 4–30 个字，会显示在页面标题和内容列表中。")}
       {field("summary", "一句话介绍", "用一两句话概括核心价值，建议不超过 80 个字。", true)}
-      {field("body", "详细说明", "说明服务范围、流程、优势和注意事项。", true)}
+      <BusinessContentFields
+        collection={collection}
+        disabled={disabled}
+        error={errors.body}
+        onChange={(nextValue) => onChange("body", nextValue)}
+        value={value.body}
+      />
     </section>
   );
 }
