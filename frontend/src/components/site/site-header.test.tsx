@@ -87,6 +87,21 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Торговые направления").length).toBeGreaterThan(0);
     expect(screen.queryByText("Trade lanes")).not.toBeInTheDocument();
   });
+
+  it("keeps the current section highlighted after navigation", () => {
+    vi.mocked(usePathname).mockReturnValue("/zh/trade-lanes/china-russia");
+
+    render(<SiteHeader labels={englishLabels} locale="zh" />);
+
+    const tradeLanes = screen.getByRole("link", {
+      name: englishLabels.tradeLanes,
+    });
+    expect(tradeLanes).toHaveAttribute("aria-current", "page");
+    expect(tradeLanes).toHaveClass("text-[var(--color-cyan)]");
+    expect(
+      screen.getByRole("link", { name: englishLabels.services }),
+    ).not.toHaveAttribute("aria-current");
+  });
 });
 
 describe("MobileMenu", () => {

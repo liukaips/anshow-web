@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { AnShowLogo } from "../brand/anshow-logo";
 import type { SupportedLocale } from "../../lib/app-config";
@@ -14,6 +17,18 @@ const navigationItems = [
   ["about", "about"],
   ["contact", "contact"],
 ] as const;
+
+function isActiveNavigationPath(
+  pathname: string,
+  locale: SupportedLocale,
+  path: string,
+) {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  const localeHome = `/${locale}`;
+  if (!path) return normalized === localeHome;
+  const href = `${localeHome}/${path}`;
+  return normalized === href || normalized.startsWith(`${href}/`);
+}
 
 export type SiteHeaderLabels = {
   about: string;
@@ -43,6 +58,8 @@ export function SiteHeader({
   labels,
   locale,
 }: SiteHeaderProps) {
+  const pathname = usePathname();
+
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border-inverse)] bg-[var(--color-carbon)] text-[var(--color-text-inverse)]">
       <nav
@@ -58,15 +75,23 @@ export function SiteHeader({
         </Link>
 
         <div className="hidden min-w-0 items-center justify-center gap-5 xl:flex">
-          {navigationItems.map(([key, path]) => (
-            <Link
-              className="flex min-h-11 items-center text-sm font-medium text-[var(--color-muted-inverse)] hover:text-[var(--color-cyan)]"
-              href={path ? `/${locale}/${path}` : `/${locale}`}
-              key={key}
-            >
-              {labels[key]}
-            </Link>
-          ))}
+          {navigationItems.map(([key, path]) => {
+            const active = isActiveNavigationPath(pathname, locale, path);
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-11 items-center text-sm font-medium transition-colors ${
+                  active
+                    ? "text-[var(--color-cyan)]"
+                    : "text-[var(--color-muted-inverse)] hover:text-[var(--color-cyan)]"
+                }`}
+                href={path ? `/${locale}/${path}` : `/${locale}`}
+                key={key}
+              >
+                {labels[key]}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
