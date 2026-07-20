@@ -50,6 +50,46 @@ describe("public route pages", () => {
     expect(screen.queryByText(/certificate/i)).not.toBeInTheDocument();
   });
 
+  it("does not create a desktop grid hole for eight collection cards", () => {
+    const items = Array.from({ length: 8 }, (_, index) => ({
+      ...item,
+      id: `case-${index}`,
+      slug: `case-${index}`,
+      title: `Case ${index + 1}`,
+    }));
+    const { container } = render(
+      <PublicCollectionPage
+        collection="case-studies"
+        items={items}
+        locale="en"
+      />,
+    );
+
+    const cards = container.querySelectorAll("article");
+    expect(cards).toHaveLength(8);
+    expect(cards[7]).not.toHaveClass("xl:col-span-3");
+  });
+
+  it("features the final desktop card only when it starts a clean full row", () => {
+    const items = Array.from({ length: 7 }, (_, index) => ({
+      ...item,
+      id: `case-${index}`,
+      slug: `case-${index}`,
+      title: `Case ${index + 1}`,
+    }));
+    const { container } = render(
+      <PublicCollectionPage
+        collection="case-studies"
+        items={items}
+        locale="en"
+      />,
+    );
+
+    const cards = container.querySelectorAll("article");
+    expect(cards).toHaveLength(7);
+    expect(cards[6]).toHaveClass("xl:col-span-3");
+  });
+
   it("keeps detail context, responsive placeholder, and a short quote path", () => {
     render(
       <PublicDetailPage

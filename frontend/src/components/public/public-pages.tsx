@@ -163,7 +163,7 @@ export function PublicCollectionPage({
               {items.map((item, index) => {
                 const isLast = index === items.length - 1;
                 const isTabletFeature = items.length % 2 === 1 && isLast;
-                const isDesktopFeature = items.length % 3 !== 0 && isLast;
+                const isDesktopFeature = items.length % 3 === 1 && isLast;
                 return (
                 <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isTabletFeature && !isDesktopFeature ? "xl:col-span-1" : ""} ${isDesktopFeature ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
                   <PublicMedia compact={!isDesktopFeature} eager={isTabletFeature || isDesktopFeature} item={item} />
