@@ -50,7 +50,7 @@ describe("public route pages", () => {
     expect(screen.queryByText(/certificate/i)).not.toBeInTheDocument();
   });
 
-  it("spans the final desktop card across two columns for eight collection cards", () => {
+  it("uses two aligned half-row desktop cards for eight collection cards", () => {
     const items = Array.from({ length: 8 }, (_, index) => ({
       ...item,
       id: `case-${index}`,
@@ -67,8 +67,9 @@ describe("public route pages", () => {
 
     const cards = container.querySelectorAll("article");
     expect(cards).toHaveLength(8);
-    expect(cards[7]).not.toHaveClass("xl:col-span-3");
-    expect(cards[7]).toHaveClass("xl:col-span-2");
+    expect(cards[6]).toHaveClass("xl:col-span-3");
+    expect(cards[7]).toHaveClass("xl:col-span-3");
+    expect(cards[7]).not.toHaveClass("xl:grid");
   });
 
   it("features the final desktop card only when it starts a clean full row", () => {
@@ -88,7 +89,8 @@ describe("public route pages", () => {
 
     const cards = container.querySelectorAll("article");
     expect(cards).toHaveLength(7);
-    expect(cards[6]).toHaveClass("xl:col-span-3");
+    expect(cards[6]).toHaveClass("xl:col-span-6");
+    expect(cards[6]).toHaveClass("xl:grid");
   });
 
   it("keeps detail context, responsive placeholder, and a short quote path", () => {

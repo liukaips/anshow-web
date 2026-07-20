@@ -159,21 +159,23 @@ export function PublicCollectionPage({
       <section className="bg-[var(--color-light-surface)] px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
         <div className="mx-auto w-full max-w-7xl">
           {items.length ? (
-            <div className="grid grid-cols-1 gap-px overflow-hidden bg-black/10 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-px overflow-hidden bg-black/10 sm:grid-cols-2 xl:grid-cols-6">
               {items.map((item, index) => {
                 const isLast = index === items.length - 1;
                 const isTabletFeature = items.length % 2 === 1 && isLast;
                 const desktopRemainder = items.length % 3;
-                const desktopSpan = isLast && desktopRemainder === 1 ? 3 : isLast && desktopRemainder === 2 ? 2 : 1;
-                const isDesktopFeature = desktopSpan > 1;
-                const desktopFeatureClassName = desktopSpan === 3
-                  ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
-                  : desktopSpan === 2
-                    ? "xl:col-span-2 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-                    : "";
+                const isDesktopFullFeature = isLast && desktopRemainder === 1;
+                const isDesktopWideRemainder =
+                  desktopRemainder === 2 && index >= items.length - 2;
+                const isDesktopFeature = isDesktopFullFeature;
+                const desktopFeatureClassName = isDesktopFullFeature
+                  ? "xl:col-span-6 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
+                  : isDesktopWideRemainder
+                    ? "xl:col-span-3"
+                    : "xl:col-span-2";
                 return (
                 <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isTabletFeature && !isDesktopFeature ? "xl:col-span-1" : ""} ${desktopFeatureClassName}`} key={item.id}>
-                  <PublicMedia compact={!isDesktopFeature} eager={isTabletFeature || isDesktopFeature} item={item} />
+                  <PublicMedia compact={!isDesktopFeature && !isDesktopWideRemainder} eager={isTabletFeature || isDesktopFeature || isDesktopWideRemainder} item={item} />
                   <div className={`p-6 sm:p-7 ${isDesktopFeature ? "xl:flex xl:flex-col xl:justify-center" : ""}`}>
                     <Icon aria-hidden="true" className="size-6 text-[var(--color-teal-ink)]" />
                     <h2 className="mt-6 text-2xl font-semibold leading-tight">{item.title}</h2>
