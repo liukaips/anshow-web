@@ -9,6 +9,7 @@ const RuntimeEnvSchema = z
     BETTER_AUTH_SECRET: z.string().min(32),
     RATE_LIMIT_SECRET: z.string().min(32),
     MEDIA_DRIVER: z.enum(["local", "cos"]).default("local"),
+    LOCAL_MEDIA_ROOT: z.string().trim().min(1).default("/media"),
     COS_BUCKET: z.string().trim().min(1).optional(),
     COS_REGION: z.string().trim().min(1).optional(),
     COS_PUBLIC_BASE_URL: z.url().optional(),

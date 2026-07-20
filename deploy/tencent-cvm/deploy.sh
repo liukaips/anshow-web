@@ -8,6 +8,7 @@ SITE_HOST_ARG=""
 SITE_URL_ARG=""
 ACME_EMAIL_ARG=""
 SKIP_BUILD="false"
+PULL_IMAGES="false"
 
 usage() {
   cat <<'USAGE'
@@ -20,6 +21,7 @@ Options:
   --site-url <url>      Public origin. Defaults to https://<site-host>.
   --email <email>       ACME account email for automatic HTTPS certificates.
   --skip-build          Skip docker compose build and only restart services.
+  --pull                Pull base images before building. Slower, but refreshes OS layers.
   -h, --help            Show this help.
 
 The script creates .env on first run, generates local secrets, starts Docker
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-build)
       SKIP_BUILD="true"
+      shift
+      ;;
+    --pull)
+      PULL_IMAGES="true"
       shift
       ;;
     -h | --help)
@@ -159,6 +165,8 @@ wait_for_migrate() {
 require_command docker
 require_command openssl
 docker compose version >/dev/null
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
 
 cd "$ROOT_DIR"
 
@@ -218,7 +226,11 @@ echo "  ACME_EMAIL=$ACME_EMAIL"
 
 docker compose -f "$COMPOSE_FILE" config >/dev/null
 if [[ "$SKIP_BUILD" != "true" ]]; then
-  docker compose -f "$COMPOSE_FILE" build --pull
+  if [[ "$PULL_IMAGES" == "true" ]]; then
+    docker compose -f "$COMPOSE_FILE" build --pull
+  else
+    docker compose -f "$COMPOSE_FILE" build
+  fi
 fi
 docker compose -f "$COMPOSE_FILE" up -d
 

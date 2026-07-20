@@ -27,6 +27,7 @@ function environment(overrides: Partial<RuntimeEnv> = {}): RuntimeEnv {
     BETTER_AUTH_SECRET: "a".repeat(32),
     RATE_LIMIT_SECRET: "b".repeat(32),
     MEDIA_DRIVER: "local",
+    LOCAL_MEDIA_ROOT: "/media",
     PORT: 4000,
     ...overrides,
   };

@@ -48,7 +48,7 @@ export function createRuntimeBackupManager(options: {
     database: options.database,
     settingsRepository: options.settingsRepository,
     databasePath: options.environment.DATABASE_PATH,
-    mediaDir: "/media",
+    mediaDir: options.environment.LOCAL_MEDIA_ROOT,
     stagingRoot: join(backupRoot, ".staging"),
     encryptionKey: options.environment.BACKUP_ENCRYPTION_KEY,
     storageFor: createBackupStorageResolver(options.environment),

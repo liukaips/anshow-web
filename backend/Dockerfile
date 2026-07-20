@@ -1,23 +1,30 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
 FROM node:24-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
+ENV PNPM_STORE_DIR=/pnpm/store
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
+RUN corepack enable \
+    && corepack prepare pnpm@10.11.0 --activate \
+    && pnpm config set store-dir /pnpm/store
 WORKDIR /app
 
 FROM base AS build
-RUN apt-get update \
+RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
     && apt-get install -y --no-install-recommends g++ make python3 \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
-RUN pnpm install --frozen-lockfile --filter @anshow/backend...
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store,sharing=locked \
+    pnpm install --frozen-lockfile --prefer-offline --filter @anshow/backend...
 COPY backend backend
 COPY content/assets/manifest.json content/assets/manifest.json
 RUN pnpm --filter @anshow/backend build
-RUN pnpm --filter @anshow/backend deploy --legacy --prod /prod/backend
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store,sharing=locked \
+    pnpm --filter @anshow/backend deploy --legacy --prod /prod/backend
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production

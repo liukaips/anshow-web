@@ -103,7 +103,7 @@ await initializeRuntime(process.env, async (environment) => {
               secretId: environment.COS_SECRET_ID!,
               secretKey: environment.COS_SECRET_KEY!,
             })
-          : createLocalMediaStorage(),
+          : createLocalMediaStorage({ root: environment.LOCAL_MEDIA_ROOT }),
     }),
     staffRepository: createStaffRepository(db),
   });

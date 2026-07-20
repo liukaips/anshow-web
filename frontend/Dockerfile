@@ -1,16 +1,20 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
 FROM node:24-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
+ENV PNPM_STORE_DIR=/pnpm/store
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
+RUN corepack enable \
+    && corepack prepare pnpm@10.11.0 --activate \
+    && pnpm config set store-dir /pnpm/store
 WORKDIR /app
 
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
-RUN pnpm install --frozen-lockfile --filter @anshow/frontend...
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store,sharing=locked \
+    pnpm install --frozen-lockfile --prefer-offline --filter @anshow/frontend...
 
 FROM dependencies AS build
 COPY frontend frontend

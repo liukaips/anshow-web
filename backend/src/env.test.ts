@@ -15,6 +15,7 @@ describe("parseEnv", () => {
   it("normalizes deployment defaults", () => {
     expect(parseEnv(validEnvironment)).toEqual({
       ...validEnvironment,
+      LOCAL_MEDIA_ROOT: "/media",
       MEDIA_DRIVER: "local",
       PORT: 4000,
     });
@@ -31,6 +32,7 @@ describe("parseEnv", () => {
       TRANSLATION_MODEL: "",
     })).toEqual({
       ...validEnvironment,
+      LOCAL_MEDIA_ROOT: "/media",
       MEDIA_DRIVER: "local",
       PORT: 4000,
     });
