@@ -14,9 +14,9 @@
 		Permissions-Policy "camera=(), geolocation=(), microphone=()"
 	}
 
-	handle_path /media/* {
+	handle /media/* {
 		root * {{DATA_ROOT}}
-		try_files /media{path} /builtin-media{path}
+		try_files {path} /builtin-media{path}
 		header Cache-Control "public, max-age=31536000, immutable"
 		file_server
 	}

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import english from "./messages/en.json";
 import russian from "./messages/ru.json";
 import chinese from "./messages/zh.json";
-import { isLocale } from "./routing";
+import { isLocale, routing } from "./routing";
 
 const requiredMessagePaths = [
   ...[
@@ -163,6 +163,11 @@ function expectCompleteContent(value: unknown, path = "messages"): void {
 }
 
 describe("locale routing", () => {
+  it("uses English as the fixed default instead of detecting the browser language", () => {
+    expect(routing.defaultLocale).toBe("en");
+    expect(routing.localeDetection).toBe(false);
+  });
+
   it.each(["en", "zh", "ru"])("accepts the supported locale %s", (locale) => {
     expect(isLocale(locale)).toBe(true);
   });

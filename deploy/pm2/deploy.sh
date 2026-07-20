@@ -197,8 +197,8 @@ copy_next_standalone_assets() {
 
 sync_builtin_media() {
   rm -rf "$DATA_ROOT/builtin-media"
-  mkdir -p "$DATA_ROOT/builtin-media"
-  cp -R "$ROOT_DIR/frontend/public/media/." "$DATA_ROOT/builtin-media/"
+  mkdir -p "$DATA_ROOT/builtin-media/media"
+  cp -R "$ROOT_DIR/frontend/public/media/." "$DATA_ROOT/builtin-media/media/"
 }
 
 wait_for_http() {
