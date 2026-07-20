@@ -163,9 +163,16 @@ export function PublicCollectionPage({
               {items.map((item, index) => {
                 const isLast = index === items.length - 1;
                 const isTabletFeature = items.length % 2 === 1 && isLast;
-                const isDesktopFeature = items.length % 3 === 1 && isLast;
+                const desktopRemainder = items.length % 3;
+                const desktopSpan = isLast && desktopRemainder === 1 ? 3 : isLast && desktopRemainder === 2 ? 2 : 1;
+                const isDesktopFeature = desktopSpan > 1;
+                const desktopFeatureClassName = desktopSpan === 3
+                  ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
+                  : desktopSpan === 2
+                    ? "xl:col-span-2 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+                    : "";
                 return (
-                <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isTabletFeature && !isDesktopFeature ? "xl:col-span-1" : ""} ${isDesktopFeature ? "xl:col-span-3 xl:grid xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`} key={item.id}>
+                <article className={`group bg-white ${isTabletFeature ? "sm:col-span-2" : ""} ${isTabletFeature && !isDesktopFeature ? "xl:col-span-1" : ""} ${desktopFeatureClassName}`} key={item.id}>
                   <PublicMedia compact={!isDesktopFeature} eager={isTabletFeature || isDesktopFeature} item={item} />
                   <div className={`p-6 sm:p-7 ${isDesktopFeature ? "xl:flex xl:flex-col xl:justify-center" : ""}`}>
                     <Icon aria-hidden="true" className="size-6 text-[var(--color-teal-ink)]" />

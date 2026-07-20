@@ -50,7 +50,7 @@ describe("public route pages", () => {
     expect(screen.queryByText(/certificate/i)).not.toBeInTheDocument();
   });
 
-  it("does not create a desktop grid hole for eight collection cards", () => {
+  it("spans the final desktop card across two columns for eight collection cards", () => {
     const items = Array.from({ length: 8 }, (_, index) => ({
       ...item,
       id: `case-${index}`,
@@ -68,6 +68,7 @@ describe("public route pages", () => {
     const cards = container.querySelectorAll("article");
     expect(cards).toHaveLength(8);
     expect(cards[7]).not.toHaveClass("xl:col-span-3");
+    expect(cards[7]).toHaveClass("xl:col-span-2");
   });
 
   it("features the final desktop card only when it starts a clean full row", () => {
